@@ -1,0 +1,65 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2006                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      topoSetDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+thickness  5; //Thickness of Shipping Box
+length  600;
+width	400;
+height	340;
+
+
+actions
+(
+    // Batteries
+    {
+        name    batteriesCellSet;
+        type    cellSet;
+        action  new;
+        source  boxToCell;
+        box     ( 0.00501  0.00501 0.00501) ( 0.59501 0.39501 0.33501 );
+    }
+    {
+        name    batteries;
+        type    cellZoneSet;
+        action  new;
+        source  setToCellZone;
+        set     batteriesCellSet;
+    }
+
+    // shippingBox is all the other cells
+    {
+        name    shippingBoxCellSet;
+        type    cellSet;
+        action  new;
+        source  cellToCell;
+        set     batteriesCellSet;
+    }
+    {
+        name    shippingBoxCellSet;
+        type    cellSet;
+        action  invert;
+    }
+    {
+        name    shippingBox;
+        type    cellZoneSet;
+        action  new;
+        source  setToCellZone;
+        set     shippingBoxCellSet;
+    }
+);
+
+
+// ************************************************************************* //
