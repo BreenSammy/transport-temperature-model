@@ -33,7 +33,28 @@ vertices
 );
 blocks
 (
- hex (0 1 2 3 4 5 6 7) (90 60 90) simpleGrading (1 1 1)
+ hex (0 1 2 3 4 5 6 7) (90 60 90) 
+ simpleGrading 
+ (
+    //x-direction expansion ratio
+     (
+         (0.2 0.25 8)     //Division 1 (percantage of block length | percantage of total block cells | grading)
+         (0.6 0.50 1)     //Division 2
+         (0.2 0.25 0.125) //Division 3
+     )
+    //y-direction expansion ratio
+     (
+        (0.2 0.25 8)
+        (0.6 0.50 1)
+        (0.2 0.25 0.125)
+    )
+    //z-direction expansion ratio
+    (
+        (0.2 0.25 8)
+        (0.6 0.50 1)
+        (0.2 0.25 0.125)
+    )
+ )
 );
 edges
 (
