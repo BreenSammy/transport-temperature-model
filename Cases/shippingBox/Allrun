@@ -3,25 +3,32 @@ cd "${0%/*}" || exit                                # Run from this directory
 . ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions        # Tutorial run functions
 #------------------------------------------------------------------------------
 
-runApplication blockMesh > log.blockMesh &
-runApplication topoSet > log.topoSet &
+runApplication blockMesh | tee log.blockMesh
+runApplication topoSet | tee log.topoSet
 
-splitMeshRegions -cellZones -overwrite
+restore0Dir
 
-cp 0.orig/T 0/shippingBox
-cp 0.orig/p 0/shippingBox
-cp 0.orig/T 0/batteries
-cp 0.orig/p 0/batteries
+splitMeshRegions -cellZones -overwrite | tee log.splitMeshRegions
 
+# change directonarys for 0 directionary and all regions 
 for region in $(foamListRegions)
 do
     runApplication -s $region changeDictionary -region $region
 done
 
-chtMultiRegionFoam
+# run solver
+chtMultiRegionFoam | tee log.chtMultiRegionFoam
 
-echo
-echo
-echo "End"
+# create files with coordinates of cell centres
+for region in $(foamListRegions)
+do
+    postProcess -func writeCellCentres -region $region -time 0
+done
 
+# move all logs in new folder
+mkdir logs
+mv log.* logs
+
+# create -foam file for Paraview
+touch shippingBox.foam
 #------------------------------------------------------------------------------
