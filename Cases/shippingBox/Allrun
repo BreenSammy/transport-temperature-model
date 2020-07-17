@@ -1,0 +1,27 @@
+#!/bin/sh
+cd "${0%/*}" || exit                                # Run from this directory
+. ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions        # Tutorial run functions
+#------------------------------------------------------------------------------
+
+runApplication blockMesh > log.blockMesh &
+runApplication topoSet > log.topoSet &
+
+splitMeshRegions -cellZones -overwrite
+
+cp 0.orig/T 0/shippingBox
+cp 0.orig/p 0/shippingBox
+cp 0.orig/T 0/batteries
+cp 0.orig/p 0/batteries
+
+for region in $(foamListRegions)
+do
+    runApplication -s $region changeDictionary -region $region
+done
+
+chtMultiRegionFoam
+
+echo
+echo
+echo "End"
+
+#------------------------------------------------------------------------------
