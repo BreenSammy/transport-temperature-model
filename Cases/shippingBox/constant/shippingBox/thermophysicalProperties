@@ -29,23 +29,23 @@ mixture
 {
     specie
     {
-        molWeight   50;
+        molWeight   324.28; // molWeight of cellulose
     }
 
     transport
     {
-        kappa   80;
+        kappa   0.50;
     }
 
     thermodynamics
     {
         Hf      0;
-        Cp      450;
+        Cp      1500;
     }
 
     equationOfState
     {
-        rho     8000;
+        rho     90;
     }
 }
 
