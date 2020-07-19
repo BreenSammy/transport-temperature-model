@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 
-path_cell = Path("100/batteries/C")
+path_cell = Path("0/batteries/C")
 
 cell_coordinates = ParsedParameterFile(path_cell)["internalField"].val
 
