@@ -34,18 +34,18 @@ mixture
 
     transport
     {
-        kappa   0.50;
+        kappa   0.050;
     }
 
     thermodynamics
     {
         Hf      0;
-        Cp      1500;
+        Cp      1000;
     }
 
     equationOfState
     {
-        rho     90;
+        rho     130;
     }
 }
 
