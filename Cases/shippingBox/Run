@@ -2,24 +2,8 @@
 cd "${0%/*}" || exit                                # Run from this directory
 . ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions        # Tutorial run functions
 #------------------------------------------------------------------------------
-# Script to run the whole case from scratch
+# Script is used to run solver, if mesh and regions already exist
 #------------------------------------------------------------------------------
-
-runApplication blockMesh
-runApplication topoSet 
-
-restore0Dir
-
-runApplication splitMeshRegions -cellZones -overwrite | tee log.splitMeshRegions
-
-# change directonarys for 0 directionary and all regions 
-for region in $(foamListRegions)
-do
-    runApplication -s $region changeDictionary -region $region
-done
-
-# Decompose
-runApplication decomposePar -allRegions
 
 # run solver
 runParallel chtMultiRegionFoam
@@ -33,8 +17,11 @@ do
    runApplication -s $region postProcess -func writeCellCentres -region $region -time 0
 done
 
+# create logs folder if it doesn't exist
+if [ ! -d "$logs" ]; then
+    mkdir logs
+fi
 # move all logs in new folder
-mkdir logs
 mv log.* logs
 
 # create -foam file for Paraview
