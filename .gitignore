@@ -3,7 +3,8 @@ processor*
 *.foam
 dynamicCode
 [0-9]*
-!0
 !0.org
 !0.orig
-!0/
+log.*
+postProcessing/
+cellToRegion
