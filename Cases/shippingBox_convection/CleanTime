@@ -6,6 +6,8 @@ cd "${0%/*}" || exit                                # Run from this directory
 # can be run, without deleting the mesh and regions
 #------------------------------------------------------------------------------
 
+echo Removing all time directories
+
 #removes all time directorys in the case
 foamListTimes -rm
 

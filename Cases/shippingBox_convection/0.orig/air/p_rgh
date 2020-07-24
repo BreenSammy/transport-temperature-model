@@ -9,36 +9,17 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
-    object      changeDictionaryDict;
+    class       volScalarField;
+    object      p_rgh;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-T
-{
-    internalField   uniform 270;
+dimensions      [1 -1 -2 0 0 0 0];
 
-    boundaryField
-    {
-        shippingBox
-        {
-            type            zeroGradient;         
-        }
-        shippingBox_to_air
-        {
-            type            compressible::turbulentTemperatureCoupledBaffleMixed;
-            Tnbr            T;
-            kappaMethod     solidThermo;
-            value           $internalField;
-        }
-        shippingBox_to_batteries
-        {
-            type            compressible::turbulentTemperatureCoupledBaffleMixed;
-            Tnbr            T;
-            kappaMethod     solidThermo;
-            value           $internalField;
-        }
-    }
+internalField   uniform 1e5;
+
+boundaryField
+{
 }
 
 // ************************************************************************* //

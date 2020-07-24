@@ -12,9 +12,10 @@ runApplication surfaceFeatureExtract
 
 runApplication snappyHexMesh -overwrite
 
-restore0Dir
-
 runApplication splitMeshRegions -cellZones -overwrite
+
+rm -rf 0
+cp -r 0.orig 0
 
 for region in $(foamListRegions solid)
 do

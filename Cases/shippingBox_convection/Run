@@ -6,7 +6,7 @@ cd "${0%/*}" || exit                                # Run from this directory
 #------------------------------------------------------------------------------
 
 # run solver
-runApplication chtMultiRegionFoam
+runParallel chtMultiRegionFoam
 
 # Reconstruct
 runApplication reconstructPar -allRegions

@@ -16,23 +16,13 @@ FoamFile
 
 scale   1;
 
-length  1.5;
-width	1;
-height	1.5;
+length  1.2;
+width	0.8;
+height	0.8;
 
 boxLength 0.600;
 boxWidth  0.400;
 boxHeight 0.340;
-
-
-// xPercentage #calc "($length-$boxLength/2)/2/$length";
-// boxXPercentage #calc "(1-2*$xPercentage)/2";
-
-// yPercentage #calc "($width-$boxWidth/2)/(2*$width)";
-// boxYPercentage #calc "(1-2*$yPercentage)/2";
-
-// zPercentage #calc "1-$boxHeight/$height";
-// boxZPercentage #calc "(1-$zPercentage)/2";
 
 negLength #calc "-1*$length";
 negWidth  #calc "-1*$width";
@@ -52,142 +42,47 @@ vertices
 );
 blocks
 (
- hex (0 1 2 3 4 5 6 7) (45 30 45) 
- simpleGrading (1 1 1)
-//  (
-//     //x-direction expansion ratio
-//      (
-//          ($xPercentage 0.2 0.125)     //Division 1 (percantage of block length | percantage of total block cells | grading)
-//          ($boxXPercentage 0.30 8)     //Division 2
-//          ($boxXPercentage 0.30 0.125)
-//          ($xPercentage 0.2 8) //Division 3
-//      )
-//     //y-direction expansion ratio
-//      (
-//         ($yPercentage 0.2 0.125)
-//         ($boxYPercentage 0.30 8)
-//         ($boxYPercentage 0.30 0.125)
-//         ($yPercentage 0.2 8)
-//     )
-//     //z-direction expansion ratio
-//     (
-//         ($boxZPercentage 0.375 8)
-//         ($boxZPercentage 0.375 0.125)
-//         ($zPercentage 0.25 8)
-        
-//     )
-//  )
+ hex (0 1 2 3 4 5 6 7) (36 24 12) simpleGrading (1 1 1)
 );
 edges
 (
 );
 patches
 (
+    patch air
+    (
+        (4 5 6 7)
+        (0 4 7 3)
+        (1 2 6 5)
+        (0 1 5 4)
+        (3 7 6 2)
+    )
  patch bottom
  (
  (0 3 2 1)
  )
- patch top
- (
- (4 5 6 7)
- )
- patch sideLeft
- (
- (0 4 7 3)
- )
- patch sideRight
- (
- (1 2 6 5)
- )
- patch front
- (
- (0 1 5 4)
- )
- patch back
- (
- (3 7 6 2)
- )
+//  patch top
+//  (
+//  (4 5 6 7)
+//  )
+//  patch sideLeft
+//  (
+//  (0 4 7 3)
+//  )
+//  patch sideRight
+//  (
+//  (1 2 6 5)
+//  )
+//  patch front
+//  (
+//  (0 1 5 4)
+//  )
+//  patch back
+//  (
+//  (3 7 6 2)
+//  )
 );
 mergePatchPairs
 (
 );
-// scale   1;
-
-// vertices
-// (
-//     (-0.1 -0.04  -0.05)
-//     ( 0.1 -0.04  -0.05)
-//     ( 0.1  0.04  -0.05)
-//     (-0.1  0.04  -0.05)
-//     (-0.1 -0.04   0.05)
-//     ( 0.1 -0.04   0.05)
-//     ( 0.1  0.04   0.05)
-//     (-0.1  0.04   0.05)
-// );
-
-// blocks
-// (
-//     hex (0 1 2 3 4 5 6 7) (30 10 10) simpleGrading (1 1 1)
-// );
-
-// edges
-// (
-// );
-
-// boundary
-// (
-//     maxY
-//     {
-//         type wall;
-//         faces
-//         (
-//             (3 7 6 2)
-//         );
-//     }
-//     minX
-//     {
-//         type patch;
-//         faces
-//         (
-//             (0 4 7 3)
-//         );
-//     }
-//     maxX
-//     {
-//         type patch;
-//         faces
-//         (
-//             (2 6 5 1)
-//         );
-//     }
-//     minY
-//     {
-//         type wall;
-//         faces
-//         (
-//             (1 5 4 0)
-//         );
-//     }
-//     minZ
-//     {
-//         type wall;
-//         faces
-//         (
-//             (0 3 2 1)
-//         );
-//     }
-//     maxZ
-//     {
-//         type wall;
-//         faces
-//         (
-//             (4 5 6 7)
-//         );
-//     }
-// );
-
-// mergePatchPairs
-// (
-// );
-
 // ************************************************************************* //

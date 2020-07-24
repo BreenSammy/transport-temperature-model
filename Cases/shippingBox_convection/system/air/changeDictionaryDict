@@ -20,12 +20,16 @@ U
 
     boundaryField
     {
-        ".*"
+        air
         {
-            type            fixedValue;
-            value           uniform (0 0 0);
+            type            pressureInletOutletVelocity;
+            value           $internalField;
         }
-        "air_to_.*"
+        bottom
+        {
+            type            noSlip;
+        }
+        air_to_shippingBox
         {
             type            noSlip;
         }
@@ -38,12 +42,15 @@ T
 
     boundaryField
     {
-        ".*"
+        air
         {
             type            zeroGradient;
         }
-
-        "air_to_.*"
+        bottom
+        {
+            type            zeroGradient;
+        }
+        air_to_shippingBox
         {
             type            compressible::turbulentTemperatureCoupledBaffleMixed;
             Tnbr            T;
@@ -53,33 +60,33 @@ T
     }
 }
 
-epsilon
-{
-    internalField   uniform 0.01;
+// epsilon
+// {
+//     internalField   uniform 0.01;
 
-    boundaryField
-    {
-        ".*"
-        {
-            type            epsilonWallFunction;
-            value           uniform 0.01;
-        }
-    }
-}
+//     boundaryField
+//     {
+//         ".*"
+//         {
+//             type            epsilonWallFunction;
+//             value           uniform 0.01;
+//         }
+//     }
+// }
 
-k
-{
-    internalField   uniform 0.1;
+// k
+// {
+//     internalField   uniform 0.1;
 
-    boundaryField
-    {
-        ".*"
-        {
-            type            kqRWallFunction;
-            value           uniform 0.1;
-        }
-    }
-}
+//     boundaryField
+//     {
+//         ".*"
+//         {
+//             type            kqRWallFunction;
+//             value           uniform 0.1;
+//         }
+//     }
+// }
 
 p_rgh
 {
@@ -87,10 +94,21 @@ p_rgh
 
     boundaryField
     {
-        ".*"
+        bottom
         {
             type            fixedFluxPressure;
-            value           uniform 1e5;
+            value           $internalField;
+        }
+        air
+        {
+            type            totalPressure;
+            p0              $internalField;
+            value           $internalField;
+        }
+        air_to_shippingBox
+        {
+            type    fixedFluxPressure;
+            value   $internalField;
         }
     }
 }
@@ -104,7 +122,7 @@ p
         ".*"
         {
             type            calculated;
-            value           uniform 1e5;
+            value           $internalField;
         }
     }
 }
