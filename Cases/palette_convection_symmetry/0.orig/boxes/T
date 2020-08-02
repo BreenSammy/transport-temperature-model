@@ -20,6 +20,13 @@ internalField   uniform 300;
 
 boundaryField
 {
+    "boxes_to_.*"
+    {
+        type            compressible::turbulentTemperatureCoupledBaffleMixed;
+        Tnbr            T;
+        kappaMethod     solidThermo;
+        value           $internalField;
+    }
 }
 
 // ************************************************************************* //
