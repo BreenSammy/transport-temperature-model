@@ -20,12 +20,30 @@ T
 
     boundaryField
     {
+		symmetryPlanes
+        {
+			type            symmetry;
+        }
         batteries_to_shippingBox
         {
-            type            compressible::turbulentTemperatureCoupledBaffleMixed;
+            type            compressible::turbulentTemperatureCoupledBaffleMixed;            
             Tnbr            T;
-            kappaMethod     solidThermo;
+            kappaMethod     directionalSolidThermo;
+            alphaAni        Anialpha;
             value           uniform 270;
+        }
+    }
+}
+
+p
+{
+    internalField   uniform 100000;
+
+    boundaryField
+    {
+		symmetryPlanes
+        {
+			type            symmetry;
         }
     }
 }

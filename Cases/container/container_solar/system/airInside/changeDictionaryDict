@@ -14,30 +14,30 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// U
-// {
-//     internalField   uniform (0 0 0);
+U
+{
+    internalField   uniform (0 0 0);
 
-//     boundaryField
-//     {
-//         container
-//         {
-//             type            noSlip;
-//         }
-//         // symmetryPlanes
-//         // {
-// 		// 	type            symmetry;
-//         // }
-//         // airInside_to_batterie0
-//         // {
-//         //     type            noSlip;
-//         // }
-//         airInside_to_airOutside
-//         {
-//             type            noSlip;
-//         }
-//     }
-// }
+    boundaryField
+    {
+        container
+        {
+            type            noSlip;
+        }
+        // symmetryPlanes
+        // {
+		// 	type            symmetry;
+        // }
+        // airInside_to_batterie0
+        // {
+        //     type            noSlip;
+        // }
+        airInside_to_airOutside
+        {
+            type            noSlip;
+        }
+    }
+}
 
 T
 {
@@ -53,7 +53,7 @@ T
         {
             type            compressible::turbulentTemperatureRadCoupledMixed;
             Tnbr            T;
-            kappaMethod     solidThermo;
+            kappaMethod     fluidThermo;
             qrNbr           qr;
             qr              none;
             thicknessLayers (0.002);
@@ -98,39 +98,39 @@ T
     }
 }
 
-// p_rgh
-// {
-//     internalField   uniform 1e5;
+p_rgh
+{
+    internalField   uniform 1e5;
 
-//     boundaryField
-//     {
-//         container
-//         {
-//             type            fixedFluxPressure;
-//             value           $internalField;
-//         }
-//         // air
-//         // {
-//         //     type            totalPressure;
-//         //     p0              $internalField;
-//         //     value           $internalField;
-//         // }
-//         // symmetryPlanes
-//         // {
-// 		// 	type            symmetry;
-//         // }
-//         // airInside_to_batterie0
-//         // {
-//         //     type    fixedFluxPressure;
-//         //     value   $internalField;
-//         // }
-//         airInside_to_airOutside
-//         {
-//             type    fixedFluxPressure;
-//             value   $internalField;
-//         }
-//     }
-// }
+    boundaryField
+    {
+        container
+        {
+            type            fixedFluxPressure;
+            value           $internalField;
+        }
+        // air
+        // {
+        //     type            totalPressure;
+        //     p0              $internalField;
+        //     value           $internalField;
+        // }
+        // symmetryPlanes
+        // {
+		// 	type            symmetry;
+        // }
+        // airInside_to_batterie0
+        // {
+        //     type    fixedFluxPressure;
+        //     value   $internalField;
+        // }
+        airInside_to_airOutside
+        {
+            type    fixedFluxPressure;
+            value   $internalField;
+        }
+    }
+}
 
 p
 {

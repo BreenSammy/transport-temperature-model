@@ -14,27 +14,9 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-solvers
-{
-    h
-    {
-        solver           PCG;
-        preconditioner   DIC;
-        tolerance        1e-06;
-        relTol           0.1;
-    }
-
-    hFinal
-    {
-        $h;
-        tolerance        1e-06;
-        relTol           0;
-    }
-}
-
 PIMPLE
 {
-    nNonOrthogonalCorrectors 0;
+    nNonOrthogonalCorrectors 1;
 }
 
 // ************************************************************************* //

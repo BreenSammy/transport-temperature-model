@@ -22,6 +22,12 @@ radiationModel  none;
 
 absorptionEmissionModel none;
 
+// multiBandAbsorptionEmissionCoeffs
+// {
+//     absorptivity    (0.3 0.7);
+//     emissivity      (0.3 0.7);
+// }
+
 scatterModel    none;
 
 sootModel none;

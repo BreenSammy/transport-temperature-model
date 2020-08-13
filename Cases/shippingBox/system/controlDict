@@ -23,13 +23,13 @@ startTime       0.001;
 
 stopAt          endTime;
 
-endTime         10000;
+endTime         3600;
 
 deltaT          0.05;
 
 writeControl    adjustable;
 
-writeInterval   60;
+writeInterval   300;
 
 purgeWrite      0;
 
@@ -37,7 +37,7 @@ writeFormat     ascii;
 
 writePrecision  8;
 
-writeCompression off;
+writeCompression on;
 
 timeFormat      general;
 
@@ -45,7 +45,7 @@ timePrecision   6;
 
 runTimeModifiable yes;
 
-maxCo           0.6;
+maxCo           32;
 
 // Maximum diffusion number
 maxDi           10.0;
@@ -54,35 +54,36 @@ adjustTimeStep  yes;
 
 functions
 {
-    //finds minimal and maximal Values in batteries region
-    minMaxValues
-    {
-        type        fieldMinMax;
-        libs        ("libfieldFunctionObjects.so");
-        region      batteries;
-        write       false;
-        fields      (T);
-    }
+	#includeFunc singleGraph
+//     //finds minimal and maximal Values in batteries region
+//     minMaxValues
+//     {
+//         type        fieldMinMax;
+//         libs        ("libfieldFunctionObjects.so");
+//         region      batteries;
+//         write       false;
+//         fields      (T);
+//     }
 
-    //controls simulation during runtime
-    runTimeControl
-    {
-        type        runTimeControl;
-        libs        ("libutilityFunctionObjects.so");
-        region      batteries;
-        conditions
-        {
-            // if minimal temperature exceeds value, simulation stops
-            minTempExceeded
-            {
-                type            minMax;
-                functionObject  minMaxValues;
-                fields          (min(T));
-                mode            maximum;
-                value           295;
-            }
-        }
-    }
+//     //controls simulation during runtime
+//     runTimeControl
+//     {
+//         type        runTimeControl;
+//         libs        ("libutilityFunctionObjects.so");
+//         region      batteries;
+//         conditions
+//         {
+//             // if minimal temperature exceeds value, simulation stops
+//             minTempExceeded
+//             {
+//                 type            minMax;
+//                 functionObject  minMaxValues;
+//                 fields          (min(T));
+//                 mode            maximum;
+//                 value           272;
+//             }
+//         }
+//     }
 
 }
 

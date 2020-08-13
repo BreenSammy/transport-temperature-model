@@ -20,19 +20,44 @@ T
 
     boundaryField
     {
-        ".*"
+        shippingBox
         {
-            type            fixedValue;
-            value           uniform 300;
+            type            zeroGradient;         
         }
-        "shippingBox_to_batteries"
+		symmetryPlanes
+        {
+			type            symmetry;
+        }
+        shippingBox_to_air
         {
             type            compressible::turbulentTemperatureCoupledBaffleMixed;
             Tnbr            T;
             kappaMethod     solidThermo;
-            value           uniform 270;
+            value           $internalField;
+        }
+        shippingBox_to_batteries
+        {
+            type            compressible::turbulentTemperatureCoupledBaffleMixed;
+            Tnbr            T;
+            kappaMethod     solidThermo;
+            value           $internalField;
         }
     }
 }
+
+p
+{
+    internalField   uniform 100000;
+
+    boundaryField
+    {
+		symmetryPlanes
+        {
+			type            symmetry;
+			
+        }
+    }
+}
+
 
 // ************************************************************************* //

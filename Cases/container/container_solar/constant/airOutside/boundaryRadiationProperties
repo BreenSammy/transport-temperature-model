@@ -47,7 +47,7 @@ airOutside_to_airInside
     type       opaqueDiffusive;
     wallAbsorptionEmissionModel
     {
-        type            multiBandAbsorption;
+        type            banana;
         absorptivity    (0.7 0.7);
         emissivity      (0.7 0.7);
     };

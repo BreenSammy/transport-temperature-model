@@ -5,12 +5,23 @@ cd "${0%/*}" || exit                                # Run from this directory
 # Script to run the whole case from scratch
 #------------------------------------------------------------------------------
 
+rm -rf constant/polyMesh/sets
+
 runApplication blockMesh
-runApplication topoSet 
+runApplication surfaceFeatureExtract
 
-restore0Dir
+runApplication snappyHexMesh -overwrite
 
-runApplication splitMeshRegions -cellZones -overwrite | tee log.splitMeshRegions
+runApplication splitMeshRegions -cellZones -overwrite
+
+rm -rf 0
+cp -r 0.orig 0
+
+for region in $(foamListRegions solid)
+do
+    rm -f 0/$region/{nut,alphat,epsilon,k,U,p_rgh}
+    rm -f processor*/0/$region/{nut,alphat,epsilon,k,U,p_rgh}
+done
 
 # change directonarys for 0 directionary and all regions 
 for region in $(foamListRegions)
