@@ -19,7 +19,7 @@ scale   1;
 length    7; // 6.058
 width	  1.92;  // 2.438 // 1.1925
 height	  3.84;  // 2.591
-negWidth  -2;
+negWidth  -1.92;
 negLength -1; 
 
 vertices

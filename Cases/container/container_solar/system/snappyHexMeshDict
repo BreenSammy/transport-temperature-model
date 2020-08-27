@@ -28,11 +28,16 @@ addLayers       false;
 // - to 'snap' the mesh boundary to the surface
 geometry
 {   
-    // Container.stl
+    // boxes01.stl
     // {
     //     type triSurfaceMesh;
-    //     name container;
+    //     name boxes00;
     // }
+    out.stl
+    {
+        type triSurfaceMesh;
+        name boxes00;
+    }
     container
     {
         type searchableBox;
@@ -132,11 +137,11 @@ castellatedMeshControls
             // Surface-wise min and max refinement level
             level (2 2);
         }
-        // container_outside
-        // {
-        //     // Surface-wise min and max refinement level
-        //     level (5 5);
-        // }
+        boxes00
+        {
+            // Surface-wise min and max refinement level
+            level (4 4);
+        }
         // refinementBox
         // {
         //     level (3 3);
@@ -162,11 +167,11 @@ castellatedMeshControls
 
     refinementRegions
     {
-        // refinementBox
-        // {
-        //    mode inside;
-        //    levels ((1E15 4));
-        // }
+        container
+        {
+           mode inside;
+           levels ((1E15 2));
+        }
     }
 
 
@@ -180,7 +185,15 @@ castellatedMeshControls
     // after refinement.
     locationsInMesh
     (
-        // ((0.001 0.001 0.001) batterie0)
+        // ((1.001 0.001 0.145) boxes00)
+        ((0.501 0.201 0.305) battery00_0)
+        ((0.501 -0.201 0.305) battery00_1)
+        ((1.501 0.201 0.305) battery00_2)
+        ((1.501 -0.201 0.305) battery00_3)
+        ((0.501 0.201 0.905) battery00_4)
+        ((0.501 -0.201 0.905) battery00_5)
+        ((1.501 0.201 0.905) battery00_6)
+        ((1.501 -0.201 0.905) battery00_7)
         ((0.2 0.2 1.2) airInside)
         ((0.005 1.505 0.005) airOutside)
         // ((0.305 0.305 0.305) batterie0)
@@ -230,7 +243,7 @@ addLayersControls
     // Per final patch (so not geometry!) the layer information
     layers
     {
-        air_to_boxes
+        airInside_to_boxes01
         {
             nSurfaceLayers 3;
             finalLayerThickness 1.1;

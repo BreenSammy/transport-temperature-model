@@ -19,6 +19,6 @@ writeFacesAgglomeration   true;
 writePatchViewFactors     false;
 // dumpRays    true;
 
-maxDynListLength     2000000;
+maxDynListLength     10000000;
 
 // ************************************************************************* //

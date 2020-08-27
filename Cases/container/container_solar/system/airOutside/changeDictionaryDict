@@ -21,6 +21,11 @@ boundary
         inGroups    2(wall viewFactorWall);
     }
 
+    // air
+    // {
+    //     inGroups    2(wall viewFactorWall);
+    // }
+
     bottom
     {
         inGroups    2(wall viewFactorWall);

@@ -29,7 +29,7 @@ deltaT          0.05;
 
 writeControl    adjustable;
 
-writeInterval   300;
+writeInterval   1000;
 
 purgeWrite      0;
 
@@ -37,7 +37,7 @@ writeFormat     ascii;
 
 writePrecision  8;
 
-writeCompression on;
+writeCompression off;
 
 timeFormat      general;
 
