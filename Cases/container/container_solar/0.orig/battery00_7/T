@@ -22,7 +22,11 @@ boundaryField
 {
     ".*"
     {
-        type            calculated;
+        type            compressible::turbulentTemperatureCoupledBaffleMixed;            
+        Tnbr            T;
+        thicknessLayers (0.01);
+        kappaLayers     (0.5);
+        kappaMethod     solidThermo;
         value           $internalField;
     }
 }

@@ -20,6 +20,11 @@ internalField   uniform 1e5;
 
 boundaryField
 {
+    "airInside_to_battery.*"
+    {
+        type            fixedFluxPressure;
+        value           $internalField;
+    }
 }
 
 // ************************************************************************* //

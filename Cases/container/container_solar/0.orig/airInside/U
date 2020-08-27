@@ -20,6 +20,10 @@ internalField   uniform (0.01 0 0);
 
 boundaryField
 {
+    "airInside_to_battery.*"
+    {
+        type            noSlip;
+    }
 }
 
 // ************************************************************************* //

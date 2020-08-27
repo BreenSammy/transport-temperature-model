@@ -28,12 +28,11 @@ T
         {
             type zeroGradient;
         }
-        battery00_0_to_boxes00
+        battery00_0_to_airInside
         {
             type            compressible::turbulentTemperatureCoupledBaffleMixed;            
             Tnbr            T;
-            kappaMethod     directionalSolidThermo;
-            alphaAni        Anialpha;
+            kappaMethod     solidThermo;
             value           uniform 270;
         }
     }

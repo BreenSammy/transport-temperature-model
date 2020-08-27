@@ -20,6 +20,13 @@ internalField   uniform 300;
 
 boundaryField
 {
+    "airInside_to_battery.*"
+    {
+        type            compressible::turbulentTemperatureCoupledBaffleMixed;
+        Tnbr            T;
+        kappaMethod     fluidThermo;
+        value           $internalField;
+    }
 }
 
 // ************************************************************************* //

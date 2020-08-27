@@ -36,10 +36,10 @@ U
         {
             type            noSlip;
         }
-        airInside_to_boxes00
-        {
-            type            noSlip;
-        }
+        // airInside_to_boxes00
+        // {
+        //     type            noSlip;
+        // }
     }
 }
 
@@ -92,13 +92,13 @@ T
         // {
 		// 	type            symmetry;
         // }
-        airInside_to_boxes00
-        {
-            type            compressible::turbulentTemperatureCoupledBaffleMixed;
-            Tnbr            T;
-            kappaMethod     fluidThermo;
-            value           $internalField;
-        }
+        // airInside_to_boxes00
+        // {
+        //     type            compressible::turbulentTemperatureCoupledBaffleMixed;
+        //     Tnbr            T;
+        //     kappaMethod     fluidThermo;
+        //     value           $internalField;
+        // }
     }
 }
 
@@ -133,11 +133,11 @@ p_rgh
             type    fixedFluxPressure;
             value   $internalField;
         }
-        airInside_to_boxes00
-        {
-            type    fixedFluxPressure;
-            value   $internalField;
-        }
+        // airInside_to_boxes00
+        // {
+        //     type    fixedFluxPressure;
+        //     value   $internalField;
+        // }
     }
 }
 
