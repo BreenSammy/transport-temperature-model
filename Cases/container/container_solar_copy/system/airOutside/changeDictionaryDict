@@ -1,0 +1,179 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2006                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      changeDictionaryDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+boundary
+{
+    airOutside_to_airInside
+    {
+        inGroups    2(wall viewFactorWall);
+    }
+
+    bottom
+    {
+        inGroups    2(wall viewFactorWall);
+    }
+}
+
+U
+{
+    internalField   uniform (0 0 0);
+
+    boundaryField
+    {
+        air
+        {
+            type noSlip;
+            // type            pressureInletOutletVelocity;
+            // value           $internalField;
+        }
+        // symmetryPlanes
+        // {
+		// 	type            symmetry;
+        // }
+        // airOutside_to_batterie0
+        // {
+        //     type            noSlip;
+        // }
+        airOutside_to_airInside
+        {
+            type            noSlip;
+        }
+        bottom
+        {
+            type            noSlip;
+        }
+    }
+}
+
+T
+{
+    internalField   uniform 300;
+
+    boundaryField
+    {
+        airOutside_to_airInside
+        {
+            type            compressible::turbulentTemperatureRadCoupledMixed;
+            Tnbr            T;
+            kappaMethod     fluidThermo;
+            qrNbr           none;
+            qr              qr;
+            thicknessLayers (0.002);
+            kappaLayers     (40);
+            kappa           none;
+            thermalInertia  false;
+            value           uniform 300;
+            // type            externalWallHeatFluxTemperature;
+
+            // // option 1
+            // mode             coefficient;     // ambient temp. and htc
+            // Ta               constant 300.0;
+            // h                uniform 10.0;
+    
+            // // option 2
+            // // mode             power; 
+            // // Q                10;              // [10W]
+    
+            // // // option 3
+            // // mode             flux;
+            // // q                   uniform 10.0; // [10W/m²]
+    
+            // thicknessLayers (2);
+            // kappaLayers     (0.5);
+
+            // kappaMethod fluidThermo;
+    
+            // value           $internalField;
+        }
+        air
+        {
+            type            inletOutlet;
+            value           uniform 300;
+            inletValue      uniform 300;
+        }
+        // symmetryPlanes
+        // {
+		// 	type            symmetry;
+        // }
+        // airOutside_to_batterie0
+        // {
+        //     type zeroGradient;
+        // }
+        bottom
+        {
+            type zeroGradient;
+        }
+    }
+}
+
+p_rgh
+{
+    internalField   uniform 1e5;
+
+    boundaryField
+    {
+        air
+        {
+            type            fixedFluxPressure;
+            value           $internalField;
+        }
+        // air
+        // {
+        //     type            totalPressure;
+        //     p0              $internalField;
+        //     value           $internalField;
+        // }
+        // symmetryPlanes
+        // {
+		// 	type            symmetry;
+        // }
+        // airOutside_to_batterie0
+        // {
+        //     type    fixedFluxPressure;
+        //     value   $internalField;
+        // }
+        airOutside_to_airInside
+        {
+            type    fixedFluxPressure;
+            value   $internalField;
+        }
+        bottom
+        {
+            type    fixedFluxPressure;
+            value   $internalField;
+        }
+    }
+}
+
+p
+{
+    internalField   uniform 1e5;
+
+    boundaryField
+    {
+        // symmetryPlanes
+        // {
+		// 	type            symmetry;
+        // }
+        ".*"
+        {
+            type            calculated;
+            value           $internalField;
+        }
+    }
+}
+
+// ************************************************************************* //
