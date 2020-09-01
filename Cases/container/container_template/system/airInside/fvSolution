@@ -33,10 +33,12 @@ solvers
 
     p_rgh
     {
-        solver           GAMG;
+        // solver           GAMG;
+        solver           PCG;
+        preconditioner   DIC;
         tolerance        1e-7;
         relTol           0.01;
-        maxIter             30;
+        // maxIter             30;
 
         smoother         GaussSeidel;
 
@@ -68,8 +70,8 @@ solvers
 PIMPLE
 {
     momentumPredictor   no;
-    turbOnFinalIterOnly true;
-    consistent          true;
+    // turbOnFinalIterOnly true;
+    // consistent          true;
     nCorrectors         2;
     nNonOrthogonalCorrectors 0;
     residualControl
@@ -78,28 +80,28 @@ PIMPLE
         U       4e-6;
         h       4e-4;
     }
-    outerCorrectorResidualControl
-    {
-        //- Weak control - bad accuracy but faster
-        p_rgh
-        {
-            relTol      0;
-            tolerance   1e-3;
-        }
+    // outerCorrectorResidualControl
+    // {
+    //     //- Weak control - bad accuracy but faster
+    //     p_rgh
+    //     {
+    //         relTol      0;
+    //         tolerance   1e-3;
+    //     }
 
-        U
-        {
-            relTol      0;
-            tolerance   1e-4;
-        }
+    //     U
+    //     {
+    //         relTol      0;
+    //         tolerance   1e-4;
+    //     }
 
-        h
-        {
-            relTol      0;
-            tolerance   1e-4;
-        }
-    }
-    pRefPoint           (3.05 0.05 2.25);
+    //     h
+    //     {
+    //         relTol      0;
+    //         tolerance   1e-4;
+    //     }
+    // }
+    pRefPoint           (3.05 0.55 2.05);
     pRefValue           0;
 }
 
@@ -112,7 +114,7 @@ relaxationFactors
     // }
     equations
     {
-        h               0.7;
+        h               1;
         hFinal          1;
 
         U               0.7;

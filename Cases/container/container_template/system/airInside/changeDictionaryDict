@@ -24,22 +24,10 @@ U
         {
             type            noSlip;
         }
-        // symmetryPlanes
-        // {
-		// 	type            symmetry;
-        // }
-        // airInside_to_batterie0
-        // {
-        //     type            noSlip;
-        // }
         airInside_to_airOutside
         {
             type            noSlip;
         }
-        // airInside_to_boxes00
-        // {
-        //     type            noSlip;
-        // }
     }
 }
 
@@ -51,7 +39,11 @@ T
     {
         container
         {
-            type            zeroGradient;
+            type            externalWallHeatFluxTemperature;
+            mode            flux;
+            q               uniform 0; // [10W/m²]
+            kappaMethod fluidThermo;
+            value           $internalField;
         }
         airInside_to_airOutside
         {
@@ -88,17 +80,6 @@ T
             // kappaMethod fluidThermo;
             // value           $internalField;
         }
-        // symmetryPlanes
-        // {
-		// 	type            symmetry;
-        // }
-        // airInside_to_boxes00
-        // {
-        //     type            compressible::turbulentTemperatureCoupledBaffleMixed;
-        //     Tnbr            T;
-        //     kappaMethod     fluidThermo;
-        //     value           $internalField;
-        // }
     }
 }
 

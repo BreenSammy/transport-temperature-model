@@ -20,12 +20,6 @@ boundary
     {
         inGroups    2(wall viewFactorWall);
     }
-
-    // air
-    // {
-    //     inGroups    2(wall viewFactorWall);
-    // }
-
     bottom
     {
         inGroups    2(wall viewFactorWall);
@@ -40,18 +34,8 @@ U
     {
         air
         {
-            type noSlip;
-            // type            pressureInletOutletVelocity;
-            // value           $internalField;
+            type            noSlip;
         }
-        // symmetryPlanes
-        // {
-		// 	type            symmetry;
-        // }
-        // airOutside_to_batterie0
-        // {
-        //     type            noSlip;
-        // }
         airOutside_to_airInside
         {
             type            noSlip;
@@ -67,6 +51,7 @@ T
 {
     internalField   uniform 300;
 
+
     boundaryField
     {
         airOutside_to_airInside
@@ -80,46 +65,22 @@ T
             kappaLayers     (40);
             kappa           none;
             thermalInertia  false;
-            value           uniform 300;
-            // type            externalWallHeatFluxTemperature;
-
-            // // option 1
-            // mode             coefficient;     // ambient temp. and htc
-            // Ta               constant 300.0;
-            // h                uniform 10.0;
-    
-            // // option 2
-            // // mode             power; 
-            // // Q                10;              // [10W]
-    
-            // // // option 3
-            // // mode             flux;
-            // // q                   uniform 10.0; // [10W/m²]
-    
-            // thicknessLayers (2);
-            // kappaLayers     (0.5);
-
-            // kappaMethod fluidThermo;
-    
-            // value           $internalField;
+            value           $internalField;
         }
         air
         {
             type            inletOutlet;
-            value           uniform 300;
-            inletValue      uniform 300;
+            value           $internalField;
+            inletValue      $internalField;
         }
-        // symmetryPlanes
-        // {
-		// 	type            symmetry;
-        // }
-        // airOutside_to_batterie0
-        // {
-        //     type zeroGradient;
-        // }
         bottom
         {
-            type zeroGradient;
+            type            zeroGradient;
+            // type            externalWallHeatFluxTemperature;
+            // mode            flux;
+            // q               uniform 0; // [10W/m²]
+            // kappaMethod fluidThermo;
+            // value           $internalField;
         }
     }
 }

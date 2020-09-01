@@ -29,7 +29,7 @@ do
     runApplication -s $region changeDictionary -region $region
 done
 
-runApplication renumberMesh
+runApplication renumberMesh -overwrite
 
 
 # Decompose

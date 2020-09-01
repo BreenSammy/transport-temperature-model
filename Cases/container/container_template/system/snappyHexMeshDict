@@ -31,9 +31,9 @@ geometry
     container
     {
         type searchableBox;
-        min (0.0005 -1.1765 0.0005);
+        min (0.0405 -1.2195 0.0005);
         //max (5.9005 1.2005 2.4005); // measurements of 20' ISO-Container
-        max (6.0005 1.1765 2.3855);
+        max (6.0585 1.2195 2.3855);
     }
 }
 

@@ -29,7 +29,7 @@ deltaT          0.05;
 
 writeControl    adjustable;
 
-writeInterval   1000;
+writeInterval   120;
 
 purgeWrite      0;
 
@@ -37,7 +37,7 @@ writeFormat     ascii;
 
 writePrecision  8;
 
-writeCompression off;
+writeCompression on;
 
 timeFormat      general;
 
@@ -45,7 +45,7 @@ timePrecision   6;
 
 runTimeModifiable yes;
 
-maxCo           32;
+maxCo           1;
 
 // Maximum diffusion number
 maxDi           10.0;

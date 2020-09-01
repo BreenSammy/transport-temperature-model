@@ -19,17 +19,17 @@ writeFacesAgglomeration   true;
 writePatchViewFactors     false;
 // dumpRays    true;
 
-maxDynListLength     500000000;
+maxDynListLength     10000000;
 
 airOutside_to_airInside
 {
-nFacesInCoarsestLevel 120;
+nFacesInCoarsestLevel 10;
 featureAngle 10;
 }
 
 bottom
 {
-nFacesInCoarsestLevel 48;
+nFacesInCoarsestLevel 10;
 featureAngle 10;
 }
 
