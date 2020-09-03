@@ -52,8 +52,8 @@ type        opaqueDiffusive;
     wallAbsorptionEmissionModel
     {
         type            multiBandAbsorption;
-        absorptivity    (0.7 0.7);
-        emissivity      (0.7 0.7);
+        absorptivity    (1 1);
+        emissivity      (0.1 0.1);
     };
 }
 

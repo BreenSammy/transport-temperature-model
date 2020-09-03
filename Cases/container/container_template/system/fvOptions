@@ -1,8 +1,8 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2006                                 |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|  \\    /   O peration     | Version:  2.2.1                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
 FoamFile
@@ -10,27 +10,22 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      viewFactorsDict;
+    location    "system";
+    object      fvOptions;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-writeViewFactorMatrix     true;
-writeFacesAgglomeration   true;
-writePatchViewFactors     false;
-// dumpRays    true;
-
-maxDynListLength     10000000;
-
-airOutside_to_airInside
+temperatureLimit
 {
-nFacesInCoarsestLevel 20;
-featureAngle 10;
-}
+    type limitTemperature;
+    active true;
 
-bottom
-{
-nFacesInCoarsestLevel 10;
-featureAngle 10;
+    limitTemperatureCoeffs
+    {
+        selectionMode all;
+        min 270;
+        max 340;
+    }
 }
 
 // ************************************************************************* //

@@ -18,10 +18,12 @@ boundary
 {
     airOutside_to_airInside
     {
+        // type        wall;
         inGroups    2(wall viewFactorWall);
     }
     bottom
     {
+        type        wall;
         inGroups    2(wall viewFactorWall);
     }
 }
@@ -49,7 +51,7 @@ U
 
 T
 {
-    internalField   uniform 300;
+    internalField   uniform 285;
 
 
     boundaryField
@@ -69,9 +71,36 @@ T
         }
         air
         {
-            type            inletOutlet;
-            value           $internalField;
-            inletValue      $internalField;
+            type            uniformFixedValue;
+            // value           $internalField;
+            // inletValue      $internalField;
+            uniformValue   table 
+            (
+                (0      285)
+                (3600   284)
+                (7200   283)
+                (10800  282)
+                (14400  281)
+                (18000  280)
+                (21600  281)
+                (25200  283)
+                (28800  284)
+                (32400  285)
+                (36000  287)
+                (39600  289)
+                (44200  291)
+                (47800  294)
+                (51400  297)
+                (54000  296)
+                (57600  292)
+                (61200  289)
+                (63800  287)
+                (68400  286)
+                (72000  286)
+                (75600  286)
+                (79200  286)
+                (82800  286)
+            );
         }
         bottom
         {

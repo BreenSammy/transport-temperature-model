@@ -51,7 +51,7 @@ solvers
         relTol           0;
     }
 
-    "(U|h|R)"
+    "(U|h|e|k|epsilon|R)"
     {
         solver           PBiCGStab;
         preconditioner   DILU;
@@ -59,7 +59,7 @@ solvers
         relTol           0.1;
     }
 
-    "(U|h|R)Final"
+    "(U|h|e|k|epsilon|R)Final"
     {
         $U;
         tolerance        1e-7;

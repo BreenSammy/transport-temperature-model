@@ -13,6 +13,14 @@ FoamFile
     object      changeDictionaryDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+boundary
+{
+    container
+    {
+        type        wall;
+    }
+}
+
 
 U
 {
@@ -33,17 +41,18 @@ U
 
 T
 {
-    internalField   uniform 270;
+    internalField   uniform 285;
 
     boundaryField
     {
         container
         {
-            type            externalWallHeatFluxTemperature;
-            mode            flux;
-            q               uniform 0; // [10W/m²]
-            kappaMethod fluidThermo;
-            value           $internalField;
+            type        zeroGradient;
+            // type            externalWallHeatFluxTemperature;
+            // mode            flux;
+            // q               uniform 0; // [10W/m²]
+            // kappaMethod fluidThermo;
+            // value           $internalField;
         }
         airInside_to_airOutside
         {

@@ -25,7 +25,7 @@ solarLoadCoeffs
     // Sun direction ray model. Give the sunDirection or calculated using the
     // (solar calculator)
     sunDirectionModel   sunDirTracking; //sunDirConstant
-    // sunDirectionModel   sunDirConstant;
+    //sunDirectionModel   sunDirConstant;
         // Time interval to update Sun position (sec)
         sunTrackingUpdateInterval 600;
 
@@ -33,7 +33,7 @@ solarLoadCoeffs
 
         localStandardMeridian   2;      // GMT offset (hours)
         startDay                233;    // day of the year
-        startTime               5;     // time of the day (hours decimal)
+        startTime               0;     // time of the day (hours decimal)
         longitude               48.1448; // longitude (degrees)
         latitude                11.558; // latitude (degrees)
 
@@ -54,8 +54,8 @@ solarLoadCoeffs
 
 
         // Sun load constant model
-        // directSolarRad  1000;    // [w/m2]
-        // diffuseSolarRad 40;     // [w/m2]
+        directSolarRad  1000;    // [w/m2]
+        diffuseSolarRad 40;     // [w/m2]
 
         // // Fair Weather Conditions Model Constants.
         // Calculate beta from the Solar calculator or input
@@ -74,8 +74,8 @@ solarLoadCoeffs
         C   0.058;  // Model constant
 
     // Radiative flux coupling flags
-    solidCoupled    true;  //Couple through qr the solid regions (default true)
-    wallCoupled     false; //Couple through qr wall patches (default false)
+    solidCoupled    false;  //Couple through qr the solid regions (default true)
+    wallCoupled     true; //Couple through qr wall patches (default false)
 
     // Reflecting rays
         useReflectedRays true;

@@ -9,41 +9,43 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
-    object      changeDictionaryDict;
+    class       volScalarField;
+    location    "0/air";
+    object      nut;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-T
-{
-    internalField   uniform 285;
+dimensions      [0 2 -1 0 0 0 0];
 
-    boundaryField
+internalField   uniform 0;
+
+boundaryField
+{
+    "airInside_to_battery.*"
     {
-        container
-        {
-            type zeroGradient;
-        }
-        battery0_0_to_airInside
-        {
-            type            compressible::turbulentTemperatureCoupledBaffleMixed;            
-            Tnbr            T;
-            thicknessLayers (0.01);
-            kappaLayers     (0.5);
-            kappaMethod     directionalSolidThermo;
-            alphaAni        Anialpha;
-            value           $internalField;
-        }
+        type            nutkWallFunction;
+        Cmu             0.09;
+        kappa           0.41;
+        E               9.8;
+        value           uniform 0;
+    }
+    airInside_to_airOutside
+    {
+        type            nutkWallFunction;
+        Cmu             0.09;
+        kappa           0.41;
+        E               9.8;
+        value           uniform 0;
+    }
+    container
+    {
+        type            nutkWallFunction;
+        Cmu             0.09;
+        kappa           0.41;
+        E               9.8;
+        value           uniform 0;
     }
 }
 
-p
-{
-    internalField   uniform 100000;
-
-    boundaryField
-    {
-    }
-}
 
 // ************************************************************************* //
