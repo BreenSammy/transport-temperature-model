@@ -31,27 +31,15 @@ geometry
     container
     {
         type searchableBox;
-        min (0.0405 -1.2195 0.1005);
+        min (0.0405 -1.2195 -0.0005);
         max (6.0585 1.2195 2.3855);
     }
     box
     {
         type searchableBox;
-        min (0.505 -0.505 0.505);
-        max (2.505  0.505 1.505);
+        min (0.505 -0.105 0.505);
+        max (0.605  0.105 0.605);
     }
-    carrier
-    {
-        type searchableBox;
-        min (-0.0405 -1.3195 0.0005);
-        max (6.1585 1.3195 2.4855);
-    }
-    ground.stl
-    {
-        type    triSurfaceMesh;
-        name    ground;
-    }
-
 }
 
 
@@ -117,11 +105,6 @@ castellatedMeshControls
             // Surface-wise min and max refinement level
             level (3 3);
         }
-        carrier
-        {
-            // Surface-wise min and max refinement level
-            level (3 3);
-        }
         box
         {
             level (3 3);
@@ -171,10 +154,7 @@ castellatedMeshControls
     locationsInMesh
     (
         ((0.205 0.205 2.205) airInside)
-        ((1.3005 0.0005 1.2305) box)
-        // ((0.005 1.505 0.005) airOutside)
-        // ((0.205 0.205 2.445) carrier)
-        // ((0.005 1.505 -0.115)  ground)
+        ((0.55005 0.0005 0.5505) box)
     );
 
     // Whether any faceZones (as specified in the refinementSurfaces)

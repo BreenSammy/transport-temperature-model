@@ -1,14 +1,11 @@
-from pathlib import Path
+import os
+
+import numpy as np
+
 from PyFoam.RunDictionary.ParsedParameterFile import ParsedParameterFile
 from PyFoam.RunDictionary.SolutionDirectory import SolutionDirectory
 from PyFoam.Basics.DataStructures import Vector
-# from PyFoam.Basics.DataStructures
 
-import pandas as pd
-import numpy as np
-
-import os
-from subprocess import call
 
 # class Battery:
 #     def __init__(self, position):
@@ -32,17 +29,20 @@ class Pallet:
             ])
 
     def vector_to_string(self, vector):
+        """Transform a vector with three entries into a string for terminal commands"""
         return "'(" + str(vector[0]) + ' ' + str(vector[1]) + ' ' + str(vector[2]) + ")'"
     
     def move_STL(self, case, target):
         """Move the STL to the right position in the carrier."""
 
+        # Copy STL form template STL and bring it in the right orientation
         os.system(
             'surfaceTransformPoints -rollPitchYaw ' + self.vector_to_string(self.orientation) + " " + 
             os.path.join(case.name,"constant", "triSurface", self.STL) + " " + 
             os.path.join(case.name,"constant", "triSurface", target)
             )
 
+        # Move STL to its position
         os.system(
             'surfaceTransformPoints -translate ' + self.vector_to_string(self.position) + " " + 
             os.path.join(case.name,"constant", "triSurface", target) + " " + 
@@ -53,24 +53,31 @@ class Pallet:
 
 
 
-templateCase = SolutionDirectory("container_template", archive=None, paraviewLink=False)
+templateCase = SolutionDirectory("container_template_new", archive=None, paraviewLink=False)
 
 pallets = [
-    #Pallet('pallet4x4.stl', 8, np.array([0.44, -0.54, 0.144]), np.array([0, 0, 90])),
-    #Pallet('pallet4x4.stl', 8, np.array([1.28, -0.54, 0.144]), np.array([0, 0, 90])),
-    #Pallet('pallet4x4.stl', 8, np.array([2.12, -0.54, 0.144]), np.array([0, 0, 90])),
-    Pallet('pallet4x4.stl', 8, np.array([2.96, -0.54, 0.144]), np.array([0, 0, 90])),
-    #Pallet('pallet4x4.stl', 8, np.array([3.80, -0.54, 0.144]), np.array([0, 0, 90])),
-    #Pallet('pallet4x4.stl', 8, np.array([4.64, -0.54, 0.144]), np.array([0, 0, 90])),
-    #Pallet('pallet4x4.stl', 8, np.array([5.48, -0.54, 0.144]), np.array([0, 0, 90]))
+    Pallet('pallet1x4.stl', 4, np.array([0.5399, -0.54, 0.144]), np.array([0, 0, 90])),
+    Pallet('pallet2x4.stl', 8, np.array([1.3601, -0.54, 0.144]), np.array([0, 0, 90])),
+    Pallet('pallet2x4.stl', 8, np.array([2.2001, -0.54, 0.144]), np.array([0, 0, 90])),
+    Pallet('pallet2x4.stl', 8, np.array([3.0401, -0.54, 0.144]), np.array([0, 0, 90])),
+    Pallet('pallet3x4.stl', 12, np.array([3.8801, -0.54, 0.144]), np.array([0, 0, 90])),
+    Pallet('pallet2x4.stl', 8, np.array([4.7201, -0.54, 0.144]), np.array([0, 0, 90])),
+    Pallet('pallet2x4.stl', 8, np.array([5.5601, -0.54, 0.144]), np.array([0, 0, 90])),
+    Pallet('pallet3x4.stl', 12, np.array([0.8801, 0.5301, 0.144]), np.array([0, 0, 0])),
+    Pallet('pallet3x4.stl', 12, np.array([2.3201, 0.5301, 0.144]), np.array([0, 0, 0])),
+    Pallet('pallet3x4.stl', 12, np.array([3.7601, 0.5301, 0.144]), np.array([0, 0, 0])),
+    Pallet('pallet3x4.stl', 12, np.array([5.2001, 0.5301, 0.144]), np.array([0, 0, 0])),
     ]
 
-case = templateCase.cloneCase("container_0")
+case = templateCase.cloneCase("container_2")
+
+os.system('cp ' + os.path.join(templateCase.name,"Allrun.pre") + " " + case.name)
+os.system('cp ' + os.path.join(templateCase.name,"Run") + " " + case.name)
 
 snappyHexMeshDict = ParsedParameterFile(os.path.join(case.name,"system", "snappyHexMeshDict"))
 
 targetSTL = 'pallet_{}.stl'
-refinementSurfacesLevel = [5,5]
+refinementSurfacesLevel = [4,4]
 
 #airInside_changeDictionaryDict = ParsedParameterFile(os.path.join(case.name,'system','airInside','changeDictionaryDict'))
 regionProperties = ParsedParameterFile(os.path.join(case.name,'constant','regionProperties'))

@@ -33,11 +33,11 @@ geometry
     //     type triSurfaceMesh;
     //     name boxes00;
     // }
-    out.stl
-    {
-        type triSurfaceMesh;
-        name boxes00;
-    }
+    // out.stl
+    // {
+    //     type triSurfaceMesh;
+    //     name boxes00;
+    // }
     container
     {
         type searchableBox;
@@ -137,11 +137,11 @@ castellatedMeshControls
             // Surface-wise min and max refinement level
             level (2 2);
         }
-        boxes00
-        {
-            // Surface-wise min and max refinement level
-            level (4 4);
-        }
+        // boxes00
+        // {
+        //     // Surface-wise min and max refinement level
+        //     level (4 4);
+        // }
         // refinementBox
         // {
         //     level (3 3);
@@ -186,14 +186,14 @@ castellatedMeshControls
     locationsInMesh
     (
         // ((1.001 0.001 0.145) boxes00)
-        ((1.501 0.201 0.305) battery00_0)
-        ((1.501 -0.201 0.305) battery00_1)
-        ((0.501 -0.201 0.305) battery00_2)
-        ((0.501 0.201 0.305) battery00_3)
-        ((1.501 0.201 0.905) battery00_4)
-        ((1.501 -0.201 0.905) battery00_5)
-        ((0.501 -0.201 0.905) battery00_6)
-        ((0.501 0.201 0.905) battery00_7)
+        // ((1.501 0.201 0.305) battery00_0)
+        // ((1.501 -0.201 0.305) battery00_1)
+        // ((0.501 -0.201 0.305) battery00_2)
+        // ((0.501 0.201 0.305) battery00_3)
+        // ((1.501 0.201 0.905) battery00_4)
+        // ((1.501 -0.201 0.905) battery00_5)
+        // ((0.501 -0.201 0.905) battery00_6)
+        // ((0.501 0.201 0.905) battery00_7)
         ((0.2 0.2 1.2) airInside)
         ((0.005 1.505 0.005) airOutside)
         // ((0.305 0.305 0.305) batterie0)

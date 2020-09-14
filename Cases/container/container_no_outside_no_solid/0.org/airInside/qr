@@ -21,7 +21,7 @@ internalField   uniform 0;
 
 boundaryField
 {
-    air
+    bottom
     {
         type            calculated;
         value           uniform 0;
@@ -39,9 +39,7 @@ boundaryField
     //}
     airInside_to_box
     {
-        type            greyDiffusiveRadiationViewFactor;
-
-        qro             uniform 0;
+        type            calculated;
         value           uniform 0;
     }
 }

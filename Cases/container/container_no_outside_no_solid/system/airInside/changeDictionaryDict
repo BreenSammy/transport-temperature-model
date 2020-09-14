@@ -15,10 +15,10 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 boundary
 {
-    container
-    {
-        type        wall;
-    }
+    // container
+    // {
+    //     type        wall;
+    // }
 }
 
 
@@ -36,6 +36,10 @@ U
         {
             type            noSlip;
         }
+        bottom
+        {
+            type            noSlip;
+        }
     }
 }
 
@@ -50,7 +54,7 @@ T
             type            externalWallHeatFluxTemperature;
             mode            coefficient;
             Ta              285;
-            h               30;
+            h               10;
             kappaMethod     fluidThermo;
             qr              qr;
             value           $internalField;
@@ -68,6 +72,18 @@ T
             thermalInertia  true;
             value           $internalField;
         }
+        bottom
+        {
+            type            externalWallHeatFluxTemperature;
+            mode            coefficient;
+            Ta              uniform 285;
+            h               uniform 10e5;
+            kappaMethod     fluidThermo;
+            kappa           none;
+            thicknessLayers (1 2);
+            kappaLayers     (100 200);
+            value           uniform 285;
+        }
     }
 }
 
@@ -78,6 +94,11 @@ p_rgh
     boundaryField
     {
         container
+        {
+            type            fixedFluxPressure;
+            value           $internalField;
+        }
+        bottom
         {
             type            fixedFluxPressure;
             value           $internalField;

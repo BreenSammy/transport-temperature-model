@@ -1,0 +1,42 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2006                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      viewFactorsDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+writeViewFactorMatrix     true;
+writeFacesAgglomeration   true;
+writePatchViewFactors     true;
+dumpRays    true;
+
+maxDynListLength     1000000;
+
+// air
+// {
+// nFacesInCoarsestLevel 48;
+// featureAngle 2;
+// }
+
+airOutside_to_carrier
+{
+nFacesInCoarsestLevel 200;
+featureAngle 2;
+}
+
+airOutside_to_ground
+{
+nFacesInCoarsestLevel 200;
+featureAngle 2;
+}
+
+// ************************************************************************* //

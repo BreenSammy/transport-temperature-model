@@ -1,0 +1,65 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2006                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      changeDictionaryDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+T
+{
+    internalField   uniform 285;
+
+    boundaryField
+    {
+            // ".*"
+            // {
+            //     type    zeroGradient;
+            //     value   $internalField;
+            // }
+
+        carrier
+        {
+            type            externalWallHeatFluxTemperature;
+            mode            coefficient;
+            Ta              300;
+            h               10;
+            kappaMethod     solidThermo;
+            qr              qr;
+            value           $internalField;
+        }
+        carrier_to_airInside
+        {
+            type            compressible::turbulentTemperatureRadCoupledMixed;
+            Tnbr            T;
+            kappaMethod     solidThermo;
+            qrNbr           none;
+            qr              none;
+            kappa           none;
+            thermalInertia  true;
+            value           $internalField;
+        }
+        // carrier_to_ground
+        // {
+        //     type            compressible::turbulentTemperatureRadCoupledMixed;
+        //     Tnbr            T;
+        //     kappaMethod     solidThermo;
+        //     qrNbr           none;
+        //     qr              none;
+        //     kappa           none;
+        //     thermalInertia  true;
+        //     value           $internalField;
+        // }
+    }
+}
+
+// ************************************************************************* //

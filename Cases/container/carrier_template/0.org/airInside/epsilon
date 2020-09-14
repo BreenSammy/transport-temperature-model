@@ -1,0 +1,45 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2006                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    location    "0/air";
+    object      epsilon;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [ 0 2 -3 0 0 0 0 ];
+
+internalField   uniform 0.01;
+
+boundaryField
+{
+    "airInside_to_battery.*"
+    {
+        type            epsilonWallFunction;
+        value           uniform 0.01;
+        inletValue      uniform 0.01;
+    }
+    airInside_to_airOutside
+    {
+        type            epsilonWallFunction;
+        value           uniform 0.01;
+        inletValue      uniform 0.01;
+    }
+    trailer
+    {
+        type            epsilonWallFunction;
+        value           uniform 0.01;
+        inletValue      uniform 0.01;
+    }
+}
+
+
+// ************************************************************************* //

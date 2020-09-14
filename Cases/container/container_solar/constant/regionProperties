@@ -18,8 +18,8 @@ FoamFile
 regions
 (
     fluid       (airInside airOutside) 
-    //solid       ()
-    solid       ( battery00_0 battery00_1 battery00_2 battery00_3 battery00_4 battery00_5 battery00_6 battery00_7)
+    solid       ()
+    // solid       ( battery00_0 battery00_1 battery00_2 battery00_3 battery00_4 battery00_5 battery00_6 battery00_7)
 );
 
 // ************************************************************************* //

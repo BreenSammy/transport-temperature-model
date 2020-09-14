@@ -1,0 +1,12 @@
+#!/bin/sh
+cd "${0%/*}" || exit                                # Run from this directory
+. ${WM_PROJECT_DIR:?}/bin/tools/CleanFunctions      # Tutorial clean functions
+#------------------------------------------------------------------------------
+# This script is used to delete all time directories, so that a new simulation
+# can be run, without deleting the mesh and regions
+#------------------------------------------------------------------------------
+
+surfaceTransformPoints -translate '(0 0  -0.4)' boxes4x4.stl out.stl
+surfaceTransformPoints -rollPitchYaw '(90 0 0)' out.stl boxes4x4.stl
+surfaceConvert boxes4x4.stl boxes4x4.stl -clean -scale 0.01
+#------------------------------------------------------------------------------
