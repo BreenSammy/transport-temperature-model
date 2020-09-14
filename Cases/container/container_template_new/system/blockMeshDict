@@ -16,12 +16,12 @@ FoamFile
 
 scale   1;
 
-length    7.48; // 6.058
-width	  1.92;  // 2.438 // 1.1925
-height	  3.84;  // 2.591
-negWidth  -1.92;
-negLength -1.48; 
-negHeight  0;
+length      6.08;
+width	    1.28;  
+height	    2.56;  
+negWidth    -1.28;
+negLength   0; 
+negHeight   0;
 
 vertices
 (
@@ -40,67 +40,37 @@ vertices
 
 blocks
 (
- hex (0 1 2 3 4 5 6 7) (6 14 5) simpleGrading (1 1 1)
-//  (
-//     //x-direction expansion ratio
-//      (
-//          (0.5 0.5 16)     //Division 1 (percantage of block length | percantage of total block cells | grading)
-//          (0.5 0.5 0.0625) //Division 3
-//      )
-//     //y-direction expansion ratio
-//     (
-//     (0.5 0.5 16)     //Division 1 (percantage of block length | percantage of total block cells | grading)
-//     (0.5 0.5 0.0625) //Division 3
-//     )
-//     //z-direction expansion ratio
-//     (
-//         (0.5 0.5 16)     //Division 1 (percantage of block length | percantage of total block cells | grading)
-//         (0.5 0.5 0.0625) //Division 3
-//     )
-//  )
+ hex (0 1 2 3 4 5 6 7) (8 19 8) simpleGrading (1 1 1)
 );
 edges
 (
 );
 patches
 (
-    patch air
+    patch top
     (
-        (4 5 6 7)       
+        (4 5 6 7)
+    )
+    patch right
+    (       
         (1 2 6 5)
+    )
+    patch front
+    (
         (0 1 5 4)
+    )
+    patch back
+    (
         (3 7 6 2)
+    )
+    patch left 
+    (
 		(0 4 7 3)
     )
     patch bottom
 	(
 		(0 3 2 1)
 	)
-	// symmetry symmetryPlanes
-	// (
-	// 	(3 7 6 2)
-	// 	(0 4 7 3)
-	// )
-//  patch top
-//  (
-//  (4 5 6 7)
-//  )
-//  patch sideLeft
-//  (
-//  (0 4 7 3)
-//  )
-//  patch sideRight
-//  (
-//  (1 2 6 5)
-//  )
-//  patch front
-//  (
-//  (0 1 5 4)
-//  )
-//  patch back
-//  (
-//  (3 7 6 2)
-//  )
 );
 mergePatchPairs
 (

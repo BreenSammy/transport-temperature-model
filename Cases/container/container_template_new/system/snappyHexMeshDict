@@ -28,11 +28,44 @@ addLayers       false;
 // - to 'snap' the mesh boundary to the surface
 geometry
 {   
-    container
+    // container
+    // {
+    //     type searchableBox;
+    //     min (0.0405 -1.2195 -0.0005);
+    //     max (6.0585 1.2195 2.3855);
+    // }
+    container.stl 
     {
-        type searchableBox;
-        min (0.0405 -1.2195 -0.0005);
-        max (6.0585 1.2195 2.3855);
+        type triSurfaceMesh;
+        name container;
+
+        // regions
+        // {
+        //     top
+        //     {
+        //         name top;
+        //     }
+        //     bottom
+        //     {
+        //         name bottom;
+        //     }
+        //     left
+        //     {
+        //         name left;
+        //     }
+        //     right
+        //     {
+        //         name right;
+        //     }
+        //     front
+        //     {
+        //         name front;
+        //     }
+        //     back
+        //     {
+        //         name back;
+        //     }
+        // }
     }
 }
 
@@ -77,10 +110,6 @@ castellatedMeshControls
     // This is a featureEdgeMesh, read from constant/triSurface for now.
     features
     (
-        // {
-        //     file "Container.eMesh";
-        //     level 2;
-        // }
     );
 
     // Surface based refinement
@@ -97,7 +126,7 @@ castellatedMeshControls
         container
         {
             // Surface-wise min and max refinement level
-            level (3 3);
+            level (2 2);
         }
     }
 
@@ -123,7 +152,7 @@ castellatedMeshControls
         container
         {
            mode inside;
-           levels ((1E15 2));
+           levels ((1E15 1));
         }
     }
 
@@ -139,6 +168,7 @@ castellatedMeshControls
     locationsInMesh
     (
         ((0.205 0.205 2.205) airInside)
+        // ((0.5399 -0.5405 0.2005) pallet)
     );
 
     // Whether any faceZones (as specified in the refinementSurfaces)
@@ -184,32 +214,6 @@ addLayersControls
     // Per final patch (so not geometry!) the layer information
     layers
     {
-        airInside_to_boxes01
-        {
-            nSurfaceLayers 3;
-            finalLayerThickness 1.1;
-            
-        }
-        boxes_to_batterie0
-        {
-            nSurfaceLayers 3;
-            expansionRatio 1;
-            finalLayerThickness 0.7;
-            
-        }
-        batterie0_to_boxes
-        {
-            nSurfaceLayers 2;
-            expansionRatio 1;
-            finalLayerThickness 0.5;
-            featureAngle 300;
-            maxThicknessToMedialRatio 1;        
-        }
-        pallet1x4.stl
-        {
-          name pallet_0;
-          type triSurfaceMesh;
-        }
     }
 
     // Expansion factor for layer mesh

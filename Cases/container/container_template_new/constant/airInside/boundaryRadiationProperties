@@ -30,22 +30,7 @@ FoamFile
     };
 }
 
-airInside_to_box
-{
-    type        opaqueReflective;
-
-    // Fraction of the reflected is diffussive
-    fd          0.0; // 0: all specular 1: all diffusive
-
-    wallAbsorptionEmissionModel
-    {
-        type            multiBandAbsorption;
-        absorptivity    (0.9 0.9);
-        emissivity      (0.9 0.9);
-    };
-}
-
-container
+"container_.*"
 {
     type        opaqueDiffusive;
 

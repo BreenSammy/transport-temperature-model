@@ -15,12 +15,7 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 boundary
 {
-    // container
-    // {
-    //     type        wall;
-    // }
 }
-
 
 U
 {
@@ -28,24 +23,16 @@ U
 
     boundaryField
     {
-        container
-        {
-            type            noSlip;
-        }
-        bottom
-        {
-            type            noSlip;
-        }
     }
 }
 
 T
 {
-    internalField   uniform 285;
+    internalField       uniform 285;
 
     boundaryField
     {
-        container
+        container_left
         {
             type            externalWallHeatFluxTemperature;
             mode            coefficient;
@@ -55,20 +42,47 @@ T
             qr              qr;
             value           $internalField;
         }
-        // airInside_to_box
-        // {
-        //     type            compressible::turbulentTemperatureRadCoupledMixed;
-        //     Tnbr            T;
-        //     kappaMethod     fluidThermo;
-        //     qrNbr           none;
-        //     qr              qr;
-        //     // thicknessLayers (0.002);
-        //     // kappaLayers     (40);
-        //     kappa           none;
-        //     thermalInertia  true;
-        //     value           $internalField;
-        // }
-        bottom
+        container_right
+        {
+            type            externalWallHeatFluxTemperature;
+            mode            coefficient;
+            Ta              285;
+            h               10;
+            kappaMethod     fluidThermo;
+            qr              qr;
+            value           $internalField;
+        }
+        container_front
+        {
+            type            externalWallHeatFluxTemperature;
+            mode            coefficient;
+            Ta              285;
+            h               10;
+            kappaMethod     fluidThermo;
+            qr              qr;
+            value           $internalField;
+        }
+        container_back
+        {
+            type            externalWallHeatFluxTemperature;
+            mode            coefficient;
+            Ta              285;
+            h               10;
+            kappaMethod     fluidThermo;
+            qr              qr;
+            value           $internalField;
+        }
+        container_top
+        {
+            type            externalWallHeatFluxTemperature;
+            mode            coefficient;
+            Ta              285;
+            h               10;
+            kappaMethod     fluidThermo;
+            qr              qr;
+            value           $internalField;
+        }
+        container_bottom
         {
             type               zeroGradient;
             // type            externalWallHeatFluxTemperature;
@@ -90,41 +104,6 @@ p_rgh
 
     boundaryField
     {
-        container
-        {
-            type            fixedFluxPressure;
-            value           $internalField;
-        }
-        bottom
-        {
-            type            fixedFluxPressure;
-            value           $internalField;
-        }
-        // air
-        // {
-        //     type            totalPressure;
-        //     p0              $internalField;
-        //     value           $internalField;
-        // }
-        // symmetryPlanes
-        // {
-		// 	type            symmetry;
-        // }
-        // airInside_to_batterie0
-        // {
-        //     type    fixedFluxPressure;
-        //     value   $internalField;
-        // }
-        // airInside_to_box
-        // {
-        //     type    fixedFluxPressure;
-        //     value   $internalField;
-        // }
-        // airInside_to_boxes00
-        // {
-        //     type    fixedFluxPressure;
-        //     value   $internalField;
-        // }
     }
 }
 
@@ -134,15 +113,6 @@ p
 
     boundaryField
     {
-        // symmetryPlanes
-        // {
-		// 	type            symmetry;
-        // }
-        ".*"
-        {
-            type            calculated;
-            value           $internalField;
-        }
     }
 }
 

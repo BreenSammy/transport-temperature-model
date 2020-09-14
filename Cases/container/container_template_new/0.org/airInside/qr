@@ -21,12 +21,12 @@ internalField   uniform 0;
 
 boundaryField
 {
-    bottom
+    container_bottom
     {
         type            calculated;
         value           uniform 0;
     }
-    container
+    "container_.*"
     {
        type            calculated;
         value           uniform 0;

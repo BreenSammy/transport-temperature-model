@@ -54,6 +54,23 @@ adjustTimeStep  yes;
 
 functions
 {
+    temperature_right
+    {
+        type patchAverage;
+        functionObjectLibs
+          (
+            "libsimpleFunctionObjects.so"
+          );
+        verbose true;
+        region      airInside;
+        patches
+          (
+            inlet
+            outlet
+          );
+        outputControl writeTime;
+        outputInterval 1;
+    }
     //finds minimal and maximal Values in batteries region
     minMaxValues
     {
