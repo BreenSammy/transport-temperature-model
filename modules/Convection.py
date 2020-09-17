@@ -18,3 +18,16 @@ def coeff_natural(L: float, T_W: float, T_U: float):
 
     return alpha
 
+def coeff_forced(L: float, u: float):
+    # values for air at 20 °C, asumed to be constant
+    Pr = 0.718
+    ny = 13.3 * 10 ** -6 # mm^2/s
+    k = 0.0262
+
+    Re = u*L/ny
+
+    Nu = 0.037 * ( Re ** 0.8 - 23100) * Pr ** (1/3)
+
+    alpha = Nu * k / L
+
+    return alpha

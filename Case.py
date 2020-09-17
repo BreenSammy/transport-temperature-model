@@ -1,4 +1,5 @@
 import os
+import copy
 
 import numpy as np
 import pandas as pd
@@ -7,25 +8,33 @@ from PyFoam.RunDictionary.ParsedParameterFile import ParsedParameterFile
 from PyFoam.RunDictionary.SolutionDirectory import SolutionDirectory
 from PyFoam.Basics.DataStructures import Vector
 
-import modules.convection as convection
+import modules.Convection as Convection
 
 class Case(SolutionDirectory):
     def __init__(self, name, archive=None, paraviewLink=False):
         SolutionDirectory.__init__(self, name, archive=None, paraviewLink=False)
 
-        # Add scripts to control simulation to cloneCase
+        os.system('mkdir ' + os.path.join(self.name, "logs"))
+
+        #Add scripts and log folder to control simulation to cloneCase
         self.addToClone('Allrun.pre')
         self.addToClone('Run')
+        self.addToClone('Reconstruct')
+        self.addToClone('PostProcess')
+        self.addToClone('logs')
     
-    def setup_case(self, cargo):
-        """Loads the carrier with cargo. New Regions for cargo 
+    def load_cargo(self, cargo):
+        """Loads the carrier with cargo. New regions for cargo 
         are added to snappyHexMeshDict and regionProperties"""
+        # refinementLevel for cargo regions
         refinementSurfacesLevel = [3,3]
 
-        # Files that need to be modified
+        # Open files that need to be modified
         regionProperties = ParsedParameterFile(os.path.join(self.constantDir(),'regionProperties'))
         snappyHexMeshDict = ParsedParameterFile(os.path.join(self.systemDir(), "snappyHexMeshDict"))
+        controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
 
+        # Iteration over all cargo entries
         for i in range(len(cargo)):
             cargo[i].move_STL(self, cargo[i].name + '.stl')
 
@@ -33,6 +42,7 @@ class Case(SolutionDirectory):
             snappyHexMeshDict['geometry'].__setitem__(cargo[i].name + '.stl', {'type': 'triSurfaceMesh', 'name': cargo[i].name})
             snappyHexMeshDict['castellatedMeshControls']['refinementSurfaces'].__setitem__(cargo[i].name, {'level': refinementSurfacesLevel})
 
+            # Iteration over all individual battery regions in the cargo
             for j in range(len(cargo[i].package_positions)):
                 battery_name = "battery" + str(i) + '_' + str(j)
                 battery_system_path = os.path.join(self.systemDir(), battery_name)
@@ -40,106 +50,111 @@ class Case(SolutionDirectory):
                 snappyHexMeshDict['castellatedMeshControls']['locationsInMesh'].append(
                     [cargo[i].package_positions[j], battery_name])
 
+                # Copy the battery template folders 
                 os.system('cp -r ' + os.path.join(self.systemDir(), "battery_template") + " " + battery_system_path)
                 os.system('cp -r ' + os.path.join(self.constantDir(), "battery_template") + " " + os.path.join(self.name, "constant", battery_name))
                 os.system('cp -r ' + os.path.join(self.name, "0.org", "battery_template") + " " + os.path.join(self.name, "0.org", battery_name))
 
-                battery_changeDictionaryDict = ParsedParameterFile(os.path.join(battery_system_path, 'changeDictionaryDict'))
-                battery_changeDictionaryDict['T']['boundaryField'].__setitem__(
-                    battery_name + '_to_airInside',
-                    battery_changeDictionaryDict['T']['boundaryField'].__getitem__(
-                    'battery0_0_to_airInside'))
-                battery_changeDictionaryDict['T']['boundaryField'].__delitem__(
-                    'battery0_0_to_airInside')
-                battery_changeDictionaryDict.writeFile()
-
                 #Names of the solid regions are in third entry of the list regions, adding batteries
                 regionProperties['regions'][3].append(battery_name)
 
+                self.create_function_objects(battery_name, controlDict)
+
         regionProperties.writeFile()
         snappyHexMeshDict.writeFile()
+        controlDict.writeFile()
 
     # def remove_cargo(self):
-
 
     def create_mesh(self):
         os.system(os.path.join(self.name,"Allrun.pre"))
 
     def heattransfer_coefficient(self, time, L, T_U):
-        # Value for current time is saved in folder for last time
+        # Value for current time is saved in folder for last time, thus minus 1h
         time = time - 3600
         path_averageTemperature = os.path.join(
             self.name,'postProcessing','airInside','temperature_right',str(time),'surfaceFieldValue.dat'
             )    
         df_patch_temperature = pd.read_table(path_averageTemperature, sep="\s+", header=4, usecols = [0,1], names = ['time', 'T'])
         T_W = df_patch_temperature['T'].iloc[-1]
-        return convection.coeff_natural(L, T_W, T_U)
+        return Convection.coeff_natural(L, T_W, T_U)
 
     def run(self, ambientTemperature):
 
+        # Open files that need to be modified
         changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), "airInside", "changeDictionaryDict"))
         controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
         
         for i in range(len(ambientTemperature)):
-            
             time = controlDict['endTime']
-            print(time)
+            # Update the heattransfer coefficient 
             if time != 0:
                 print(self.heattransfer_coefficient(time, 2.4, ambientTemperature[i]))
                 changeDictionaryDict['T']['boundaryField']['container']['h'] = [self.heattransfer_coefficient(time, 2.4, ambientTemperature[i])]
 
-
+            # Update ambient temperature
             changeDictionaryDict['T']['boundaryField']['container']['Ta'] = [ambientTemperature[i]]
             changeDictionaryDict.writeFile()
             
+            # Update endTime of the simulation
             controlDict['endTime'] = controlDict['endTime'] + 3600
             controlDict.writeFile()
             
+            # Execute solver
             os.system(os.path.join(self.name,"Run"))
 
+            #File management of log files
             os.system('cp ' + os.path.join(self.name,"log.chtMultiRegionFoam") + ' ' + os.path.join(self.name,"log.chtMultiRegionFoam") + '_' + str(i))
             os.system('rm ' + os.path.join(self.name,"log.chtMultiRegionFoam"))
 
+    def reconstruct(self):
+        """Reconstruct the decomposed case. Executes OpenFOAM function reconstructPar in the case directory."""
+        os.system(os.path.join(self.name,"Reconstruct"))
 
+    def post_process(self):
+        controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
+        # Find all function objects for average temperature
+        average = [i for i in controlDict['functions'].keys() if i.startswith('average_')]
+        minVal = [i for i in controlDict['functions'].keys() if i.startswith('min_')]
+        maxVal = [i for i in controlDict['functions'].keys() if i.startswith('max_')]
 
+        # Enable function objects
+        for i in range(len(average)):
+            controlDict['functions'][average[i]]['enabled'] = 'yes'
+            controlDict['functions'][minVal[i]]['enabled'] = 'yes'
+            controlDict['functions'][maxVal[i]]['enabled'] = 'yes'
 
-class Pallet:
-    """Class to describe a pallet full of packages."""
-    def __init__(self, name: str, STL: str, number_packages: int, position: np.array, orientation: np.array):
-        self.name = name
-        self.STL = STL
-        self.number_packages = number_packages
-        self.position = position
-        self.orientation = orientation
-        position_vector = Vector(position[0], position[1], position[2])
+        controlDict.writeFile()
+
+        # os.system(os.path.join(self.name,"PostProcess"))
+        os.system('chtMultiRegionFoam -case ' + self.name + ' -postProcess -time ' + '20000:80000')
+        # os.system('chtMultiRegionFoam -case ' + self.name + ' -postProcess ')
+
+        # Disable function objects
+        for i in range(len(average)):
+            controlDict['functions'][average[i]]['enabled'] = 'no'
+            controlDict['functions'][minVal[i]]['enabled'] = 'no'
+            controlDict['functions'][maxVal[i]]['enabled'] = 'no'
+
+        controlDict.writeFile()
+
+        os.system('cp ' + os.path.join(self.name,"log.chtMultiRegionFoam") + ' ' + os.path.join(self.name,"log.chtMultiRegionFoam") + '_' + 'postProcess')
+        os.system('rm ' + os.path.join(self.name,"log.chtMultiRegionFoam"))
+
+    def create_function_objects(self, battery_name, controlDict):
+        """Create function objects for battery region. Needed for post processing."""
         
-        # Save positions of seperate packages for locationsInMesh in snappyHexMeshDict
-        self.package_positions = []
-        for i in range(int(self.number_packages/4)):
-            z_coordinate = self.position[2] + 0.15505 + 0.400*i
-            self.package_positions.extend([
-                position_vector.__add__(Vector(0.201, 0.201, z_coordinate)), position_vector.__add__(Vector(0.201, -0.201, z_coordinate)),
-                position_vector.__add__(Vector(-0.201, -0.201, z_coordinate)), position_vector.__add__(Vector(-0.201, 0.201, z_coordinate)),
-            ])
+        # Copy function objects from template
+        controlDict['functions']['average_' + battery_name] = copy.deepcopy(controlDict['functions']['average_battery0_0'])
+        controlDict['functions']['min_' + battery_name] = copy.deepcopy(controlDict['functions']['min_battery0_0'])
+        controlDict['functions']['max_' + battery_name] = copy.deepcopy(controlDict['functions']['max_battery0_0'])
 
-    def vector_to_string(self, vector):
-        """Transform a vector with three entries into a string for terminal commands"""
-        return "'(" + str(vector[0]) + ' ' + str(vector[1]) + ' ' + str(vector[2]) + ")'"
-    
-    def move_STL(self, case, target):
-        """Move the STL to the right position in the carrier."""
+        # Change region entry
+        controlDict['functions']['average_' + battery_name ]['region'] = battery_name
+        controlDict['functions']['min_' + battery_name]['region'] = battery_name
+        controlDict['functions']['max_' + battery_name]['region'] = battery_name
 
-        # Copy STL form template STL and bring it in the right orientation
-        os.system(
-            'surfaceTransformPoints -rollPitchYaw ' + self.vector_to_string(self.orientation) + " " + 
-            os.path.join(case.constantDir(), "triSurface", self.STL) + " " + 
-            os.path.join(case.constantDir(), "triSurface", target)
-            )
 
-        # Move STL to its position
-        os.system(
-            'surfaceTransformPoints -translate ' + self.vector_to_string(self.position) + " " + 
-            os.path.join(case.constantDir(), "triSurface", target) + " " + 
-            os.path.join(case.constantDir(), "triSurface", target)
-            )
-        self.STL = target
+        
+
+
