@@ -16,18 +16,21 @@ class Case(SolutionDirectory):
 
         os.system('mkdir ' + os.path.join(self.name, "logs"))
 
+
         #Add scripts and log folder to control simulation to cloneCase
         self.addToClone('Allrun.pre')
         self.addToClone('Run')
         self.addToClone('Reconstruct')
         self.addToClone('PostProcess')
         self.addToClone('logs')
-    
+
     def load_cargo(self, cargo):
         """Loads the carrier with cargo. New regions for cargo 
         are added to snappyHexMeshDict and regionProperties"""
         # refinementLevel for cargo regions
         refinementSurfacesLevel = [3,3]
+
+        self.cargo = cargo
 
         # Open files that need to be modified
         regionProperties = ParsedParameterFile(os.path.join(self.constantDir(),'regionProperties'))
@@ -43,22 +46,23 @@ class Case(SolutionDirectory):
             snappyHexMeshDict['castellatedMeshControls']['refinementSurfaces'].__setitem__(cargo[i].name, {'level': refinementSurfacesLevel})
 
             # Iteration over all individual battery regions in the cargo
-            for j in range(len(cargo[i].package_positions)):
-                battery_name = "battery" + str(i) + '_' + str(j)
-                battery_system_path = os.path.join(self.systemDir(), battery_name)
+            for j in range(len(cargo[i].batteries)):
+                battery = cargo[i].batteries[j]
+                battery.name = "battery" + str(i) + '_' + str(j)
+                battery_system_path = os.path.join(self.systemDir(), battery.name)
 
                 snappyHexMeshDict['castellatedMeshControls']['locationsInMesh'].append(
-                    [cargo[i].package_positions[j], battery_name])
+                    [battery.position, battery.name])
 
                 # Copy the battery template folders 
                 os.system('cp -r ' + os.path.join(self.systemDir(), "battery_template") + " " + battery_system_path)
-                os.system('cp -r ' + os.path.join(self.constantDir(), "battery_template") + " " + os.path.join(self.name, "constant", battery_name))
-                os.system('cp -r ' + os.path.join(self.name, "0.org", "battery_template") + " " + os.path.join(self.name, "0.org", battery_name))
+                os.system('cp -r ' + os.path.join(self.constantDir(), "battery_template") + " " + os.path.join(self.name, "constant", battery.name))
+                os.system('cp -r ' + os.path.join(self.name, "0.org", "battery_template") + " " + os.path.join(self.name, "0.org", battery.name))
 
                 #Names of the solid regions are in third entry of the list regions, adding batteries
-                regionProperties['regions'][3].append(battery_name)
+                regionProperties['regions'][3].append(battery.name)
 
-                self.create_function_objects(battery_name, controlDict)
+                self.create_function_objects(battery.name, controlDict)
 
         regionProperties.writeFile()
         snappyHexMeshDict.writeFile()
@@ -112,34 +116,67 @@ class Case(SolutionDirectory):
         os.system(os.path.join(self.name,"Reconstruct"))
 
     def post_process(self):
-        controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
-        # Find all function objects for average temperature
-        average = [i for i in controlDict['functions'].keys() if i.startswith('average_')]
-        minVal = [i for i in controlDict['functions'].keys() if i.startswith('min_')]
-        maxVal = [i for i in controlDict['functions'].keys() if i.startswith('max_')]
+        """Creates on post_process file for every region out of function object postProcessing files"""
 
-        # Enable function objects
-        for i in range(len(average)):
-            controlDict['functions'][average[i]]['enabled'] = 'yes'
-            controlDict['functions'][minVal[i]]['enabled'] = 'yes'
-            controlDict['functions'][maxVal[i]]['enabled'] = 'yes'
+        path_postProcessing = (os.path.join(self.name, 'postProcessing')
+        #Create new folder for post_process results
+        if not os.path.exists(os.path.join(self.name, 'postProcessing', 'PyFoam')):
+            os.makedirs(os.path.join(self.name, 'postProcessing', 'PyFoam'))
 
-        controlDict.writeFile()
+        regions = os.listdir(path_postProcessing)
+        # Get all timesteps and delete last one, because for latestTime no postProcess folder exists
+        times = self.getTimes()
+        del times[-1]
 
-        # os.system(os.path.join(self.name,"PostProcess"))
-        os.system('chtMultiRegionFoam -case ' + self.name + ' -postProcess -time ' + '20000:80000')
-        # os.system('chtMultiRegionFoam -case ' + self.name + ' -postProcess ')
+        for i in range(len(self.cargo)):
+            for j in range(len(self.cargo[i].batteries)):
+                region = self.cargo[i].batteries[j].name
+                for k in range(len(times)):
+                    path_average = os.path.join(self.name, 'postProcessing', region, 'average_' + region, times[k], 'volFieldValue.dat')
+                    path_min = os.path.join(self.name, 'postProcessing', region, 'min_' + region, times[k], 'volFieldValue.dat')
+                    path_max = os.path.join(self.name, 'postProcessing', region, 'max_' + region, times[k], 'volFieldValue.dat')
+                    
+                    average_temperature = pd.read_table(path_average, sep="\s+", header=3, usecols = [0,1], names = ['time', 'average(T)'])
+                    min_temperature = pd.read_table(path_min, sep="\s+", header=3, usecols = [0,1], names = ['time', 'min(T)'])
+                    max_temperature = pd.read_table(path_max, sep="\s+", header=3, usecols = [0,1], names = ['time', 'max(T)'])
 
-        # Disable function objects
-        for i in range(len(average)):
-            controlDict['functions'][average[i]]['enabled'] = 'no'
-            controlDict['functions'][minVal[i]]['enabled'] = 'no'
-            controlDict['functions'][maxVal[i]]['enabled'] = 'no'
+                    temperature = average_temperature.join(min_temperature['min(T)'])
+                    temperature = temperature.join(max_temperature['max(T)'])                
 
-        controlDict.writeFile()
+                    self.cargo[i].batteries[j].temperature = pd.concat([self.cargo[i].batteries[j].temperature, temperature], ignore_index = True)
 
-        os.system('cp ' + os.path.join(self.name,"log.chtMultiRegionFoam") + ' ' + os.path.join(self.name,"log.chtMultiRegionFoam") + '_' + 'postProcess')
-        os.system('rm ' + os.path.join(self.name,"log.chtMultiRegionFoam"))
+                file_name = os.path.join(self.name, 'postProcessing', 'PyFoam', region + '_temperature')
+                self.cargo[i].batteries[j].temperature.to_csv(file_name, encoding='utf-8', index=False)  
+
+        # print(self.df_average_temperature_air)
+        # controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
+        # # Find all function objects for average temperature
+        # average = [i for i in controlDict['functions'].keys() if i.startswith('average_')]
+        # minVal = [i for i in controlDict['functions'].keys() if i.startswith('min_')]
+        # maxVal = [i for i in controlDict['functions'].keys() if i.startswith('max_')]
+
+        # # Enable function objects
+        # for i in range(len(average)):
+        #     controlDict['functions'][average[i]]['enabled'] = 'yes'
+        #     controlDict['functions'][minVal[i]]['enabled'] = 'yes'
+        #     controlDict['functions'][maxVal[i]]['enabled'] = 'yes'
+
+        # controlDict.writeFile()
+
+        # # os.system(os.path.join(self.name,"PostProcess"))
+        # os.system('chtMultiRegionFoam -case ' + self.name + ' -postProcess -time ' + '20000:80000')
+        # # os.system('chtMultiRegionFoam -case ' + self.name + ' -postProcess ')
+
+        # # Disable function objects
+        # for i in range(len(average)):
+        #     controlDict['functions'][average[i]]['enabled'] = 'no'
+        #     controlDict['functions'][minVal[i]]['enabled'] = 'no'
+        #     controlDict['functions'][maxVal[i]]['enabled'] = 'no'
+
+        # controlDict.writeFile()
+
+        # os.system('cp ' + os.path.join(self.name,"log.chtMultiRegionFoam") + ' ' + os.path.join(self.name,"log.chtMultiRegionFoam") + '_' + 'postProcess')
+        # os.system('rm ' + os.path.join(self.name,"log.chtMultiRegionFoam"))
 
     def create_function_objects(self, battery_name, controlDict):
         """Create function objects for battery region. Needed for post processing."""
