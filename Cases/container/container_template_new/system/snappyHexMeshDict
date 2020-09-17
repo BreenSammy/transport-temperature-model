@@ -28,45 +28,45 @@ addLayers       false;
 // - to 'snap' the mesh boundary to the surface
 geometry
 {   
-    // container
-    // {
-    //     type searchableBox;
-    //     min (0.0405 -1.2195 -0.0005);
-    //     max (6.0585 1.2195 2.3855);
-    // }
-    container.stl 
+    container
     {
-        type triSurfaceMesh;
-        name container;
-
-        // regions
-        // {
-        //     top
-        //     {
-        //         name top;
-        //     }
-        //     bottom
-        //     {
-        //         name bottom;
-        //     }
-        //     left
-        //     {
-        //         name left;
-        //     }
-        //     right
-        //     {
-        //         name right;
-        //     }
-        //     front
-        //     {
-        //         name front;
-        //     }
-        //     back
-        //     {
-        //         name back;
-        //     }
-        // }
+        type searchableBox;
+        min (0.0405 -1.2195 -0.0005);
+        max (6.0585 1.2195 2.3855);
     }
+    // container.stl 
+    // {
+    //     type triSurfaceMesh;
+    //     name container;
+
+    //     // regions
+    //     // {
+    //     //     top
+    //     //     {
+    //     //         name top;
+    //     //     }
+    //     //     bottom
+    //     //     {
+    //     //         name bottom;
+    //     //     }
+    //     //     left
+    //     //     {
+    //     //         name left;
+    //     //     }
+    //     //     right
+    //     //     {
+    //     //         name right;
+    //     //     }
+    //     //     front
+    //     //     {
+    //     //         name front;
+    //     //     }
+    //     //     back
+    //     //     {
+    //     //         name back;
+    //     //     }
+    //     // }
+    // }
 }
 
 

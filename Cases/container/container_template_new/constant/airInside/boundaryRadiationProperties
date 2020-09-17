@@ -15,7 +15,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-".*"
+"airInside_to_.*"
 {
     type        opaqueReflective;
 
@@ -42,12 +42,10 @@ FoamFile
     };
 }
 
-bottom
+container
 {
     type        opaqueDiffusive;
 
-    // Fraction of the reflected is diffussive
-    //fd          0.0; // 0: all specular 1: all diffusive
     wallAbsorptionEmissionModel
     {
         type            multiBandAbsorption;
@@ -56,4 +54,15 @@ bottom
     };
 }
 
+bottom
+{
+    type        opaqueDiffusive;
+
+    wallAbsorptionEmissionModel
+    {
+        type            multiBandAbsorption;
+        absorptivity    (0.6 0.6);
+        emissivity      (0.6 0.6);
+    };
+}
 // ************************************************************************* //

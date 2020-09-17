@@ -9,57 +9,24 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
-    object      thermophysicalProperties;
+    class       volScalarField;
+    location    "0/air";
+    object      IDefault;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-thermoType
+dimensions      [ 1 0 -3 0 0 0 0 ];
+
+internalField   uniform 0;
+
+boundaryField
 {
-    type            heSolidThermo;
-    mixture         pureMixture;
-    transport       constAnIso;
-    thermo          hConst;
-    equationOfState rhoConst;
-    specie          specie;
-    energy          sensibleEnthalpy;
+    ".*"
+    {
+        type            greyDiffusiveRadiation;
+        value           uniform 0;
+    }
 }
 
-// Specifies direction for anisotrop thermal conductivity
-coordinateSystem
-{
-    type cartesian;
-    origin (0 0 0);
-    coordinateRotation
-    {
-        type axesRotation;
-        e1 (1 0 0);
-        e2 (0 1 0);
-        }
-}
-
-mixture
-{
-    specie
-    {
-        molWeight   50;
-    }
-
-    transport
-    {
-        kappa   (21 21 1.1);
-    }
-
-    thermodynamics
-    {
-        Hf      0;
-        Cp      1100;
-    }
-
-    equationOfState
-    {
-        rho     2000;
-    }
-}
 
 // ************************************************************************* //

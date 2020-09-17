@@ -33,7 +33,7 @@ solarLoadCoeffs
 
         localStandardMeridian   2;      // GMT offset (hours)
         startDay                233;    // day of the year
-        startTime               9;     // time of the day (hours decimal)
+        startTime               0;     // time of the day (hours decimal)
         longitude               48.1448; // longitude (degrees)
         latitude                11.558; // latitude (degrees)
 
@@ -91,19 +91,19 @@ solarLoadCoeffs
 
 }
 
-viewFactorCoeffs
-{
-    smoothing true; //Smooth view factor matrix (use when in a close surface
-                    //to force Sum(Fij = 1)
-    constantEmissivity true; //constant emissivity on surfaces.
+// viewFactorCoeffs
+// {
+//     smoothing true; //Smooth view factor matrix (use when in a close surface
+//                     //to force Sum(Fij = 1)
+//     constantEmissivity true; //constant emissivity on surfaces.
 
-    nBands    2;
+//     nBands    2;
 
-    useSolarLoad       false;
-}
+//     useSolarLoad       false;
+// }
 
 // Number of flow iterations per radiation iteration
-solverFreq 1;
+solverFreq 5;
 
 absorptionEmissionModel none;
 

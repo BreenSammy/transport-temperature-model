@@ -21,6 +21,16 @@ internalField   uniform 0;
 
 boundaryField
 {
+    container
+    {
+        type            calculated;
+        value           uniform 0;
+    }
+    bottom
+    {
+        type            calculated;
+        value           uniform 0;
+    }
     container_bottom
     {
         type            calculated;

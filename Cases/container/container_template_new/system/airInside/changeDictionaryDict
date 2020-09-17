@@ -23,15 +23,39 @@ U
 
     boundaryField
     {
+        "container_.*"
+        {
+            type            noSlip;
+        }
+        container
+        {
+            type            noSlip;
+        }
+        bottom
+        {
+            type            noSlip;
+        }
     }
 }
 
 T
 {
-    internalField       uniform 285;
+    internalField       uniform 293.15;
 
     boundaryField
     {
+        container
+        {
+            type            externalWallHeatFluxTemperature;
+            mode            coefficient;
+            Ta              285;
+            h               2;
+            kappaMethod     fluidThermo;
+            thicknessLayers (0.02);
+            kappaLayers     (44);
+            qr              qr;
+            value           $internalField;
+        }
         container_left
         {
             type            externalWallHeatFluxTemperature;
@@ -84,16 +108,20 @@ T
         }
         container_bottom
         {
-            type               zeroGradient;
-            // type            externalWallHeatFluxTemperature;
-            // mode            coefficient;
-            // Ta              uniform 300.0;
-            // h               uniform 10e5;
-            // kappaMethod     fluidThermo;
-            // kappa           none;
-            // thicknessLayers (1 2);
-            // kappaLayers     (100 200);
-            // value           uniform 300.0;
+            type            zeroGradient;
+        }
+        bottom
+        {
+            // type               zeroGradient;
+            type            externalWallHeatFluxTemperature;
+            mode            coefficient;
+            Ta              uniform 293.15;
+            h               uniform 10e5;
+            kappaMethod     fluidThermo;
+            kappa           none;
+            thicknessLayers (1 2);
+            kappaLayers     (100 200);
+            value           uniform 293.15;
         }
     }
 }
@@ -104,6 +132,21 @@ p_rgh
 
     boundaryField
     {
+        "container_.*"
+        {
+            type            fixedFluxPressure;
+            value           $internalField;
+        }
+        container
+        {
+            type            fixedFluxPressure;
+            value           $internalField;
+        }
+        bottom
+        {
+            type            fixedFluxPressure;
+            value           $internalField;
+        }
     }
 }
 
@@ -113,6 +156,11 @@ p
 
     boundaryField
     {
+        ".*"
+        {
+            type            calculated;
+            value           $internalField;
+        }
     }
 }
 
