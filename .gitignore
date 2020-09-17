@@ -8,3 +8,6 @@ dynamicCode
 log.*
 postProcessing/
 cellToRegion
+*.gz
+isd-history.csv
+isd-inventory.csv
