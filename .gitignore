@@ -11,3 +11,4 @@ cellToRegion
 *.gz
 isd-history.csv
 isd-inventory.csv
+__pycache__/
