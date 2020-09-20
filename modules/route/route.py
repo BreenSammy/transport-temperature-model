@@ -1,10 +1,12 @@
 import os
-from datetime import date, datetime 
+from datetime import datetime, timedelta 
 from math import sqrt, floor
 import geopy.distance
 
 import numpy as np
 import pandas as pd
+
+print('Hello')
 
 class Route:
     """Class to represent a route. Saves coordinates and start and end time."""
@@ -38,6 +40,9 @@ class Route:
 
         # Initialize variables
         coordinates = np.zeros([floor(self.distance/speed), 2])
+        #coordinates = pd.DataFrame(columns = ['Date', 'Lat', 'Lon'])
+        #print(coordinates)
+
         counter = 0
         distance = 0.0
 
@@ -53,3 +58,17 @@ class Route:
                 distance = 0
 
         return coordinates
+
+    def data(self):
+        """Create a dataframe with time and location of route"""
+        rows_list = [{'Date': self.start, 'Lat': self.coordinates_full[0][0], 'Lon': self.coordinates_full[0][1]}]
+
+        date = self.start
+        for i in range(len(self.coordinates)):
+            date = date + timedelta(hours = 1)
+            row = {'Date': date, 'Lat': self.coordinates[i][0], 'Lon': self.coordinates[i][1]}
+            rows_list.append(row)
+        
+        df = pd.DataFrame(rows_list)
+        
+        return df
