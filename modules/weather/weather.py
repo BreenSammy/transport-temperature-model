@@ -1,6 +1,7 @@
 import os
 import ftplib
 from datetime import date, datetime 
+from pathlib import Path
 import calendar
 import time
 import copy
@@ -112,8 +113,8 @@ class Weather:
     def download_weather_data(self, date: date, lat: float, lon: float):
         """Downloads weather data for the nearest station"""
 
-        data_path = os.path.abspath('data')
-
+        data_path = os.path.abspath('weatherdata')
+        
         if not os.path.exists(data_path):
             os.makedirs(data_path)
         
@@ -174,7 +175,7 @@ def temperature_range(start: datetime, end: datetime, lat: float, lon: float):
     df.index = range(len(df.index))
 
     # Apply scaling factor to temperature
-    df = df['T'].values[0] / 10 
+    df['T'] = df['T'] / 10  
 
     return df
 
@@ -207,7 +208,7 @@ def data(start: datetime, end: datetime, lat: float ,lon: float):
     # Reindex 
     df.index = range(len(df.index))
     # Apply scaling factor to temperature
-    df = df['T'].values[0] / 10 
+    df['T'] = df['T'] / 10 
 
     return df
 
