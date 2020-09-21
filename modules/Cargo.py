@@ -4,8 +4,14 @@ import numpy as np
 
 from PyFoam.Basics.DataStructures import Vector
 
+class Battery:
+    def __init__(self, position):
+        self.position = position
+        self.name = None
+        self.temperature = None
+
 class Pallet:
-    """Class to describe a pallet full of packages."""
+    """Class to describe a pallet full of packages filled with batteries."""
     def __init__(self, name: str, STL: str, number_packages: int, position: np.array, orientation: np.array):
         self.name = name
         self.STL = STL
@@ -15,12 +21,14 @@ class Pallet:
         position_vector = Vector(position[0], position[1], position[2])
         
         # Save positions of seperate packages for locationsInMesh in snappyHexMeshDict
-        self.package_positions = []
+        self.batteries = []
         for i in range(int(self.number_packages/4)):
             z_coordinate = self.position[2] + 0.15505 + 0.400*i
-            self.package_positions.extend([
-                position_vector.__add__(Vector(0.201, 0.201, z_coordinate)), position_vector.__add__(Vector(0.201, -0.201, z_coordinate)),
-                position_vector.__add__(Vector(-0.201, -0.201, z_coordinate)), position_vector.__add__(Vector(-0.201, 0.201, z_coordinate)),
+            self.batteries.extend([
+                Battery(position_vector.__add__(Vector(0.201, 0.201, z_coordinate))), 
+                Battery(position_vector.__add__(Vector(0.201, -0.201, z_coordinate))),
+                Battery(position_vector.__add__(Vector(-0.201, -0.201, z_coordinate))), 
+                Battery(position_vector.__add__(Vector(-0.201, 0.201, z_coordinate))),
             ])
 
     def vector_to_string(self, vector):

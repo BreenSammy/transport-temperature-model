@@ -1,6 +1,6 @@
 import os
 import ftplib
-from datetime import date, datetime 
+from datetime import date, datetime, timedelta 
 from pathlib import Path
 import calendar
 import time
@@ -48,12 +48,12 @@ class Weather:
 
             except EOFError as e:
                 print(e)
-                print("Retrying...")
+                print("Connection to NOAA server failed. Retrying to connect.")
                 retry = True
 
             except OSError as e:
                 print(e)
-                print("Retrying...")
+                print("Connection to NOAA server failed. Retrying to connect.")
                 retry = True
 
     def download(self, source_file: str, target_file: str):
@@ -110,7 +110,7 @@ class Weather:
 
         return station
 
-    def download_weather_data(self, date: date, lat: float, lon: float):
+    def download_weather_data(self, input_date: date, lat: float, lon: float):
         """Downloads weather data for the nearest station"""
 
         data_path = os.path.abspath('weatherdata')
@@ -118,34 +118,54 @@ class Weather:
         if not os.path.exists(data_path):
             os.makedirs(data_path)
         
-        station = self.find_station(date, lat, lon)
-        file_name = station['USAF'].values[0] + '-' + str(station['WBAN'].values[0]) + '-' + str(date.year) + '.gz'
+        station = self.find_station(input_date, lat, lon)
+        file_name = station['USAF'].values[0] + '-' + str(station['WBAN'].values[0]) + '-' + str(input_date.year) + '.gz'
         file_path = os.path.join(data_path, file_name)
         
         if not os.path.exists(file_path):
-            self.ftp.cwd('isd-lite/' + str(date.year))
+            self.ftp.cwd('isd-lite/' + str(input_date.year))
             self.download(file_name, file_path)
-        else:
-            print("File already downloaded")
+            self.ftp.cwd('../..')
 
-        return file_path
+        return file_path, station
 
 w = Weather()
 
-def temperature(datetime: datetime, lat: float, lon: float):
-    """Find temperature for datetime and location"""
-    date = datetime.date()
-    file_path = w.download_weather_data(date, lat, lon)
-    col_names = ['Year', 'Month', 'Day', 'Hour', 'T']
+def temperature(input_datetime: datetime, lat: float, lon: float):
+    """Find temperature for datetime and location. Datetimes are rounded to nearest full hour."""
 
-    df = pd.read_csv(file_path, compression='gzip', quotechar='"', delim_whitespace=True, usecols=[0,1,2,3,4], names=col_names)
+    input_datetime = hour_rounder(input_datetime)
 
-    temperature = df.loc[
-            (df['Year'] == datetime.year) &
-            (df['Month'] == datetime.month) &
-            (df['Day'] == datetime.day) &
-            (df['Hour'] == datetime.hour)
-            ]['T'].values[0] / 10 
+    # Sometimes the station has no data for the datetime, thus the loop
+    retry = True
+    while retry:
+        date = input_datetime.date()
+        file_path, station = w.download_weather_data(date, lat, lon)
+        col_names = ['Year', 'Month', 'Day', 'Hour', 'T']
+
+        df = pd.read_csv(file_path, compression='gzip', quotechar='"', delim_whitespace=True, usecols=[0,1,2,3,4], names=col_names)
+
+        df["Date"] = df["Year"].astype(str) + '-' + df["Month"].astype(str) + '-' + df["Day"].astype(str) + ' ' + df["Hour"].astype(str)  + ':00:00'
+
+        del df['Year']
+        del df['Month'] 
+        del df['Day'] 
+        del df['Hour']
+
+        df.Date=pd.to_datetime(df.Date)
+
+
+        df = df[df.Date.between(input_datetime, input_datetime)]
+
+        # if the dataframe is empty, station has no data for datetime and is removed from isd_history
+        if df.empty:
+            # Remove the current station from possible stations and search again
+            index = w.isd_history.loc[w.isd_history['USAF'] == station['USAF'].values[0]].index.item()
+            w.isd_history = w.isd_history.drop([index])
+            retry = True
+        else:
+            temperature = df['T'].values[0] / 10  
+            retry = False
 
     return temperature
 
@@ -212,4 +232,8 @@ def data(start: datetime, end: datetime, lat: float ,lon: float):
 
     return df
 
+def hour_rounder(t):
+    """ Rounds to nearest hour by adding a timedelta hour if minute >= 30 """
+    return (t.replace(second=0, microsecond=0, minute=0, hour=t.hour)
+               +timedelta(hours=t.minute//30))
 

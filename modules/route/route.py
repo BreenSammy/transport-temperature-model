@@ -6,17 +6,16 @@ import geopy.distance
 import numpy as np
 import pandas as pd
 
-print('Hello')
-
 class Route:
-    """Class to represent a route. Saves coordinates and start and end time."""
-    def __init__(self, start: datetime, end: datetime, filename: str):
+    """Class to represent location and time of a route. """
+    def __init__(self, start: datetime, end: datetime, filename: str, stops = None):
         self.start = start
         self.end = end
         self.traveltime = end - start
         self.read(filename)
         self.distance = self.calc_distance()
         self.coordinates = self.coordinates_hourly()
+        self.dataframe = self.get_dataframe()
 
     def calc_distance(self):
         """Calculate the total distance of the route"""
@@ -40,9 +39,6 @@ class Route:
 
         # Initialize variables
         coordinates = np.zeros([floor(self.distance/speed), 2])
-        #coordinates = pd.DataFrame(columns = ['Date', 'Lat', 'Lon'])
-        #print(coordinates)
-
         counter = 0
         distance = 0.0
 
@@ -59,7 +55,7 @@ class Route:
 
         return coordinates
 
-    def data(self):
+    def get_dataframe(self):
         """Create a dataframe with time and location of route"""
         rows_list = [{'Date': self.start, 'Lat': self.coordinates_full[0][0], 'Lon': self.coordinates_full[0][1]}]
 
@@ -70,5 +66,5 @@ class Route:
             rows_list.append(row)
         
         df = pd.DataFrame(rows_list)
-        
+
         return df
