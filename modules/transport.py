@@ -41,8 +41,8 @@ class Transport:
 
 lat = [51.38503, 50.407]
 lon = [12.18273, 11.77477]
-stop_start = [datetime(2019, 3, 2, 7), datetime(2019, 3, 2, 12)]
-stop_end = [datetime(2019, 3, 2, 6), datetime(2019, 3, 2, 13)]
+stop_start = [datetime(2019, 3, 2, 7, 15), datetime(2019, 3, 2, 9, 35)]
+stop_end = [datetime(2019, 3, 2, 8, 15), datetime(2019, 3, 2, 10, 45)]
 
 d = {'Start': stop_start, 'End': stop_end, 'Lat': lat, 'Lon': lon}
 
@@ -53,7 +53,7 @@ print(stops)
 
 
 start = datetime(2019, 3, 2, 5, 23)
-end = datetime(2019, 3, 5, 5, 44)
+end = datetime(2019, 3, 2, 14, 30)
 
 Transport_berlin_garching = Transport(start, end, 'Berlin-Garching.csv', stops = stops)
 
