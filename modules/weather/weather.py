@@ -16,34 +16,36 @@ class Weather:
     NOAA: https://www.ncei.noaa.gov/pub/data/noaa/
     """
     def __init__(self):
+        isd_history = os.path.abspath('isd-history.csv')
+        isd_inventory = os.path.abspath('isd-inventory.csv')
+
+        # Download isd-history.txt (List of all weather stations), if not downloaded or older than one month
+        if not os.path.exists(isd_history): 
+            self.download('isd-history.csv', isd_history) 
+        # Check age of file with UNIX timestamp
+        elif (time.time() - os.path.getmtime(isd_history)) > 2592000: 
+            self.download('isd-history.csv', isd_history) 
+        # Same for isd-inventory.txt (Gives information about amount of measurements at station)
+        if not os.path.exists(isd_inventory): 
+            self.download('isd-inventory.csv', isd_inventory) 
+        # Check age of file with UNIX timestamp
+        elif (time.time() - os.path.getmtime(isd_inventory)) > 2592000: 
+            self.download('isd-invenotry.csv', isd_inventory) 
+
+        # Save them as dataframe for easy acess
+        self.isd_history = pd.read_csv(isd_history, dtype={'USAF': str})
+        self.isd_inventory = pd.read_csv(isd_inventory, dtype={'USAF': str})
+        # Remove all stations without location
+        self.isd_history = self.isd_history[self.isd_history.LAT.notnull()]
+
+    def connect(self):
+        """Conncect to NOAA server with ftp connection. Retry to establish connection if it."""
         retry = True
-        # Try to connect to NOAA, sometimes connection fails
         while (retry):
             try:
                 self.ftp = ftplib.FTP('ftp.ncei.noaa.gov')
                 self.ftp.login()
                 self.ftp.cwd('pub/data/noaa')
-                isd_history = os.path.abspath('isd-history.csv')
-                isd_inventory = os.path.abspath('isd-inventory.csv')
-
-                # Download isd-history.txt (List of all weather stations), if not downloaded or older than one month
-                if not os.path.exists(isd_history): 
-                    self.download('isd-history.csv', isd_history) 
-                # Check age of file with UNIX timestamp
-                elif (time.time() - os.path.getmtime(isd_history)) > 2592000: 
-                    self.download('isd-history.csv', isd_history) 
-
-                if not os.path.exists(isd_inventory): 
-                    self.download('isd-inventory.csv', isd_inventory) 
-                # Check age of file with UNIX timestamp
-                elif (time.time() - os.path.getmtime(isd_inventory)) > 2592000: 
-                    self.download('isd-invenotry.csv', isd_inventory) 
-
-                self.isd_history = pd.read_csv(isd_history, dtype={'USAF': str})
-                self.isd_inventory = pd.read_csv(isd_inventory, dtype={'USAF': str})
-                # Remove all stations without location
-                self.isd_history = self.isd_history[self.isd_history.LAT.notnull()]
-
                 retry = False
 
             except EOFError as e:
@@ -59,6 +61,7 @@ class Weather:
     def download(self, source_file: str, target_file: str):
         """Downlaod a file from the ftp server and save it in the target file"""
         try:
+            self.connect()
             fh = open(target_file, 'wb+')
             self.ftp.retrbinary('RETR ' + source_file, fh.write)
 
