@@ -1,21 +1,24 @@
 import copy
 from datetime import date, datetime 
+import json
+from json import JSONEncoder
+import os
 
 import numpy as np
 import pandas as pd
 
-import weather.weather as weather
-from route.route import Route
+import modules.weather.weather as weather
+from .route.route import Route
 
 class Transport:
-    def __init__(self, start, end, filename, stops = None):
-        self.route = Route(start, end, filename, stops = stops)
+    def __init__(self, start, end, cargo, route_filename, stops = None):
+        self.route = Route(start, end, route_filename, stops = stops)
         self.start = start
         self.end = end
+        self.cargo = cargo
         self.temperature = self.get_temperature()
-        self.dataframe = self.get_dataframe()
+        self.weatherdata = self.get_weatherdata()
         
-
     def get_temperature(self):
         length = len(self.route.dataframe.index)
         temperature = np.zeros([length, 1])
@@ -28,39 +31,60 @@ class Transport:
             temperature[i] = weather.temperature(current_datetime, lat[i][0], lon[i][0])
         return temperature
 
-    def get_dataframe(self):
+    def get_weatherdata(self):
         dataframe = copy.deepcopy(self.route.dataframe)
         dataframe['T'] = self.temperature
         return dataframe
 
-    def to_csv(self, filename):
-        self.dataframe.to_csv(filename, encoding='utf-8', index=False)    
+    def save_weatherdata(self, filename):
+        """Saves transport dataframe as .csv file"""
+        self.weatherdata.to_csv(filename, encoding='utf-8', index=False)
+    
+    def to_json(self, filename):
+        """Saves transport object data as json file"""
+        with open(filename, 'w') as outfile:
+            json.dump(self, outfile, cls = TransportEncoder, indent = 4,)
+    
+    def save(self,name):
+        """Save transport as json and weatherdata as csv"""
+        folderpath = os.path.join('transports', name)
+        jsonpath = os.path.join(folderpath, name + '.json')
+        weatherdatapath = os.path.join(folderpath, name +'_weatherdata.csv')
+        
+        if not os.path.exists(folderpath):
+            os.makedirs(folderpath)
 
+        self.to_json(jsonpath)
+        self.save_weatherdata(weatherdatapath)
 
-       
+class TransportEncoder(JSONEncoder):
+    DATE_FORMAT = "%Y-%m-%d"
+    TIME_FORMAT = "%H:%M:%S"
+    def default(self, transport):
 
-lat = [51.38503, 50.407]
-lon = [12.18273, 11.77477]
-stop_start = [datetime(2019, 3, 2, 7, 15), datetime(2019, 3, 2, 9, 35)]
-stop_end = [datetime(2019, 3, 2, 8, 15), datetime(2019, 3, 2, 10, 45)]
-
-d = {'Start': stop_start, 'End': stop_end, 'Lat': lat, 'Lon': lon}
-
-stops = pd.DataFrame(data = d)
-
-print(stops)
-
-
-
-start = datetime(2019, 3, 2, 5, 23)
-end = datetime(2019, 3, 2, 14, 30)
-
-Transport_berlin_garching = Transport(start, end, 'Berlin-Garching.csv', stops = stops)
-
-print(Transport_berlin_garching.dataframe)
-
-Transport_berlin_garching.to_csv('B-G.csv')
-
-
+        if isinstance(transport, Transport):
+            # Encode dataframe stops to json conform dict
+            stops = transport.route.stops.to_dict("index")
+            for index, info in stops.items():
+                stops[index]["Start"] = stops[index]["Start"].strftime("%s %s" % (
+                        self.DATE_FORMAT, self.TIME_FORMAT
+                    ))
+                stops[index]["End"] = stops[index]["End"].strftime("%s %s" % (
+                        self.DATE_FORMAT, self.TIME_FORMAT
+                    ))
+            
+            return {
+                "Start": transport.start.strftime("%s %s" % (
+                    self.DATE_FORMAT, self.TIME_FORMAT
+                )),
+                "End": transport.end.strftime("%s %s" % (
+                    self.DATE_FORMAT, self.TIME_FORMAT
+                )),
+                "Route": {
+                    "Filename": transport.route.filename,
+                    "Stops":  stops
+                },
+                "Cargo": [item.to_dict() for item in transport.cargo]           
+            }
 
 

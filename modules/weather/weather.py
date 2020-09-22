@@ -22,8 +22,13 @@ class Station:
         self.lat_query = lat
         self.lon_query = lon
 
-        isd_history = os.path.abspath('isd-history.csv')
-        isd_inventory = os.path.abspath('isd-inventory.csv')
+        datapath = os.path.abspath('weatherdata')
+        
+        if not os.path.exists(datapath):
+            os.makedirs(datapath)
+
+        isd_history = os.path.abspath('weatherdata/isd-history.csv')
+        isd_inventory = os.path.abspath('weatherdata/isd-inventory.csv')
 
         # Download isd-history.txt (List of all weather stations), if not downloaded or older than one month
         if not os.path.exists(isd_history): 
@@ -126,7 +131,6 @@ class Station:
         coords_station = np.array([self.lat, self.lon])
         coords_query = np.array([self.lat_query, self.lon_query])
         self.distance = geopy.distance.distance(coords_station, coords_query).km
-        print(self.distance)
 
     def _download_weatherdata(self):
         """Downloads weather data for the station"""

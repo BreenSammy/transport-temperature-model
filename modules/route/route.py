@@ -1,8 +1,8 @@
-import os
 from datetime import datetime, timedelta 
 from math import sqrt, floor
-import geopy.distance
+import os
 
+import geopy.distance
 import numpy as np
 import pandas as pd
 
@@ -11,9 +11,12 @@ class Route:
     def __init__(self, start: datetime, end: datetime, filename: str, stops = None):
         self.start = start
         self.end = end
+        self.filename = filename
         self.traveltime = end - start
         self.stops = stops
-        self.read(filename)
+        self.coordinates_full = self.read(filename)
+        self.coordinates_start = self.coordinates_full[0]
+        self.coordinates_end = self.coordinates_full[-1]
         self.distance = self.calc_distance()
         self.coordinates = self.coordinates_hourly()
         self.dataframe = self.get_dataframe()
@@ -31,7 +34,7 @@ class Route:
     def read(self, filename: str):
         """Read coordinates from a .csv file"""
         df = pd.read_csv(filename, usecols=[0,1], names=['Lon', 'Lat'])
-        self.coordinates_full =  df[['Lat', 'Lon']].values
+        return df[['Lat', 'Lon']].values
 
     def coordinates_hourly(self):
         """Calculate the coordinates of the route for every hour"""
