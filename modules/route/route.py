@@ -12,8 +12,9 @@ class Route:
         self.start = start
         self.end = end
         self.filename = filename
-        self.traveltime = end - start
         self.stops = stops
+        self.traveltime = end - start
+        self._df_stops = pd.DataFrame([item.to_dict() for item in stops])
         self.coordinates_full = self.read(filename)
         self.coordinates_start = self.coordinates_full[0]
         self.coordinates_end = self.coordinates_full[-1]
@@ -38,8 +39,8 @@ class Route:
 
     def coordinates_hourly(self):
         """Calculate the coordinates of the route for every hour"""
-        # Calculate the distance from start to all stops 
-        coordinates_stops = self.stops[['Lat', 'Lon']].values
+        # Calculate the distance from start to all _df_stops 
+        coordinates_stops = self._df_stops[['Lat', 'Lon']].values
         amount_stops = len(coordinates_stops[:,0])
         distance_stops = np.zeros([amount_stops, 1])
         for i in range(amount_stops):
@@ -47,9 +48,9 @@ class Route:
 
 
         speed = np.zeros([amount_stops + 1, 1])
-        stops_start = self.stops[['Start']].values
+        stops_start = self._df_stops[['Start']].values
 
-        stops_end = self.stops[['End']].values
+        stops_end = self._df_stops[['End']].values
 
         stop_start = stops_start[0][0]
         stop_start = pd.Timestamp(stop_start)
@@ -98,7 +99,7 @@ class Route:
             distance = distance + distance_1_to_2
             total_distance = total_distance + distance_1_to_2
             
-            if stop_counter < len(self.stops.index):
+            if stop_counter < len(self._df_stops.index):
                 if total_distance > distance_stops[stop_counter]:
                     coordinates[counter,:] = coordinates_stops[stop_counter]
                     stop_counter = stop_counter + 1
@@ -122,17 +123,17 @@ class Route:
         stops_counter = 0
         date = self.start
         for i in range(len(self.coordinates)):
-            # Add stops to the dataframe
+            # Add _df_stops to the dataframe
             stop_added = False
-            if stops_counter < len(self.stops.index):
-                coords_stop = self.stops[['Lat', 'Lon']].values[stops_counter]
+            if stops_counter < len(self._df_stops.index):
+                coords_stop = self._df_stops[['Lat', 'Lon']].values[stops_counter]
                 if np.array_equal(self.coordinates[i,:], coords_stop):
                     # Get start time of stop and transform it to datetime object
-                    stop_start = self.stops[['Start']].values[stops_counter][0]
+                    stop_start = self._df_stops[['Start']].values[stops_counter][0]
                     stop_start = pd.Timestamp(stop_start)
                     stop_start = stop_start.to_pydatetime()
                     # Same for end time of stop
-                    stop_end = self.stops[['End']].values[stops_counter][0]
+                    stop_end = self._df_stops[['End']].values[stops_counter][0]
                     stop_end = pd.Timestamp(stop_end)
                     stop_end = stop_end.to_pydatetime()
 
@@ -162,3 +163,22 @@ class Route:
         
         df = pd.DataFrame(rows_list)
         return df
+
+class Stop:
+    """Class to represent a stop on the route.""""
+    def __init__(self, start, end, lat, lon):
+        self.start = start
+        self.end = end
+        self.lat = lat
+        self.lon = lon
+
+    def to_dict(self):
+        return {
+            'Start': self.start,
+            'End': self.end,
+            'Lat': self.lat,
+            'Lon': self.lon
+        }
+
+def stopDecoder(obj):
+    return Stop(obj['Start'], obj['End'], obj['Lat'], obj['Lon'])

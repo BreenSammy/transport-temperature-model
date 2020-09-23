@@ -1,14 +1,18 @@
 import copy
+from dateutil.parser import parse
 from datetime import date, datetime 
 import json
-from json import JSONEncoder
+from json import JSONEncoder, JSONDecoder
 import os
+import re
 
 import numpy as np
 import pandas as pd
 
+from modules.cargo import cargoDecoder
 import modules.weather.weather as weather
-from .route.route import Route
+from .route.route import Route, stopDecoder
+
 
 class Transport:
     def __init__(self, start, end, cargo, route_filename, stops = None):
@@ -58,21 +62,27 @@ class Transport:
         self.save_weatherdata(weatherdatapath)
 
 class TransportEncoder(JSONEncoder):
+    """
+    JSONEncoder for Transport object. 
+    Mainly handles serialisation of datetime.datetime objects.
+    See also: https://gist.github.com/simonw/7000493
+    """
     DATE_FORMAT = "%Y-%m-%d"
     TIME_FORMAT = "%H:%M:%S"
     def default(self, transport):
 
         if isinstance(transport, Transport):
-            # Encode dataframe stops to json conform dict
-            stops = transport.route.stops.to_dict("index")
-            for index, info in stops.items():
-                stops[index]["Start"] = stops[index]["Start"].strftime("%s %s" % (
+            # Transform stop instances in list into dicts
+            stops = [stop.to_dict() for stop in transport.route.stops]
+            # Transform datetime instances to string
+            for stop in stops:
+                stop["Start"] = stop["Start"].strftime("%s %s" % (
                         self.DATE_FORMAT, self.TIME_FORMAT
                     ))
-                stops[index]["End"] = stops[index]["End"].strftime("%s %s" % (
+                stop["End"] = stop["End"].strftime("%s %s" % (
                         self.DATE_FORMAT, self.TIME_FORMAT
                     ))
-            
+            # Return dictionary for json file
             return {
                 "Start": transport.start.strftime("%s %s" % (
                     self.DATE_FORMAT, self.TIME_FORMAT
@@ -86,5 +96,47 @@ class TransportEncoder(JSONEncoder):
                 },
                 "Cargo": [item.to_dict() for item in transport.cargo]           
             }
+
+class TransportDecoder(JSONDecoder):
+    """
+    JSONDecoder for Transport object. Handles deserialisation of datetime.datetime objects.
+    See also: https://gist.github.com/setaou/ff98e82a9ce68f4c2b8637406b4620d1
+    """
+     #This an elementary date checker, rather than  ISO date checker.
+    datetime_regex = re.compile(r'(\d{4}[-/]\d{2}[-/]\d{2})')
+
+    def __init__(self, *args, **kwargs):
+        json.JSONDecoder.__init__(self, *args, **kwargs)
+        self.parse_string = TransportDecoder.new_scanstring
+        # Use the python version as the C version does not use the new parse_string
+        self.scan_once = json.scanner.py_make_scanner(self) 
+
+    @classmethod
+    def new_scanstring(cls, s, end, strict=True):
+        """Handles deserialisation of datetime.datetime objects."""
+        (s, end) = json.decoder.scanstring(s, end, strict)
+        if cls.datetime_regex.match(s):
+            return (parse(s), end)
+        else:
+            return (s, end)
+
+def load(filename):
+    """Return dict from json file"""
+    return json.load(filename, cls=TransportDecoder)
+
+def from_json(filename):
+    """Create Transport instance from json file"""
+    json_dict = load(filename)
+    start = json_dict['Start']
+    end = json_dict['End']
+    cargo = [cargoDecoder(item) for item in json_dict['Cargo']]
+    route_filename = json_dict['Route']['Filename']
+    stops = [stopDecoder(stop) for stop in json_dict['Route']['Stops']]
+    return Transport(start, end, cargo, route_filename, stops = stops)
+    #return json_dict
+
+# def loads(s, *args, **kwargs):
+#     kwargs['cls'] = JSONDecoderEx
+#     return json.loads(s, *args, **kwargs)
 
 

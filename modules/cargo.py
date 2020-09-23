@@ -17,7 +17,7 @@ class Battery:
 
 class Pallet:
     """Class to describe a pallet full of packages filled with batteries."""
-    def __init__(self, name: str, STL: str, position: np.array, orientation: np.array):
+    def __init__(self, name: str, STL: str, position: list, orientation: list):
         self.name = name
         self.STL = STL
         self.position = position
@@ -62,8 +62,13 @@ class Pallet:
     def to_dict(self):
         """Transform essential attributes of pallet to dict to save as json in Transport class"""
         return {
+            'Type': 'Pallet',
             'Name': self.name,
             'STL': self.STL,
-            'Position': np.array2string(self.position, formatter={'float_kind':lambda x: "%.4f" % x}),
-            'Orientation': np.array2string(self.orientation, formatter={'float_kind':lambda x: "%.2f" % x}) 
+            'Position': self.position,
+            'Orientation': self.orientation 
         }
+
+def cargoDecoder(obj):
+    if obj['Type'] == 'Pallet':
+        return Pallet(obj['Name'], obj['STL'], obj['Position'], obj['Orientation'])
