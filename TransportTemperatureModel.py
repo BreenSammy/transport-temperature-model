@@ -128,16 +128,16 @@ start = datetime(2019, 3, 2, 5)
 transport_path = os.path.join('transports', 'Berlin-Garching', 'Berlin-Garching.json')
 case_path = os.path.join('transports', 'Berlin-Garching', 'case')
 
-# with open(transport_path) as json_file:
-#     transport1 = transport.from_json(json_file)
+with open(transport_path) as json_file:
+    transport1 = transport.from_json(json_file)
 
-# transport1.save()
+transport1.save()
 
-# case = case.setup(transport1)
+case = case.setup(transport1)
 
-# case.run()
+case.run()
 
-case = Case(case_path)
+# case = Case(case_path)
 case.reconstruct()
 
 # transport1.save('Berlin-Garching')
