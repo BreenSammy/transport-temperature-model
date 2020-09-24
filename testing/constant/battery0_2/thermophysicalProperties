@@ -1,0 +1,65 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2006                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      thermophysicalProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+thermoType
+{
+    type            heSolidThermo;
+    mixture         pureMixture;
+    transport       constAnIso;
+    thermo          hConst;
+    equationOfState rhoConst;
+    specie          specie;
+    energy          sensibleEnthalpy;
+}
+
+// Specifies direction for anisotrop thermal conductivity
+coordinateSystem
+{
+    type cartesian;
+    origin (0 0 0);
+    coordinateRotation
+    {
+        type axesRotation;
+        e1 (1 0 0);
+        e2 (0 1 0);
+        }
+}
+
+mixture
+{
+    specie
+    {
+        molWeight   50;
+    }
+
+    transport
+    {
+        kappa   (21 21 1.1);
+    }
+
+    thermodynamics
+    {
+        Hf      0;
+        Cp      1100;
+    }
+
+    equationOfState
+    {
+        rho     2000;
+    }
+}
+
+// ************************************************************************* //

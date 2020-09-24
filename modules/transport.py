@@ -15,8 +15,9 @@ from .route.route import Route, stopDecoder
 
 
 class Transport:
-    def __init__(self, start, end, cargo, route_filename, stops = None):
+    def __init__(self, name, start, end, cargo, route_filename, stops = None):
         self.route = Route(start, end, route_filename, stops = stops)
+        self.name = name
         self.start = start
         self.end = end
         self.cargo = cargo
@@ -49,11 +50,11 @@ class Transport:
         with open(filename, 'w') as outfile:
             json.dump(self, outfile, cls = TransportEncoder, indent = 4,)
     
-    def save(self,name):
+    def save(self):
         """Save transport as json and weatherdata as csv"""
-        folderpath = os.path.join('transports', name)
-        jsonpath = os.path.join(folderpath, name + '.json')
-        weatherdatapath = os.path.join(folderpath, name +'_weatherdata.csv')
+        folderpath = os.path.join('transports', self.name)
+        jsonpath = os.path.join(folderpath, self.name + '.json')
+        weatherdatapath = os.path.join(folderpath, 'weatherdata.csv')
         
         if not os.path.exists(folderpath):
             os.makedirs(folderpath)
@@ -84,6 +85,7 @@ class TransportEncoder(JSONEncoder):
                     ))
             # Return dictionary for json file
             return {
+                "Name": transport.name,
                 "Start": transport.start.strftime("%s %s" % (
                     self.DATE_FORMAT, self.TIME_FORMAT
                 )),
@@ -127,16 +129,15 @@ def load(filename):
 def from_json(filename):
     """Create Transport instance from json file"""
     json_dict = load(filename)
+    # Read all parameters from the dict
+    name = json_dict['Name']
     start = json_dict['Start']
     end = json_dict['End']
+    # Create cargo instances
     cargo = [cargoDecoder(item) for item in json_dict['Cargo']]
     route_filename = json_dict['Route']['Filename']
+    # Create stop instances
     stops = [stopDecoder(stop) for stop in json_dict['Route']['Stops']]
-    return Transport(start, end, cargo, route_filename, stops = stops)
-    #return json_dict
-
-# def loads(s, *args, **kwargs):
-#     kwargs['cls'] = JSONDecoderEx
-#     return json.loads(s, *args, **kwargs)
-
+    # Return the transport instance
+    return Transport(name, start, end, cargo, route_filename, stops = stops)
 

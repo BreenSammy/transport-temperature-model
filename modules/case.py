@@ -1,7 +1,10 @@
 import copy
+from datetime import datetime
+import glob
 import os
 import shutil
 
+import geopy.distance
 import numpy as np
 import pandas as pd
 from PyFoam.RunDictionary.ParsedParameterFile import ParsedParameterFile
@@ -11,8 +14,10 @@ from PyFoam.Basics.DataStructures import Vector
 import modules.convection as convection
 
 class Case(SolutionDirectory):
-    def __init__(self, name, archive=None, paraviewLink=False):
-        SolutionDirectory.__init__(self, name, archive=None, paraviewLink=False)
+    def __init__(self, name, archive = None, paraviewLink = True):
+        SolutionDirectory.__init__(self, name, archive = None, paraviewLink = True)
+        
+        print(self.name)
 
         if not os.path.exists(os.path.join(self.name,'logs')):
             os.makedirs(os.path.join(self.name,'logs'))
@@ -58,9 +63,6 @@ class Case(SolutionDirectory):
                 shutil.copytree(os.path.join(self.systemDir(), "battery_template"), battery_system_path)
                 shutil.copytree(os.path.join(self.constantDir(), "battery_template"), os.path.join(self.name, "constant", battery.name))
                 shutil.copytree(os.path.join(self.name, "0.org", "battery_template"), os.path.join(self.name, "0.org", battery.name))
-                # os.system('cp -r ' + os.path.join(self.systemDir(), "battery_template") + " " + battery_system_path)
-                # os.system('cp -r ' + os.path.join(self.constantDir(), "battery_template") + " " + os.path.join(self.name, "constant", battery.name))
-                # os.system('cp -r ' + os.path.join(self.name, "0.org", "battery_template") + " " + os.path.join(self.name, "0.org", battery.name))
 
                 #Names of the solid regions are in third entry of the list regions, adding batteries
                 regionProperties['regions'][3].append(battery.name)
@@ -71,52 +73,110 @@ class Case(SolutionDirectory):
         snappyHexMeshDict.writeFile()
         controlDict.writeFile()
 
-    # def remove_cargo(self):
-
+    def load_weatherdata(self):
+        # Load weatherdata from csv file
+        weatherdata_path = os.path.join(self.name, os.pardir, 'weatherdata.csv') 
+        self.weatherdata = pd.read_csv(weatherdata_path, parse_dates = ['Date'], date_parser = pd.to_datetime)
+        
     def create_mesh(self):
         os.system(os.path.join(self.name,"Allrun.pre"))
+        self.move_logs()
 
-    def heattransfer_coefficient(self, time, L, T_U):
+    def heattransfer_coefficient(self, T_U, u):
+        """Calculate heattransfer coefficient"""
         # Value for current time is saved in folder for last time, thus minus 1h
-        time = time - 3600
+        times = self.getParallelTimes()
+        time = int(times[-1]) - 3600
+
         path_averageTemperature = os.path.join(
-            self.name,'postProcessing','airInside','temperature_right',str(time),'surfaceFieldValue.dat'
+            self.name,'postProcessing','airInside','temperature_right', str(time),'surfaceFieldValue.dat'
             )    
         df_patch_temperature = pd.read_table(path_averageTemperature, sep="\s+", header=4, usecols = [0,1], names = ['time', 'T'])
-        T_W = df_patch_temperature['T'].iloc[-1]
-        return convection.coeff_natural(L, T_W, T_U)
+        # OpenFOAM sometimes changes naming of surfaceFieldValue file, make sure that dataframe reads the data
+        if df_patch_temperature.empty:
+            path_averageTemperature = os.path.join(
+                self.name,'postProcessing','airInside','temperature_right', str(time),'surfaceFieldValue_' + str(time) + '.dat'
+            )
+            df_patch_temperature = pd.read_table(path_averageTemperature, sep="\s+", header=4, usecols = [0,1], names = ['time', 'T'])
 
-    def run(self, ambientTemperature):
+        T_W = df_patch_temperature['T'].iloc[-1]
+        if u < 1:
+            L = 2.4
+            return convection.coeff_natural(L, T_W, T_U), T_W
+        else:
+            L = 6
+            return convection.coeff_forced(L, u), T_W
+
+    def run(self):
 
         # Open files that need to be modified
         changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), "airInside", "changeDictionaryDict"))
         controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
+        radiationProperties =  ParsedParameterFile(os.path.join(self.constantDir(), "airInside", "radiationProperties"))
+
+        time = controlDict['endTime']
+
+        if time == 0:
+            startdate = pd.to_datetime(self.weatherdata['Date'].values[0])
+            starttime = startdate.time()
+            starttime = starttime.hour + starttime.minute / 60 + starttime.second / 3600
+            startday = startdate.timetuple().tm_yday
+            radiationProperties['solarLoadCoeffs']['startDay'] = startday
+            radiationProperties['solarLoadCoeffs']['startTime'] = starttime
+
         
-        for i in range(len(ambientTemperature)):
+        for i in range(len(self.weatherdata.index)-1):
+
+            # Read temperature and transform from Celsius to Kelvin
+            temperature = self.weatherdata['T'].values[i] + 273.15
             time = controlDict['endTime']
+
+            coordinates = self.weatherdata[['Lat', 'Lon']].values[i]
+            coordinates_next = self.weatherdata[['Lat', 'Lon']].values[i+1]
+
+            distance = geopy.distance.distance(coordinates, coordinates_next).m
+
+            # Update endTime of the simulation
+            endTime_delta = self.weatherdata['Date'].values[i+1] - self.weatherdata['Date'].values[i]
+            endTime_delta = endTime_delta / np.timedelta64(1, 's')
+
+            travelspeed = distance / endTime_delta
+
+            print(travelspeed)
+
+            controlDict['endTime'] = controlDict['endTime'] + endTime_delta
+            controlDict.writeFile()
+
+            #Upadate positon
+            radiationProperties['solarLoadCoeffs']['latitude'] = self.weatherdata['Lat'].values[i]
+            radiationProperties['solarLoadCoeffs']['longitude'] = self.weatherdata['Lon'].values[i]
+            radiationProperties.writeFile()
+
             # Update the heattransfer coefficient 
             if time != 0:
-                print(self.heattransfer_coefficient(time, 2.4, ambientTemperature[i]))
-                changeDictionaryDict['T']['boundaryField']['container']['h'] = [self.heattransfer_coefficient(time, 2.4, ambientTemperature[i])]
+                heattransfer_coefficient, T_W = self.heattransfer_coefficient(temperature, travelspeed)
+                print(
+                    'Recalculating heattransfer coefficient: \n' +
+                    'Heattransfer coeffcient: ' + str(heattransfer_coefficient) + ' with average wall temperature: ' + str(T_W)
+                    )
+                changeDictionaryDict['T']['boundaryField']['container']['h'] = heattransfer_coefficient
 
             # Update ambient temperature
-            changeDictionaryDict['T']['boundaryField']['container']['Ta'] = [ambientTemperature[i]]
+            changeDictionaryDict['T']['boundaryField']['container']['Ta'] = [temperature]
             changeDictionaryDict.writeFile()
             
-            # Update endTime of the simulation
-            controlDict['endTime'] = controlDict['endTime'] + 3600
-            controlDict.writeFile()
             
             # Execute solver
             os.system(os.path.join(self.name,"Run"))
 
             #File management of log files
-            # original = os.path.join(self.name,"log.chtMultiRegionFoam")
-            # target = os.path.join(self.name,"log.chtMultiRegionFoam") + '_' + str(i))
-            # shutil.copyfile(original, target)
-            # os.remvoe(original)
-            os.system('cp ' + os.path.join(self.name,"log.chtMultiRegionFoam") + ' ' + os.path.join(self.name,"log.chtMultiRegionFoam") + '_' + str(i))
-            os.system('rm ' + os.path.join(self.name,"log.chtMultiRegionFoam"))
+            timestep = pd.to_datetime(self.weatherdata['Date'].values[i]) 
+            string_timestep = timestep.strftime('%Y-%m-%d_%H:%M:%S')
+            original = os.path.join(self.name,"log.chtMultiRegionFoam")
+            target = os.path.join(self.name,"log.chtMultiRegionFoam" + '_' + string_timestep)
+            shutil.move(original, target)
+        
+        self.move_logs()
 
     def reconstruct(self):
         """Reconstruct the decomposed case. Executes OpenFOAM function reconstructPar in the case directory."""
@@ -130,7 +190,7 @@ class Case(SolutionDirectory):
         if not os.path.exists(path_PyFoam):
             os.makedirs(path_PyFoam)
 
-        # Find all regions by direcotries in postProcessing, PyFoam folder is no regionS
+        # Find all regions by direcotries in postProcessing, PyFoam folder is no region
         regions = os.listdir(path_postProcessing)
         regions.remove('PyFoam')
         
@@ -169,6 +229,42 @@ class Case(SolutionDirectory):
         controlDict['functions']['average_' + battery_name ]['region'] = battery_name
         controlDict['functions']['min_' + battery_name]['region'] = battery_name
         controlDict['functions']['max_' + battery_name]['region'] = battery_name
+
+    def move_logs(self):
+        """Move log. files into logs folder"""
+        logfolder = os.path.join(self.name, 'logs')
+        logfiles = glob.iglob(os.path.join(self.name, "log.*"))
+        for logfile in logfiles:
+            shutil.move(logfile, logfolder)  
+
+
+def setup(transport, force_clone = True):
+    """
+    Function to setup OpenFOAM case for the transport. 
+    Clones templatecase into the transport directory, loads the carrier with carg and creates mesh.
+    """
+
+    casepath = os.path.join('transports', transport.name, 'case')
+    if force_clone:
+        templatecase = Case(os.path.join('cases', 'container', 'container_template'))
+        case = templatecase.cloneCase(casepath)
+    try:
+        case = Case(casepath)
+    except:
+        print("Case does not exist: Creating new one")
+        templatecase = Case(os.path.join('cases', 'container', 'container_template'))
+        case = templatecase.cloneCase(casepath)
+
+    airInside_polyMesh = os.path.join(case.constantDir(),'airInside', 'polyMesh')
+
+    if not os.path.exists(airInside_polyMesh):
+        case.load_cargo(transport.cargo)
+        case.create_mesh()
+    
+    case.load_weatherdata()
+
+    return case
+
 
 
         

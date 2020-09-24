@@ -14,3 +14,5 @@ isd-inventory.csv
 __pycache__/
 api-key
 routes/
+weatherdata/
+case/

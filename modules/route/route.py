@@ -34,7 +34,8 @@ class Route:
 
     def read(self, filename: str):
         """Read coordinates from a .csv file"""
-        df = pd.read_csv(filename, usecols=[0,1], names=['Lon', 'Lat'])
+        routepath = os.path.join('routes', filename)
+        df = pd.read_csv(routepath, usecols=[0,1], names=['Lon', 'Lat'])
         return df[['Lat', 'Lon']].values
 
     def coordinates_hourly(self):
@@ -160,12 +161,15 @@ class Route:
                 date = date + timedelta(hours = 1)
                 row = {'Date': date, 'Lat': self.coordinates[i][0], 'Lon': self.coordinates[i][1]}
                 rows_list.append(row)
-        
+        # Add row for end
+        last_row = {'Date': self.end, 'Lat': self.coordinates_full[-1][0], 'Lon': self.coordinates_full[-1][1]}
+        rows_list.append(last_row)
+
         df = pd.DataFrame(rows_list)
         return df
 
 class Stop:
-    """Class to represent a stop on the route.""""
+    """Class to represent a stop on the route."""
     def __init__(self, start, end, lat, lon):
         self.start = start
         self.end = end

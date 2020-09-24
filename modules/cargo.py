@@ -4,9 +4,9 @@ import numpy as np
 from PyFoam.Basics.DataStructures import Vector
 
 NUMBER_PACKAGES = {
-    'pallet2x4.stl': 4,
-    'pallet3x4.stl': 8,
-    'pallet4x4.stl': 12
+    'pallet1x4.stl': 4,
+    'pallet2x4.stl': 8,
+    'pallet3x4.stl': 12
 }
 
 class Battery:
@@ -17,16 +17,16 @@ class Battery:
 
 class Pallet:
     """Class to describe a pallet full of packages filled with batteries."""
-    def __init__(self, name: str, STL: str, position: list, orientation: list):
+    def __init__(self, name: str, templateSTL: str, position: list, orientation: list):
         self.name = name
-        self.STL = STL
+        self.templateSTL = templateSTL
         self.position = position
         self.orientation = orientation
         self.batteries = []
 
         # Save positions of seperate packages for locationsInMesh in snappyHexMeshDict 
         position_vector = Vector(position[0], position[1], position[2])
-        number_packages = NUMBER_PACKAGES[self.STL]
+        number_packages = NUMBER_PACKAGES[self.templateSTL]
         
         for i in range(int(number_packages/4)):
             z_coordinate = self.position[2] + 0.15505 + 0.400*i
@@ -47,7 +47,7 @@ class Pallet:
         # Copy STL form template STL and bring it in the right orientation
         os.system(
             'surfaceTransformPoints -rollPitchYaw ' + self.vector_to_string(self.orientation) + " " + 
-            os.path.join(case.constantDir(), "triSurface", self.STL) + " " + 
+            os.path.join(case.constantDir(), "triSurface", self.templateSTL) + " " + 
             os.path.join(case.constantDir(), "triSurface", target)
             )
 
@@ -64,11 +64,11 @@ class Pallet:
         return {
             'Type': 'Pallet',
             'Name': self.name,
-            'STL': self.STL,
+            'TemplateSTL': self.templateSTL,
             'Position': self.position,
             'Orientation': self.orientation 
         }
 
 def cargoDecoder(obj):
     if obj['Type'] == 'Pallet':
-        return Pallet(obj['Name'], obj['STL'], obj['Position'], obj['Orientation'])
+        return Pallet(obj['Name'], obj['TemplateSTL'], obj['Position'], obj['Orientation'])
