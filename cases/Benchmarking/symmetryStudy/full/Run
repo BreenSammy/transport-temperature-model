@@ -1,0 +1,29 @@
+#!/bin/sh
+cd "${0%/*}" || exit                                # Run from this directory
+. ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions        # Tutorial run functions
+#------------------------------------------------------------------------------
+# Script is used to run solver, if mesh and regions already exist
+#------------------------------------------------------------------------------
+
+# run solver
+runParallel chtMultiRegionFoam
+
+# Reconstruct
+runApplication reconstructPar -allRegions
+
+# create files with coordinates of cell centres
+for region in $(foamListRegions)
+do
+   runApplication -s $region postProcess -func writeCellCentres -region $region -time 0
+done
+
+# create logs folder if it doesn't exist
+if [ ! -d "$logs" ]; then
+    mkdir logs
+fi
+# move all logs in new folder
+mv log.* logs
+
+# create -foam file for Paraview
+touch shippingBox.foam
+#------------------------------------------------------------------------------

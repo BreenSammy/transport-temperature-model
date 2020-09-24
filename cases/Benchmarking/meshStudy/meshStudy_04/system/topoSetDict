@@ -1,0 +1,107 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2006                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      topoSetDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+boxThickness  0.015; //Thickness of Shipping Box
+length  0.600;
+width	0.400;
+height	0.340;
+
+offset 0.00501; //offset to avoid numerical errors while 
+
+xBox #calc "$length/2 + $offset";
+negxBox #calc "-1*$xBox";
+yBox #calc "$width/2 + $offset";
+negyBox #calc "-1*$yBox";
+zBoxBottom #calc "-1 * $offset";
+zBoxTop #calc "$height + $offset";
+
+xBatteries #calc "$xBox - $boxThickness";
+negxBatteries #calc "-1*$xBatteries";
+yBatteries #calc "$yBox - $boxThickness";
+negyBatteries #calc "-1*$yBatteries";
+zBatteriesBottom #calc "$boxThickness - $offset";
+zBatteriesTop #calc "$height - $boxThickness + $offset";
+
+
+actions
+(
+    // shippingBox
+    {
+        name    shippingBoxCellSet;
+        type    cellSet;
+        action  new;
+        source  boxToCell;
+        //box     ( -0.30501  -0.20501 0.00501) ( 0.29501 0.19501 0.33501 );
+        box     ($negxBox $negyBox $zBoxBottom) ($xBox $yBox $zBoxTop);
+    }
+    {
+        name    shippingBoxCellSet;
+        type    cellSet;
+        action  subtract;
+        source  boxToCell;
+        // box     ( -0.25501  -0.15501 0.05501) ( 0.25501 0.15501 0.29501 );
+        box     ($negxBatteries $negyBatteries $zBatteriesBottom) ($xBatteries $yBatteries $zBatteriesTop);
+    }
+    {
+        name    shippingBox;
+        type    cellZoneSet;
+        action  new;
+        source  setToCellZone;
+        set     shippingBoxCellSet;
+    }
+    {
+        name    batteriesCellSet;
+        type    cellSet;
+        action  new;
+        source  boxToCell;
+        // box     ( -0.25501  -0.15501 0.05501) ( 0.25501 0.15501 0.29501 );
+        box     ($negxBatteries $negyBatteries $zBatteriesBottom) ($xBatteries $yBatteries $zBatteriesTop);
+        
+    }
+    {
+        name    batteries;
+        type    cellZoneSet;
+        action  new;
+        source  setToCellZone;
+        set     batteriesCellSet;
+    }
+
+    // air is all the other cells
+    {
+        name    airCellSet;
+        type    cellSet;
+        action  new;
+        source  boxToCell;
+        //box     ( -0.30501  -0.20501 0.00501) ( 0.29501 0.19501 0.33501 );
+        box     ($negxBox $negyBox $zBoxBottom) ($xBox $yBox $zBoxTop);
+    }
+    {
+        name    airCellSet;
+        type    cellSet;
+        action  invert;
+    }
+    {
+        name    air;
+        type    cellZoneSet;
+        action  new;
+        source  setToCellZone;
+        set     airCellSet;
+    }
+);
+
+
+// ************************************************************************* //

@@ -1,0 +1,28 @@
+#!/bin/sh
+cd "${0%/*}" || exit                                # Run from this directory
+. ${WM_PROJECT_DIR:?}/bin/tools/CleanFunctions      # Tutorial clean functions
+#------------------------------------------------------------------------------
+# Script to create plot data for one line
+#------------------------------------------------------------------------------
+
+# remove all old data
+rm postProcessing/singleGraph/*.csv
+
+# run postProcess function singleGraph for every region
+for region in $(foamListRegions)
+do
+    postProcess -latestTime -func singleGraph -region $region
+    cp -a postProcessing/singleGraph/$region/$(foamListTimes -latestTime)/. postProcessing/singleGraph/
+    mv postProcessing/singleGraph/line_T.csv postProcessing/singleGraph/$region.csv
+done
+
+# write all entries without header in help.csv
+tail -n+2 -q postProcessing/singleGraph/*.csv > postProcessing/singleGraph/help.csv
+# create data.csv file with header
+head -n 1 postProcessing/singleGraph/air.csv > postProcessing/singleGraph/data.csv 
+# sort data in help.csv based on first column and append to data.csv
+sort -k1 -n -t, postProcessing/singleGraph/help.csv >> postProcessing/singleGraph/data.csv
+
+rm postProcessing/singleGraph/help.csv
+
+#------------------------------------------------------------------------------
