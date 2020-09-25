@@ -11,18 +11,34 @@ import pandas as pd
 
 from modules.cargo import cargoDecoder
 import modules.weather.weather as weather
-from .route.route import Route, stopDecoder
+from modules.route import Route, RouteGPX, stopDecoder
 
 
 class Transport:
-    def __init__(self, name, start, end, cargo, route_filename, stops = None):
-        self.route = Route(start, end, route_filename, stops = stops)
+    def __init__(self, name, transporttype, start, end, cargo, route_filename, stops = None, reread_temperature = True):
+        if route_filename.endswith('.gpx'):
+            route_path = os.path.join('transports', name, route_filename)
+            self.route = RouteGPX(start, end, route_path)
+            self.route.filename = route_filename
+        else:
+            self.route = Route(start, end, route_filename, stops = stops)
         self.name = name
+        self.type = transporttype
         self.start = start
         self.end = end
         self.cargo = cargo
-        self.temperature = self.get_temperature()
-        self.weatherdata = self.get_weatherdata()
+
+        self._folder = os.path.join('transports', self.name)
+        self._jsonpath = os.path.join(self._folder, self.name + '.json')
+        self._weatherdatapath = os.path.join(self._folder, 'weatherdata.csv')
+        
+        if reread_temperature:
+            self.weatherdata = self.get_weatherdata()
+        elif os.path.exists(self._weatherdatapath):
+            self.weatherdata = pd.read_csv( self._weatherdatapath, parse_dates = ['Date'])
+        else:
+            self.weatherdata = self.get_weatherdata()
+
         
     def get_temperature(self):
         length = len(self.route.dataframe.index)
@@ -37,8 +53,9 @@ class Transport:
         return temperature
 
     def get_weatherdata(self):
+        temperature = self.get_temperature()
         dataframe = copy.deepcopy(self.route.dataframe)
-        dataframe['T'] = self.temperature
+        dataframe['T'] = temperature
         return dataframe
 
     def save_weatherdata(self, filename):
@@ -51,16 +68,12 @@ class Transport:
             json.dump(self, outfile, cls = TransportEncoder, indent = 4,)
     
     def save(self):
-        """Save transport as json and weatherdata as csv"""
-        folderpath = os.path.join('transports', self.name)
-        jsonpath = os.path.join(folderpath, self.name + '.json')
-        weatherdatapath = os.path.join(folderpath, 'weatherdata.csv')
-        
-        if not os.path.exists(folderpath):
-            os.makedirs(folderpath)
+        """Save transport as json and weatherdata as csv"""   
+        if not os.path.exists(self._folder):
+            os.makedirs(self._folder)
 
-        self.to_json(jsonpath)
-        self.save_weatherdata(weatherdatapath)
+        self.to_json(self._jsonpath)
+        self.save_weatherdata(self._weatherdatapath)
 
 class TransportEncoder(JSONEncoder):
     """
@@ -86,6 +99,7 @@ class TransportEncoder(JSONEncoder):
             # Return dictionary for json file
             return {
                 "Name": transport.name,
+                "Type": transport.type,
                 "Start": transport.start.strftime("%s %s" % (
                     self.DATE_FORMAT, self.TIME_FORMAT
                 )),
@@ -126,11 +140,12 @@ def load(filename):
     """Return dict from json file"""
     return json.load(filename, cls=TransportDecoder)
 
-def from_json(filename):
+def from_json(filename, reread_temperature = True):
     """Create Transport instance from json file"""
     json_dict = load(filename)
     # Read all parameters from the dict
     name = json_dict['Name']
+    transporttype = json_dict['Type']
     start = json_dict['Start']
     end = json_dict['End']
     # Create cargo instances
@@ -139,5 +154,8 @@ def from_json(filename):
     # Create stop instances
     stops = [stopDecoder(stop) for stop in json_dict['Route']['Stops']]
     # Return the transport instance
-    return Transport(name, start, end, cargo, route_filename, stops = stops)
+    return Transport(
+        name, transporttype, start, end, cargo, route_filename, 
+        stops = stops, reread_temperature = reread_temperature
+        )
 

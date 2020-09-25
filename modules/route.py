@@ -1,3 +1,4 @@
+from dateutil.parser import parse as dateutilparser
 from datetime import datetime, timedelta 
 from math import sqrt, floor
 import os
@@ -5,6 +6,8 @@ import os
 import geopy.distance
 import numpy as np
 import pandas as pd
+
+import modules.gps as gps
 
 class Route:
     """Class to represent location and time of a route. """
@@ -167,6 +170,57 @@ class Route:
 
         df = pd.DataFrame(rows_list)
         return df
+
+class RouteGPX:
+    def __init__(self, start, end, filename):
+        self.filename = filename
+        # Reading point data from .gpx file takes long, so caching the read data in .csv file 
+        csvpath = os.path.splitext(filename)[0] + '.csv'
+        if os.path.exists(csvpath):
+            self.dataframe_full = pd.read_csv(
+                csvpath, usecols=[0, 1, 2], names=['Date', 'Lat', 'Lon'], header = 1, parse_dates = ['Date']
+                )
+        elif filename.endswith('.gpx'):
+            self.dataframe_full = gps.dataframe(filename)
+            self.dataframe_full.to_csv(csvpath, encoding='utf-8', index=False)
+
+        # Transform all timestamps to UTC timezzone and drop +0:00 timezone identifier
+        self.dataframe_full['Date'] = pd.to_datetime(self.dataframe_full['Date'], utc=True)
+        self.dataframe_full['Date'] = self.dataframe_full['Date'].dt.tz_localize(None)
+
+        self.start = start
+        self.end = end
+
+        self.stops = []
+
+        self.dataframe = self.get_dataframe()
+
+    def get_dataframe(self):
+        df_list = []
+        
+        # Finding dataframe entry closest to start date and adding it
+        start_index = self.dataframe_full['Date'].sub(self.start).abs().idxmin()
+        df_list.append(self.dataframe_full.iloc[[start_index]])
+
+        time = self.start + timedelta(hours = 1)
+
+        # Add timestamps for every hour, if next timesamp is longer than one hour, take next
+        while time < self.end:
+            df = self.dataframe_full[self.dataframe_full.Date.between(time, self.end)]
+            df_list.append(df.head(1))
+            time = df['Date'].iloc[0] + timedelta(hours = 1)
+
+        # Finding dataframe entry closest to end date and adding it
+        end_index = self.dataframe_full['Date'].sub(self.end).abs().idxmin()
+        df_list.append(self.dataframe_full.iloc[[end_index]])
+
+        df = pd.concat(df_list)
+
+        df.index = range(len(df))
+        
+        return df
+
+        
 
 class Stop:
     """Class to represent a stop on the route."""

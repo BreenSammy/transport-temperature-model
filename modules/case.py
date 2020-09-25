@@ -44,11 +44,12 @@ class Case(SolutionDirectory):
 
         # Iteration over all cargo entries
         for i in range(len(cargo)):
-            cargo[i].move_STL(self, cargo[i].name + '.stl')
+            cargo_name = cargo[i].type.lower() + str(i)
+            cargo[i].move_STL(self, cargo_name + '.stl')
 
             # Adding current cargo to the snappyHexMeshDict
-            snappyHexMeshDict['geometry'].__setitem__(cargo[i].name + '.stl', {'type': 'triSurfaceMesh', 'name': cargo[i].name})
-            snappyHexMeshDict['castellatedMeshControls']['refinementSurfaces'].__setitem__(cargo[i].name, {'level': refinementSurfacesLevel})
+            snappyHexMeshDict['geometry'].__setitem__(cargo_name + '.stl', {'type': 'triSurfaceMesh', 'name': cargo_name})
+            snappyHexMeshDict['castellatedMeshControls']['refinementSurfaces'].__setitem__(cargo_name, {'level': refinementSurfacesLevel})
 
             # Iteration over all individual battery regions in the cargo
             for j in range(len(cargo[i].batteries)):
@@ -57,7 +58,8 @@ class Case(SolutionDirectory):
                 battery_system_path = os.path.join(self.systemDir(), battery.name)
 
                 snappyHexMeshDict['castellatedMeshControls']['locationsInMesh'].append(
-                    [battery.position, battery.name])
+                    [battery.position, battery.name]
+                    )
 
                 # Copy the battery template folders 
                 shutil.copytree(os.path.join(self.systemDir(), "battery_template"), battery_system_path)
@@ -244,15 +246,20 @@ def setup(transport, force_clone = True):
     Clones templatecase into the transport directory, loads the carrier with carg and creates mesh.
     """
 
+    if transport.type == 'container':
+        templatecase = Case(os.path.join('cases', 'container', 'container_template'))
+    elif transport.type == 'carrier':
+        templatecase = Case(os.path.join('cases', 'carrier_template'))
+    else:
+        print('Transport type not available. Check input json file.')
+        
     casepath = os.path.join('transports', transport.name, 'case')
     if force_clone:
-        templatecase = Case(os.path.join('cases', 'container', 'container_template'))
         case = templatecase.cloneCase(casepath)
     try:
         case = Case(casepath)
     except:
         print("Case does not exist: Creating new one")
-        templatecase = Case(os.path.join('cases', 'container', 'container_template'))
         case = templatecase.cloneCase(casepath)
 
     airInside_polyMesh = os.path.join(case.constantDir(),'airInside', 'polyMesh')

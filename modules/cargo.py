@@ -6,7 +6,9 @@ from PyFoam.Basics.DataStructures import Vector
 NUMBER_PACKAGES = {
     'pallet1x4.stl': 4,
     'pallet2x4.stl': 8,
-    'pallet3x4.stl': 12
+    'pallet3x4.stl': 12,
+    'industrial_pallet1x1.stl': 1,
+    'industrial_pallet1x4.stl': 4
 }
 
 class Battery:
@@ -17,8 +19,8 @@ class Battery:
 
 class Pallet:
     """Class to describe a pallet full of packages filled with batteries."""
-    def __init__(self, name: str, templateSTL: str, position: list, orientation: list):
-        self.name = name
+    def __init__(self, templateSTL: str, position: list, orientation: list):
+        self.type = 'Pallet'
         self.templateSTL = templateSTL
         self.position = position
         self.orientation = orientation
@@ -63,7 +65,6 @@ class Pallet:
         """Transform essential attributes of pallet to dict to save as json in Transport class"""
         return {
             'Type': 'Pallet',
-            'Name': self.name,
             'TemplateSTL': self.templateSTL,
             'Position': self.position,
             'Orientation': self.orientation 
@@ -71,4 +72,4 @@ class Pallet:
 
 def cargoDecoder(obj):
     if obj['Type'] == 'Pallet':
-        return Pallet(obj['Name'], obj['TemplateSTL'], obj['Position'], obj['Orientation'])
+        return Pallet(obj['TemplateSTL'], obj['Position'], obj['Orientation'])
