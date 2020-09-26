@@ -27,7 +27,22 @@ class Case(SolutionDirectory):
         self.addToClone('Run')
         self.addToClone('Reconstruct')
         self.addToClone('PostProcess')
+        self.addToClone('ChangeDictionary')
         self.addToClone('logs')
+
+    def change_initial_temperature(self, temperature):
+        changeDictionaryDict_airInside = ParsedParameterFile(
+            os.path.join(self.systemDir(), "airInside", "changeDictionaryDict")
+            )
+        changeDictionaryDict_battery = ParsedParameterFile(
+            os.path.join(self.systemDir(), "battery_template", "changeDictionaryDict")
+            )
+
+        changeDictionaryDict_airInside['T']['internalField'] = temperature
+        changeDictionaryDict_battery['T']['internalField'] = temperature
+
+        changeDictionaryDict_airInside.writeFile()
+        changeDictionaryDict_battery.writeFile()
 
     def load_cargo(self, cargo):
         """Loads the carrier with cargo. New regions for cargo 
@@ -55,14 +70,13 @@ class Case(SolutionDirectory):
             for j in range(len(cargo[i].batteries)):
                 battery = cargo[i].batteries[j]
                 battery.name = "battery" + str(i) + '_' + str(j)
-                battery_system_path = os.path.join(self.systemDir(), battery.name)
 
                 snappyHexMeshDict['castellatedMeshControls']['locationsInMesh'].append(
                     [battery.position, battery.name]
                     )
 
                 # Copy the battery template folders 
-                shutil.copytree(os.path.join(self.systemDir(), "battery_template"), battery_system_path)
+                shutil.copytree(os.path.join(self.systemDir(), "battery_template"), os.path.join(self.systemDir(), battery.name))
                 shutil.copytree(os.path.join(self.constantDir(), "battery_template"), os.path.join(self.name, "constant", battery.name))
                 shutil.copytree(os.path.join(self.name, "0.org", "battery_template"), os.path.join(self.name, "0.org", battery.name))
 
@@ -86,14 +100,16 @@ class Case(SolutionDirectory):
 
     def heattransfer_coefficient(self, T_U, u):
         """Calculate heattransfer coefficient"""
-        # Value for current time is saved in folder for last time, thus minus 1h
+        # Value for current time is saved in folder for last time
         times = self.getParallelTimes()
-        time = int(times[-1]) - 3600
+        time = times[-2]
 
         path_averageTemperature = os.path.join(
             self.name,'postProcessing','airInside','temperature_right', str(time),'surfaceFieldValue.dat'
             )    
+
         df_patch_temperature = pd.read_table(path_averageTemperature, sep="\s+", header=4, usecols = [0,1], names = ['time', 'T'])
+
         # OpenFOAM sometimes changes naming of surfaceFieldValue file, make sure that dataframe reads the data
         if df_patch_temperature.empty:
             path_averageTemperature = os.path.join(
@@ -101,12 +117,15 @@ class Case(SolutionDirectory):
             )
             df_patch_temperature = pd.read_table(path_averageTemperature, sep="\s+", header=4, usecols = [0,1], names = ['time', 'T'])
 
+        snappyHexMeshDict = ParsedParameterFile(os.path.join(self.systemDir(), "snappyHexMeshDict"))
         T_W = df_patch_temperature['T'].iloc[-1]
         if u < 1:
-            L = 2.4
+            # Length for natural convection is z-axis value of geometry of carrier
+            L = snappyHexMeshDict['geometry']['carrier']['max'][2]
             return convection.coeff_natural(L, T_W, T_U), T_W
         else:
-            L = 6
+            # Length for forced convection is x-axis value of geometry of carrier
+            L = snappyHexMeshDict['geometry']['carrier']['max'][0]
             return convection.coeff_forced(L, u), T_W
 
     def run(self):
@@ -115,6 +134,12 @@ class Case(SolutionDirectory):
         changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), "airInside", "changeDictionaryDict"))
         controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
         radiationProperties =  ParsedParameterFile(os.path.join(self.constantDir(), "airInside", "radiationProperties"))
+
+        # Delete internalField values, so the last timestep does not get overwritten
+        del changeDictionaryDict['T']['internalField']
+        del changeDictionaryDict['U']['internalField']
+        del changeDictionaryDict['p_rgh']['internalField']
+        del changeDictionaryDict['p']['internalField']
 
         time = controlDict['endTime']
 
@@ -126,9 +151,7 @@ class Case(SolutionDirectory):
             radiationProperties['solarLoadCoeffs']['startDay'] = startday
             radiationProperties['solarLoadCoeffs']['startTime'] = starttime
 
-        
         for i in range(len(self.weatherdata.index)-1):
-
             # Read temperature and transform from Celsius to Kelvin
             temperature = self.weatherdata['T'].values[i] + 273.15
             time = controlDict['endTime']
@@ -146,6 +169,7 @@ class Case(SolutionDirectory):
 
             print(travelspeed)
 
+            controlDict['writeInterval'] = np.floor(endTime_delta)
             controlDict['endTime'] = controlDict['endTime'] + endTime_delta
             controlDict.writeFile()
 
@@ -161,14 +185,14 @@ class Case(SolutionDirectory):
                     'Recalculating heattransfer coefficient: \n' +
                     'Heattransfer coeffcient: ' + str(heattransfer_coefficient) + ' with average wall temperature: ' + str(T_W)
                     )
-                changeDictionaryDict['T']['boundaryField']['container']['h'] = heattransfer_coefficient
+                changeDictionaryDict['T']['boundaryField']['carrier']['h'] = heattransfer_coefficient
 
             # Update ambient temperature
-            changeDictionaryDict['T']['boundaryField']['container']['Ta'] = [temperature]
+            changeDictionaryDict['T']['boundaryField']['carrier']['Ta'] = temperature
             changeDictionaryDict.writeFile()
             
-            
             # Execute solver
+            os.system(os.path.join(self.name,"ChangeDictionary"))
             os.system(os.path.join(self.name,"Run"))
 
             #File management of log files

@@ -38,8 +38,7 @@ class Transport:
             self.weatherdata = pd.read_csv( self._weatherdatapath, parse_dates = ['Date'])
         else:
             self.weatherdata = self.get_weatherdata()
-
-        
+    
     def get_temperature(self):
         length = len(self.route.dataframe.index)
         temperature = np.zeros([length, 1])

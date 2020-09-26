@@ -122,8 +122,11 @@ class Route:
         return coordinates
 
     def get_dataframe(self):
-        """Create a dataframe with time and location of route"""
-        rows_list = [{'Date': self.start, 'Lat': self.coordinates_full[0][0], 'Lon': self.coordinates_full[0][1]}]
+        """Create a dataframe with time and location of route for every hour"""
+        rows_list = []
+        rows_list.append(
+            {'Date': self.start, 'Lat': self.coordinates_full[0][0], 'Lon': self.coordinates_full[0][1]}
+        )
         stops_counter = 0
         date = self.start
         for i in range(len(self.coordinates)):
@@ -172,6 +175,7 @@ class Route:
         return df
 
 class RouteGPX:
+    """Class for routes created from gpx file with timestamps"""
     def __init__(self, start, end, filename):
         self.filename = filename
         # Reading point data from .gpx file takes long, so caching the read data in .csv file 
@@ -196,6 +200,7 @@ class RouteGPX:
         self.dataframe = self.get_dataframe()
 
     def get_dataframe(self):
+        """Get a dataframe with date and location for every hour."""
         df_list = []
         
         # Finding dataframe entry closest to start date and adding it
