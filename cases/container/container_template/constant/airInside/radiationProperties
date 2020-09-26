@@ -54,11 +54,12 @@ solarLoadCoeffs
 
 
         // Sun load constant model
-        directSolarRad  1000;    // [w/m2]
-        diffuseSolarRad 40;     // [w/m2]
+        // directSolarRad  1000;    // [w/m2]
+        // diffuseSolarRad 40;     // [w/m2]
 
         // // Fair Weather Conditions Model Constants.
         // Calculate beta from the Solar calculator or input
+        skyCloudCoverFraction 1;
         A       1000;        // Apparent solar irradiation at air mass m = 0
         B       0.142;      // Atmospheric extinction coefficient
         // beta    45;         // Solar altitude (in degrees) above the horizontal

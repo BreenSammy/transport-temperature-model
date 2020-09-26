@@ -21,7 +21,7 @@ internalField   uniform 0;
 
 boundaryField
 {
-    container
+    carrier
     {
         type            calculated;
         value           uniform 0;
@@ -31,12 +31,12 @@ boundaryField
         type            calculated;
         value           uniform 0;
     }
-    container_bottom
+    carrier_bottom
     {
         type            calculated;
         value           uniform 0;
     }
-    "container_.*"
+    "carrier_.*"
     {
        type            calculated;
         value           uniform 0;

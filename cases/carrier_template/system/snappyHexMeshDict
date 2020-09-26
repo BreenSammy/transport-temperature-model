@@ -28,7 +28,7 @@ addLayers       false;
 // - to 'snap' the mesh boundary to the surface
 geometry
 {   
-    container
+    carrier
     {
         type searchableBox;
         min (0.0005 -1.2305 -0.0005);
@@ -123,7 +123,7 @@ castellatedMeshControls
 
     refinementSurfaces
     {
-        container
+        carrier
         {
             // Surface-wise min and max refinement level
             level (3 3);
@@ -149,7 +149,7 @@ castellatedMeshControls
 
     refinementRegions
     {
-        container
+        carrier
         {
            mode inside;
            levels ((1E15 1));
@@ -168,7 +168,6 @@ castellatedMeshControls
     locationsInMesh
     (
         ((0.205 0.205 2.205) airInside)
-        // ((0.5399 -0.5405 0.2005) pallet)
     );
 
     // Whether any faceZones (as specified in the refinementSurfaces)

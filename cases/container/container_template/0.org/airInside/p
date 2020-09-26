@@ -23,12 +23,12 @@ boundaryField
     "airInside_to_battery.*"
     {
         type            calculated;
-        value           $internalField;
+        value           uniform 1e5;
     }
     ".*"
     {
         type            calculated;
-        value           $internalField;
+        value           uniform 1e5;
     }
 }
 

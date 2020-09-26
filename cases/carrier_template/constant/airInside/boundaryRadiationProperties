@@ -30,7 +30,7 @@ FoamFile
     };
 }
 
-"container_.*"
+"carrier_.*"
 {
     type        opaqueDiffusive;
 
@@ -42,7 +42,7 @@ FoamFile
     };
 }
 
-container
+carrier
 {
     type        opaqueDiffusive;
 

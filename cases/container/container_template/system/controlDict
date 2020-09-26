@@ -63,7 +63,7 @@ functions
       fields          (T);
       operation       areaAverage;
       regionType      patch;
-      name            container;
+      name            carrier;
       writeFields     false;
       executeControl  writeTime;
       executeInterval 1;

@@ -20,7 +20,7 @@ T
 
     boundaryField
     {
-        container
+        carrier
         {
             type zeroGradient;
         }

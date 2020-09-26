@@ -23,7 +23,7 @@ boundaryField
     ".*"
     {
         type            fixedFluxPressure;
-        value           $internalField;
+        value           uniform 1e5;
     }
 }
 

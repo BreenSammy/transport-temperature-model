@@ -23,11 +23,11 @@ U
 
     boundaryField
     {
-        "container_.*"
+        "carrier_.*"
         {
             type            noSlip;
         }
-        container
+        carrier
         {
             type            noSlip;
         }
@@ -44,19 +44,19 @@ T
 
     boundaryField
     {
-        container
+        carrier
         {
             type            externalWallHeatFluxTemperature;
             mode            coefficient;
             Ta              285;
             h               2;
             kappaMethod     fluidThermo;
-            // thicknessLayers (0.02);
-            // kappaLayers     (44);
+            thicknessLayers (0.02);
+            kappaLayers     (44);
             qr              qr;
-            value           $internalField;
+            value           uniform 293.15;
         }
-        container_left
+        carrier_left
         {
             type            externalWallHeatFluxTemperature;
             mode            coefficient;
@@ -66,7 +66,7 @@ T
             qr              qr;
             value           $internalField;
         }
-        container_right
+        carrier_right
         {
             type            externalWallHeatFluxTemperature;
             mode            coefficient;
@@ -76,7 +76,7 @@ T
             qr              qr;
             value           $internalField;
         }
-        container_front
+        carrier_front
         {
             type            externalWallHeatFluxTemperature;
             mode            coefficient;
@@ -86,7 +86,7 @@ T
             qr              qr;
             value           $internalField;
         }
-        container_back
+        carrier_back
         {
             type            externalWallHeatFluxTemperature;
             mode            coefficient;
@@ -96,7 +96,7 @@ T
             qr              qr;
             value           $internalField;
         }
-        container_top
+        carrier_top
         {
             type            externalWallHeatFluxTemperature;
             mode            coefficient;
@@ -106,7 +106,7 @@ T
             qr              qr;
             value           $internalField;
         }
-        container_bottom
+        carrier_bottom
         {
             type            zeroGradient;
         }
@@ -132,20 +132,20 @@ p_rgh
 
     boundaryField
     {
-        "container_.*"
+        "carrier_.*"
         {
             type            fixedFluxPressure;
-            value           $internalField;
+            value           uniform 1e5;
         }
-        container
+        carrier
         {
             type            fixedFluxPressure;
-            value           $internalField;
+            value           uniform 1e5;
         }
         bottom
         {
             type            fixedFluxPressure;
-            value           $internalField;
+            value           uniform 1e5;
         }
     }
 }
@@ -153,15 +153,6 @@ p_rgh
 p
 {
     internalField   uniform 1e5;
-
-    boundaryField
-    {
-        ".*"
-        {
-            type            calculated;
-            value           $internalField;
-        }
-    }
 }
 
 // ************************************************************************* //

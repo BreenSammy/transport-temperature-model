@@ -5,9 +5,9 @@ cd "${0%/*}" || exit                                # Run from this directory
 # Script is used to run solver, if mesh and regions already exist
 #------------------------------------------------------------------------------
 
-rm log.changeDictionary.airInside
+# rm log.changeDictionary.airInside
 
-runApplication -s airInside changeDictionary -region airInside
+# runApplication -s airInside changeDictionary -region airInside -latestTime -parallel
 
 # run solver
 runParallel chtMultiRegionFoam
