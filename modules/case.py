@@ -181,9 +181,15 @@ class Case(SolutionDirectory):
             # Update the heattransfer coefficient 
             if time != 0:
                 heattransfer_coefficient, T_W = self.heattransfer_coefficient(temperature, travelspeed)
+                #    print(
+                #     'Recalculating heattransfer coefficient: \n' +
+                #     'Heattransfer coeffcient: ' + str(heattransfer_coefficient) + ' with average wall temperature: ' + str(T_W)
+                #     )
                 print(
-                    'Recalculating heattransfer coefficient: \n' +
-                    'Heattransfer coeffcient: ' + str(heattransfer_coefficient) + ' with average wall temperature: ' + str(T_W)
+                    """
+                    Recalculating heattransfer coefficient:
+                    Heattransfer coeffcient: {0} with average wall temperature: {1}
+                    """.format(heattransfer_coefficient, T_W)
                     )
                 changeDictionaryDict['T']['boundaryField']['carrier']['h'] = heattransfer_coefficient
 
@@ -202,6 +208,7 @@ class Case(SolutionDirectory):
             target = os.path.join(self.name,"log.chtMultiRegionFoam" + '_' + string_timestep)
             shutil.move(original, target)
         
+        os.remove(self.name, 'logs', 'log.changeDictionary.airInside')
         self.move_logs()
 
     def reconstruct(self):
@@ -242,6 +249,28 @@ class Case(SolutionDirectory):
 
             file_name = os.path.join(path_PyFoam, regions[i] + '_temperature')
             df_temperature.to_csv(file_name, encoding='utf-8', index=False)  
+
+    def probe(self, location, time = None):
+        if time == None:
+            times = self.getParallelTimes()
+            time = str(times[0]) + ':' + str(times[-1])
+            
+        time = str(time)
+
+        #probes = ParsedParameterFile(os.path.join(self.systemDir(), 'probes'))
+
+        #print(probes['probeLocations'])
+
+        # command = """
+        #             for region in $(foamListRegions -case {0}) 
+        #             do 
+        #                 postProcess -case {0} -time {1} -func probes -region $region 
+        #             done
+        #             """.format(self.name, time)
+
+        command = 'postProcess -case {0} -time {1} -func probes -region airInside'
+
+        os.system(command.format(self.name, time))
 
     def create_function_objects(self, battery_name, controlDict):
         """Create function objects for battery region. Needed for post processing."""
