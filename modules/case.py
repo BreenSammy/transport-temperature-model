@@ -1,5 +1,5 @@
 import copy
-from datetime import datetime
+from datetime import datetime, timedelta
 import glob
 import os
 import shutil
@@ -17,8 +17,6 @@ class Case(SolutionDirectory):
     def __init__(self, name, archive = None, paraviewLink = True):
         SolutionDirectory.__init__(self, name, archive = None, paraviewLink = True)
         
-        print(self.name)
-
         if not os.path.exists(os.path.join(self.name,'logs')):
             os.makedirs(os.path.join(self.name,'logs'))
 
@@ -98,6 +96,16 @@ class Case(SolutionDirectory):
         os.system(os.path.join(self.name,"Allrun.pre"))
         self.move_logs()
 
+        changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), "airInside", "changeDictionaryDict"))
+
+         # Delete internalField values, so the last timestep does not get overwritten
+        del changeDictionaryDict['T']['internalField']
+        del changeDictionaryDict['U']['internalField']
+        del changeDictionaryDict['p_rgh']['internalField']
+        del changeDictionaryDict['p']['internalField']
+
+        changeDictionaryDict.writeFile()
+
     def heattransfer_coefficient(self, T_U, u):
         """Calculate heattransfer coefficient"""
         # Value for current time is saved in folder for last time
@@ -135,15 +143,11 @@ class Case(SolutionDirectory):
         controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
         radiationProperties =  ParsedParameterFile(os.path.join(self.constantDir(), "airInside", "radiationProperties"))
 
-        # Delete internalField values, so the last timestep does not get overwritten
-        del changeDictionaryDict['T']['internalField']
-        del changeDictionaryDict['U']['internalField']
-        del changeDictionaryDict['p_rgh']['internalField']
-        del changeDictionaryDict['p']['internalField']
+        latesttime = float(self.getParallelTimes()[-1])
+        transport_duration = self.weatherdata['Date'].iloc[-1] - self.weatherdata['Date'].iloc[0] 
+        transport_duration = transport_duration.total_seconds()
 
-        time = controlDict['endTime']
-
-        if time == 0:
+        if latesttime == 0:
             startdate = pd.to_datetime(self.weatherdata['Date'].values[0])
             starttime = startdate.time()
             starttime = starttime.hour + starttime.minute / 60 + starttime.second / 3600
@@ -151,15 +155,21 @@ class Case(SolutionDirectory):
             radiationProperties['solarLoadCoeffs']['startDay'] = startday
             radiationProperties['solarLoadCoeffs']['startTime'] = starttime
 
-        for i in range(len(self.weatherdata.index)-1):
+        current_timestamp = self.weatherdata['Date'].iloc[0] + timedelta(seconds = latesttime)
+
+        i = self.weatherdata['Date'].sub(current_timestamp).abs().idxmin()
+
+        while latesttime < transport_duration:
             # Read temperature and transform from Celsius to Kelvin
             temperature = self.weatherdata['T'].values[i] + 273.15
-            time = controlDict['endTime']
 
             coordinates = self.weatherdata[['Lat', 'Lon']].values[i]
             coordinates_next = self.weatherdata[['Lat', 'Lon']].values[i+1]
 
             distance = geopy.distance.distance(coordinates, coordinates_next).m
+
+            timestep = pd.to_datetime(self.weatherdata['Date'].values[i]) 
+            string_timestep = timestep.strftime('%Y-%m-%d_%H:%M:%S')
 
             # Update endTime of the simulation
             endTime_delta = self.weatherdata['Date'].values[i+1] - self.weatherdata['Date'].values[i]
@@ -170,27 +180,25 @@ class Case(SolutionDirectory):
             print(travelspeed)
 
             controlDict['writeInterval'] = np.floor(endTime_delta)
-            controlDict['endTime'] = controlDict['endTime'] + endTime_delta
+            controlDict['endTime'] = latesttime + endTime_delta
             controlDict.writeFile()
 
             #Upadate positon
-            radiationProperties['solarLoadCoeffs']['latitude'] = self.weatherdata['Lat'].values[i]
-            radiationProperties['solarLoadCoeffs']['longitude'] = self.weatherdata['Lon'].values[i]
+            radiationProperties['solarLoadCoeffs']['latitude'] = coordinates[0]
+            radiationProperties['solarLoadCoeffs']['longitude'] = coordinates[1]
             radiationProperties.writeFile()
 
+            # Print to console            
+            print('Date: {}'.format(string_timestep))
+            print('Latitude: {0} Longitude: {1}'.format(coordinates[0], coordinates[1]))
+            print('Temperature: {}'.format(temperature))
+            print('Travelspeed: {}'.format(travelspeed))
+
             # Update the heattransfer coefficient 
-            if time != 0:
+            if latesttime != 0:
                 heattransfer_coefficient, T_W = self.heattransfer_coefficient(temperature, travelspeed)
-                #    print(
-                #     'Recalculating heattransfer coefficient: \n' +
-                #     'Heattransfer coeffcient: ' + str(heattransfer_coefficient) + ' with average wall temperature: ' + str(T_W)
-                #     )
-                print(
-                    """
-                    Recalculating heattransfer coefficient:
-                    Heattransfer coeffcient: {0} with average wall temperature: {1}
-                    """.format(heattransfer_coefficient, T_W)
-                    )
+                print('Recalculating heattransfer coefficient:')
+                print('Heattransfer coeffcient: {0} with average wall temperature: {1}'.format(heattransfer_coefficient, T_W))
                 changeDictionaryDict['T']['boundaryField']['carrier']['h'] = heattransfer_coefficient
 
             # Update ambient temperature
@@ -202,11 +210,12 @@ class Case(SolutionDirectory):
             os.system(os.path.join(self.name,"Run"))
 
             #File management of log files
-            timestep = pd.to_datetime(self.weatherdata['Date'].values[i]) 
-            string_timestep = timestep.strftime('%Y-%m-%d_%H:%M:%S')
             original = os.path.join(self.name,"log.chtMultiRegionFoam")
             target = os.path.join(self.name,"log.chtMultiRegionFoam" + '_' + string_timestep)
             shutil.move(original, target)
+
+            latesttime = float(self.getParallelTimes()[-1])
+            i = i + 1
         
         os.remove(self.name, 'logs', 'log.changeDictionary.airInside')
         self.move_logs()

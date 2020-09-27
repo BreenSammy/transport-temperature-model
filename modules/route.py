@@ -225,8 +225,6 @@ class RouteGPX:
         
         return df
 
-        
-
 class Stop:
     """Class to represent a stop on the route."""
     def __init__(self, start, end, lat, lon):
