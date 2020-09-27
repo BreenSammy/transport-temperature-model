@@ -1,50 +1,42 @@
 {
-    "Name": "Berlin-Garching",
-    "Start": "2019-03-02 05:23:00",
-    "End": "2019-03-02 14:30:00",
-    "Route": {
-        "Filename": "Berlin-Garching.csv",
-        "Stops": [
-            {
-                "Start": "2019-03-02 07:15:00",
-                "End": "2019-03-02 08:15:00",
-                "Lat": 51.38503,
-                "Lon": 12.18273
-            },
-            {
-                "Start": "2019-03-02 09:35:00",
-                "End": "2019-03-02 10:35:00",
-                "Lat": 50.407,
-                "Lon": 11.77477
-            }
+    "name": "Berlin-Garching",
+    "type": "container",
+    "start": "2019-03-02 05:23:00",
+    "end": "2019-03-02 14:30:00",
+    "route": {
+        "start_coordinates": [
+            13.370865,
+            52.51868
+        ],
+        "end_coordinates": [
+            11.671388,
+            48.265588
         ]
     },
-    "Cargo": [
+    "cargo": [
         {
-            "Type": "Pallet",
-            "Name": "pallet_0",
-            "TemplateSTL": "pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "pallet1x4.stl",
+            "position": [
                 1.3601,
                 -0.54,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 90
             ]
         },
         {
-            "Type": "Pallet",
-            "Name": "pallet_1",
-            "TemplateSTL": "pallet2x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "pallet2x4.stl",
+            "position": [
                 2.2001,
                 -0.54,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 90

@@ -1,13 +1,135 @@
 from dateutil.parser import parse as dateutilparser
 from datetime import datetime, timedelta 
+import json
 from math import sqrt, floor
 import os
+import urllib.request
+from urllib.parse import quote
 
 import geopy.distance
 import numpy as np
 import pandas as pd
 
 import modules.gps as gps
+
+class FTMRoute:
+    def __init__(self, start_coordinates, end_coordinates, stops = None):
+        route = self._request(start_coordinates, end_coordinates)
+
+        self.distance = route['distance']
+        self.duration = route['duration']
+        self.coordinates = route['geometry']['coordinates']
+  
+    def _request(self, start_coordinates, end_coordinates, stops = None):
+
+        lat = []
+        lon = []
+
+        lat.append(start_coordinates[0])
+        lat.append(end_coordinates[0])
+
+        lon.append(start_coordinates[1])
+        lon.append(end_coordinates[1])
+
+        lon = quote(str(lon), safe='')
+        lat = quote(str(lat), safe='')
+
+        url = "http://gis.ftm.mw.tum.de/route?lat={0}&lon={1}"
+        contents = urllib.request.urlopen(url.format(lat, lon)).read()
+        route = json.loads(contents)
+
+        return route['routes'][0]
+
+    def start(self):
+        """Get the coordinates of start of route"""
+        coords_start = self.coordinates[0]
+        # URL returns coordinates in [Lon, Lat], convention is [Lat, Lon]
+        coords_start.reverse()
+        return coords_start
+    
+    def end(self):
+        """Get the coordinates of end of route"""
+        coords_end = self.coordinates[-1]
+        # URL returns coordinates in [Lon, Lat], convention is [Lat, Lon]
+        coords_end.reverse()
+        return coords_end
+
+    def waypoints(self, start, stops = None):
+        """Get a dataframe with date and location for hourly waypoints along route"""
+
+        date = start
+        coords_start = self.start()
+        
+        waypoints_list = []
+        waypoints_list.append(
+            {'Date': start, 'Lat': coords_start[0], 'Lon': coords_start[1]}
+        )
+
+        # Add waypoints between stops
+        if stops != None:
+            for stop in stops:
+                waypoints_list, date, passed_time = self._add_hourly_waypoints(
+                    waypoints_list, date, coords_start, stop.coordinates()
+                    )
+
+                # Add hourly waypoints at location of stop
+                start_stop = date + timedelta(seconds = round(passed_time))
+                end_stop = start_stop + stop.duration
+
+                while (end_stop - date) > timedelta(hours = 1):
+                    date = date + timedelta(seconds = round(passed_time))
+                    waypoints_list.append({'Date': date, 'Lat': stop.lat, 'Lon': stop.lon})
+                    passed_time = 3600
+                    
+                waypoints_list.append({'Date': end_stop, 'Lat': stop.lat, 'Lon': stop.lon})
+                
+                # Next start are coordinates of stop
+                coords_start = stop.coordinates()
+                # Next date to start with is date of end of stop
+                date = end_stop
+
+        # Add waypoints for rest of route
+        coords_end = self.end()
+        waypoints_list, date, passed_time = self._add_hourly_waypoints(waypoints_list, date, coords_start, coords_end)
+
+        # Add waypoint for end of route
+        end = date + timedelta(seconds = round(passed_time))
+        waypoints_list.append(
+            {'Date': end, 'Lat': self.coordinates[-1][0], 'Lon': self.coordinates[-1][1]}
+            )
+
+        return pd.DataFrame(waypoints_list)
+
+    def _add_hourly_waypoints(self, waypoints_list, date, start_coordinates, end_coordinates):
+        """Add hourly waypoints of a route to a list"""
+        
+        route = self._request(start_coordinates, end_coordinates)
+        duration = route['legs'][0]['annotation']['duration']
+
+        passed_time = 0
+        i = 0
+        for i in range(len(duration)):
+            passed_time = duration[i] + passed_time
+            i = i + 1
+            if passed_time > 3600:
+                    date = date + timedelta(seconds = round(passed_time))
+                    waypoints_list.append(
+                        {
+                        'Date': date, 
+                        'Lat': route['geometry']['coordinates'][i][1], 
+                        'Lon': route['geometry']['coordinates'][i][0]
+                        }
+                    )
+                    passed_time = 0
+
+        return waypoints_list, date, passed_time
+
+
+
+    def saveJSON(self, filename):
+        with open(filename, 'w') as json_file:
+            json.dump(self, json_file, default=lambda o: o.__dict__, indent = 4 )
+
 
 class Route:
     """Class to represent location and time of a route. """
@@ -123,8 +245,8 @@ class Route:
 
     def get_dataframe(self):
         """Create a dataframe with time and location of route for every hour"""
-        rows_list = []
-        rows_list.append(
+        waypoints_list = []
+        waypoints_list.append(
             {'Date': self.start, 'Lat': self.coordinates_full[0][0], 'Lon': self.coordinates_full[0][1]}
         )
         stops_counter = 0
@@ -146,18 +268,18 @@ class Route:
 
                     # Add row for start of stop
                     row_stop_start = {'Date': stop_start, 'Lat': coords_stop[0], 'Lon': coords_stop[1]}
-                    rows_list.append(row_stop_start)
+                    waypoints_list.append(row_stop_start)
 
                     # Add row for every full hour of stop
                     time = stop_start + timedelta(hours = 1)
                     while time < stop_end:
                         row = {'Date': time, 'Lat': coords_stop[0], 'Lon': coords_stop[1]}
-                        rows_list.append(row)
+                        waypoints_list.append(row)
                         time = time + timedelta(hours = 1)
                             
                     # Add row for end of stop
                     row_stop_end = {'Date': stop_end, 'Lat': coords_stop[0], 'Lon': coords_stop[1]}
-                    rows_list.append(row_stop_end)
+                    waypoints_list.append(row_stop_end)
 
                     stops_counter = stops_counter + 1
                     date = stop_end
@@ -166,26 +288,27 @@ class Route:
             if stop_added == False:
                 date = date + timedelta(hours = 1)
                 row = {'Date': date, 'Lat': self.coordinates[i][0], 'Lon': self.coordinates[i][1]}
-                rows_list.append(row)
+                waypoints_list.append(row)
         # Add row for end
         last_row = {'Date': self.end, 'Lat': self.coordinates_full[-1][0], 'Lon': self.coordinates_full[-1][1]}
-        rows_list.append(last_row)
+        waypoints_list.append(last_row)
 
-        df = pd.DataFrame(rows_list)
+        df = pd.DataFrame(waypoints_list)
         return df
 
 class RouteGPX:
     """Class for routes created from gpx file with timestamps"""
-    def __init__(self, start, end, filename):
+    def __init__(self, filename):
+        filepath = os.path.join('routes', filename)
         self.filename = filename
         # Reading point data from .gpx file takes long, so caching the read data in .csv file 
-        csvpath = os.path.splitext(filename)[0] + '.csv'
+        csvpath = os.path.splitext(filepath)[0] + '.csv'
         if os.path.exists(csvpath):
             self.dataframe_full = pd.read_csv(
                 csvpath, usecols=[0, 1, 2], names=['Date', 'Lat', 'Lon'], header = 1, parse_dates = ['Date']
                 )
         elif filename.endswith('.gpx'):
-            self.dataframe_full = gps.dataframe(filename)
+            self.dataframe_full = gps.dataframe(filepath)
             self.dataframe_full.to_csv(csvpath, encoding='utf-8', index=False)
 
         # Transform all timestamps to UTC timezzone and drop +0:00 timezone identifier
@@ -197,26 +320,24 @@ class RouteGPX:
 
         self.stops = []
 
-        self.dataframe = self.get_dataframe()
-
-    def get_dataframe(self):
+    def waypoints(self, start, end):
         """Get a dataframe with date and location for every hour."""
         df_list = []
         
         # Finding dataframe entry closest to start date and adding it
-        start_index = self.dataframe_full['Date'].sub(self.start).abs().idxmin()
+        start_index = self.dataframe_full['Date'].sub(start).abs().idxmin()
         df_list.append(self.dataframe_full.iloc[[start_index]])
 
-        time = self.start + timedelta(hours = 1)
+        time = start + timedelta(hours = 1)
 
         # Add timestamps for every hour, if next timesamp is longer than one hour, take next
-        while time < self.end:
-            df = self.dataframe_full[self.dataframe_full.Date.between(time, self.end)]
+        while time < end:
+            df = self.dataframe_full[self.dataframe_full.Date.between(time, end)]
             df_list.append(df.head(1))
             time = df['Date'].iloc[0] + timedelta(hours = 1)
 
         # Finding dataframe entry closest to end date and adding it
-        end_index = self.dataframe_full['Date'].sub(self.end).abs().idxmin()
+        end_index = self.dataframe_full['Date'].sub(end).abs().idxmin()
         df_list.append(self.dataframe_full.iloc[[end_index]])
 
         df = pd.concat(df_list)
@@ -227,19 +348,38 @@ class RouteGPX:
 
 class Stop:
     """Class to represent a stop on the route."""
-    def __init__(self, start, end, lat, lon):
-        self.start = start
-        self.end = end
+    def __init__(self, duration, lat, lon):
+        self.duration = duration
         self.lat = lat
         self.lon = lon
 
+    def coordinates(self):
+        return np.array([self.lat, self.lon])
+
     def to_dict(self):
         return {
-            'Start': self.start,
-            'End': self.end,
-            'Lat': self.lat,
-            'Lon': self.lon
+            'duration': self.duration,
+            'lat': self.lat,
+            'lon': self.lon
         }
 
 def stopDecoder(obj):
-    return Stop(obj['Start'], obj['End'], obj['Lat'], obj['Lon'])
+    return Stop(obj['duration'], obj['lat'], obj['lon'])
+
+
+# stops = [
+#     Stop2(timedelta(hours = 9, minutes = 44),  50.978005, 11.870212),
+#     Stop2(timedelta(hours = 2),  49.882187, 11.583491)
+# ]
+
+# start = datetime(2019, 3, 2, 5, 23)
+# end = datetime(2019, 3, 2, 14, 30)
+
+# route = FTMRoute([52.51868, 13.37086], [48.26559, 11.67137], stops)
+
+# #print(route.coordinates)
+
+# print(route.waypoints(start, end, stops = stops))
+
+# #route.saveJSON('test.json')
+

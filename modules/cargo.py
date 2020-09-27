@@ -64,12 +64,12 @@ class Pallet:
     def to_dict(self):
         """Transform essential attributes of pallet to dict to save as json in Transport class"""
         return {
-            'Type': 'Pallet',
-            'TemplateSTL': self.templateSTL,
-            'Position': self.position,
-            'Orientation': self.orientation 
+            'type': 'Pallet',
+            'templateSTL': self.templateSTL,
+            'position': self.position,
+            'orientation': self.orientation 
         }
 
 def cargoDecoder(obj):
-    if obj['Type'] == 'Pallet':
-        return Pallet(obj['TemplateSTL'], obj['Position'], obj['Orientation'])
+    if obj['type'] == 'Pallet':
+        return Pallet(obj['templateSTL'], obj['position'], obj['orientation'])
