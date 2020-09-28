@@ -2,6 +2,7 @@ import copy
 from datetime import datetime, timedelta
 import glob
 import os
+import re
 import shutil
 
 import geopy.distance
@@ -28,6 +29,7 @@ class Case(SolutionDirectory):
         self.addToClone('ChangeDictionary')
         self.addToClone('logs')
 
+
     def change_initial_temperature(self, temperature):
         changeDictionaryDict_airInside = ParsedParameterFile(
             os.path.join(self.systemDir(), "airInside", "changeDictionaryDict")
@@ -36,8 +38,8 @@ class Case(SolutionDirectory):
             os.path.join(self.systemDir(), "battery_template", "changeDictionaryDict")
             )
 
-        changeDictionaryDict_airInside['T']['internalField'] = temperature
-        changeDictionaryDict_battery['T']['internalField'] = temperature
+        changeDictionaryDict_airInside['T']['internalField'] = 'uniform {}'.format(temperature)
+        changeDictionaryDict_battery['T']['internalField'] = 'uniform {}'.format(temperature)
 
         changeDictionaryDict_airInside.writeFile()
         changeDictionaryDict_battery.writeFile()
@@ -98,7 +100,8 @@ class Case(SolutionDirectory):
 
         changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), "airInside", "changeDictionaryDict"))
 
-         # Delete internalField values, so the last timestep does not get overwritten
+        # Delete internalField values, so values for the last timestep are not overwritten 
+        # when OpenFOAM function changeDict is executed
         del changeDictionaryDict['T']['internalField']
         del changeDictionaryDict['U']['internalField']
         del changeDictionaryDict['p_rgh']['internalField']
@@ -110,23 +113,31 @@ class Case(SolutionDirectory):
         """Calculate heattransfer coefficient"""
         # Value for current time is saved in folder for last time
         times = self.getParallelTimes()
-        time = times[-2]
 
-        path_averageTemperature = os.path.join(
-            self.name,'postProcessing','airInside','temperature_right', str(time),'surfaceFieldValue.dat'
-            )    
+        # If times has only one entry, that means only 0 folder exists and simulation did not do any calculation
+        if len(times) == 1:
+            airInside0T = ParsedParameterFile(os.path.join(self.name, '0', 'airInside', 'T'))
+            T_W = re.sub('\D','', str(airInside0T['internalField']))
+        # Else use average patch temperature
+        else:
+            time = times[-2]
 
-        df_patch_temperature = pd.read_table(path_averageTemperature, sep="\s+", header=4, usecols = [0,1], names = ['time', 'T'])
-
-        # OpenFOAM sometimes changes naming of surfaceFieldValue file, make sure that dataframe reads the data
-        if df_patch_temperature.empty:
             path_averageTemperature = os.path.join(
-                self.name,'postProcessing','airInside','temperature_right', str(time),'surfaceFieldValue_' + str(time) + '.dat'
-            )
+                self.name,'postProcessing','airInside','temperature_right', str(time),'surfaceFieldValue.dat'
+                )    
+
             df_patch_temperature = pd.read_table(path_averageTemperature, sep="\s+", header=4, usecols = [0,1], names = ['time', 'T'])
 
+            # OpenFOAM sometimes changes naming of surfaceFieldValue file, make sure that dataframe reads the data
+            if df_patch_temperature.empty:
+                path_averageTemperature = os.path.join(
+                    self.name,'postProcessing','airInside','temperature_right', str(time),'surfaceFieldValue_' + str(time) + '.dat'
+                )
+                df_patch_temperature = pd.read_table(path_averageTemperature, sep="\s+", header=4, usecols = [0,1], names = ['time', 'T'])
+
+            T_W = df_patch_temperature['T'].iloc[-1]
+
         snappyHexMeshDict = ParsedParameterFile(os.path.join(self.systemDir(), "snappyHexMeshDict"))
-        T_W = df_patch_temperature['T'].iloc[-1]
         if u < 1:
             # Length for natural convection is z-axis value of geometry of carrier
             L = snappyHexMeshDict['geometry']['carrier']['max'][2]
@@ -137,6 +148,12 @@ class Case(SolutionDirectory):
             return convection.coeff_forced(L, u), T_W
 
     def run(self):
+        
+        path_solver_logfile = os.path.join(self.name,"log.chtMultiRegionFoam")
+
+        # When solver restarts from other time than 0, remove solver logfile
+        if os.path.exists(path_solver_logfile):
+            os.remove(path_solver_logfile)
 
         # Open files that need to be modified
         changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), "airInside", "changeDictionaryDict"))
@@ -168,8 +185,8 @@ class Case(SolutionDirectory):
 
             distance = geopy.distance.distance(coordinates, coordinates_next).m
 
-            timestep = pd.to_datetime(self.weatherdata['Date'].values[i]) 
-            string_timestep = timestep.strftime('%Y-%m-%d_%H:%M:%S')
+            current_time = pd.to_datetime(self.weatherdata['Date'].values[i]) 
+            string_current_time = current_time.strftime('%Y-%m-%d_%H:%M:%S')
 
             # Update endTime of the simulation
             endTime_delta = self.weatherdata['Date'].values[i+1] - self.weatherdata['Date'].values[i]
@@ -189,17 +206,16 @@ class Case(SolutionDirectory):
             radiationProperties.writeFile()
 
             # Print to console            
-            print('Date: {}'.format(string_timestep))
+            print('Date: {}'.format(string_current_time))
             print('Latitude: {0} Longitude: {1}'.format(coordinates[0], coordinates[1]))
             print('Temperature: {}'.format(temperature))
             print('Travelspeed: {}'.format(travelspeed))
 
             # Update the heattransfer coefficient 
-            if latesttime != 0:
-                heattransfer_coefficient, T_W = self.heattransfer_coefficient(temperature, travelspeed)
-                print('Recalculating heattransfer coefficient:')
-                print('Heattransfer coeffcient: {0} with average wall temperature: {1}'.format(heattransfer_coefficient, T_W))
-                changeDictionaryDict['T']['boundaryField']['carrier']['h'] = heattransfer_coefficient
+            heattransfer_coefficient, T_W = self.heattransfer_coefficient(temperature, travelspeed)
+            print('Recalculating heattransfer coefficient:')
+            print('Heattransfer coeffcient: {0} with average wall temperature: {1}'.format(heattransfer_coefficient, T_W))
+            changeDictionaryDict['T']['boundaryField']['carrier']['h'] = heattransfer_coefficient
 
             # Update ambient temperature
             changeDictionaryDict['T']['boundaryField']['carrier']['Ta'] = temperature
@@ -210,19 +226,24 @@ class Case(SolutionDirectory):
             os.system(os.path.join(self.name,"Run"))
 
             #File management of log files
-            original = os.path.join(self.name,"log.chtMultiRegionFoam")
-            target = os.path.join(self.name,"log.chtMultiRegionFoam" + '_' + string_timestep)
-            shutil.move(original, target)
+            target = os.path.join(self.name,"log.chtMultiRegionFoam" + '_' + string_current_time)
+            shutil.move(path_solver_logfile, target)
 
             latesttime = float(self.getParallelTimes()[-1])
             i = i + 1
-        
-        os.remove(self.name, 'logs', 'log.changeDictionary.airInside')
+
+        print('Last timestep finished')
         self.move_logs()
 
     def reconstruct(self):
         """Reconstruct the decomposed case. Executes OpenFOAM function reconstructPar in the case directory."""
-        os.system(os.path.join(self.name,"Reconstruct"))
+        latesttimedirectory = os.path.join(self.name, self.getParallelTimes()[-1])
+
+        if not os.path.exists(latesttimedirectory):
+            os.system(os.path.join(self.name,"Reconstruct"))
+            self.move_logs()
+        else:
+            print('Case is already reconstructed')
 
     def postprocess(self):
         """Creates on post_process file for every region out of function object postProcessing files"""
@@ -259,27 +280,69 @@ class Case(SolutionDirectory):
             file_name = os.path.join(path_PyFoam, regions[i] + '_temperature')
             df_temperature.to_csv(file_name, encoding='utf-8', index=False)  
 
-    def probe(self, location, time = None):
+    def add_probe(self, location):
+        """Add location of a new probe to probes file"""
+        
+        probefunction = os.path.join(self.systemDir(), 'probes')
+        
+        # Read the file into a list of lines
+        with open(probefunction, 'r') as f:
+            probefunction_lines = f.readlines()
+
+        # Transform probe location in conform string
+        probe = '(' + ' '.join(str(coordinate) for coordinate in location) + ')\n'
+
+        # Add to right line
+        probes = (probefunction_lines[-3].rstrip() + probe)
+        probefunction_lines[-3] = probes
+
+        # Write back to file
+        with open(probefunction, 'w') as f:
+            f.writelines(probefunction_lines)
+
+    def clear_probes(self):
+        """Clear all probe locations"""
+
+        probefunction = os.path.join(self.systemDir(), 'probes')
+        
+        # Read the file into a list of lines
+        with open(probefunction, 'r') as f:
+            probefunction_lines = f.readlines()
+
+        # Remove probes
+        probefunction_lines[-3] = '\n'
+
+        # Write back to file
+        with open(probefunction, 'w') as f:
+            f.writelines(probefunction_lines)
+
+
+    def probe(self, location, region, time = None, clear = False):
+        """
+        Execute OpenFOAM postProcess function for probing a location for T value.
+        Region of probe must be specified. 
+        """
+        if clear:
+            self.clear_probes()
+
+        self.add_probe(location)
+
+        probespath = os.path.join(self.name, 'postProcessing', 'probes', region)
+
         if time == None:
             times = self.getParallelTimes()
             time = str(times[0]) + ':' + str(times[-1])
+            probespath = os.path.join(probespath, '0', 'T')
+        else:
+            time = str(time)
+            probespath = os.path.join(probespath, time, 'T')
             
-        time = str(time)
+        command = 'postProcess -case {0} -time {1} -func probes -region {2} > {3}/log.probes'
 
-        #probes = ParsedParameterFile(os.path.join(self.systemDir(), 'probes'))
+        os.system(command.format(self.name, time, region, self.name))
 
-        #print(probes['probeLocations'])
-
-        # command = """
-        #             for region in $(foamListRegions -case {0}) 
-        #             do 
-        #                 postProcess -case {0} -time {1} -func probes -region $region 
-        #             done
-        #             """.format(self.name, time)
-
-        command = 'postProcess -case {0} -time {1} -func probes -region airInside'
-
-        os.system(command.format(self.name, time))
+        probes_to_csv(probespath)
+        self.move_logs()
 
     def create_function_objects(self, battery_name, controlDict):
         """Create function objects for battery region. Needed for post processing."""
@@ -299,15 +362,43 @@ class Case(SolutionDirectory):
         logfolder = os.path.join(self.name, 'logs')
         logfiles = glob.iglob(os.path.join(self.name, "log.*"))
         for logfile in logfiles:
-            shutil.move(logfile, logfolder)  
+            logname = os.path.basename(logfile)
+            logdestination = os.path.join(logfolder, logname)
+            shutil.move(logfile, logdestination)  
+
+def probes_to_csv(probespath):
+    probes = pd.read_table(probespath, sep="\s+",  header = None, comment = '#')
+
+    # Rename column names, so naming fits probe number
+    probes.columns = probes.columns.values - 1
+    probes.rename(columns = {-1:'time'}, inplace = True) 
+
+    # Convert Klevin to Celsius
+    for columns in probes.columns.values[1:]:
+        probes[columns] -= 273.15
+
+    csvpath = os.path.dirname(probespath)
+    csvpath = os.path.join(csvpath, 'probes.csv')
+
+    # Delete old file
+    if os.path.exists(csvpath):
+        os.remove(csvpath)
+
+    # Write comments with probe locations
+    with open(csvpath, 'a') as csvfile:
+        with open(probespath) as f:
+            for i in range(len(probes.columns) - 1):
+                probe = f.readline()
+                csvfile.write(probe)
+
+        probes.to_csv(csvfile, encoding='utf-8', index=False)
 
 
-def setup(transport, force_clone = True):
+def setup(transport, initial_temperature = None, force_clone = True):
     """
     Function to setup OpenFOAM case for the transport. 
     Clones templatecase into the transport directory, loads the carrier with carg and creates mesh.
     """
-
     if transport.type == 'container':
         templatecase = Case(os.path.join('cases', 'container', 'container_template'))
     elif transport.type == 'carrier':
@@ -327,8 +418,15 @@ def setup(transport, force_clone = True):
     airInside_polyMesh = os.path.join(case.constantDir(),'airInside', 'polyMesh')
 
     if not os.path.exists(airInside_polyMesh):
+        if initial_temperature != None:
+            print('Setting initial temperature for air and cargo to {} Kelvin'.format(initial_temperature))
+            case.change_initial_temperature(initial_temperature)
+
         case.load_cargo(transport.cargo)
         case.create_mesh()
+
+    else:
+        print('Mesh already exists')
     
     case.load_weatherdata()
 

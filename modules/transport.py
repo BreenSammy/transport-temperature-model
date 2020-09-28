@@ -11,7 +11,7 @@ import pandas as pd
 
 from modules.cargo import cargoDecoder
 import modules.weather.weather as weather
-from modules.route import Route, RouteGPX, FTMRoute
+from modules.route import GPXRoute, FTMRoute
 
 
 class Transport:
@@ -108,6 +108,7 @@ class TransportEncoder(JSONEncoder):
                     "start_coordinates": transport.route.start(),
                     "end_coordinates": transport.route.end(),
                 },
+                "stops": stops,
                 "cargo": [item.to_dict() for item in transport.cargo]           
             }
 
@@ -119,7 +120,7 @@ class TransportDecoder(JSONDecoder):
      #This an elementary date checker, rather than  ISO date checker.
     datetime_regex = re.compile(r'(\d{4}[-/]\d{2}[-/]\d{2})')
     #Duration checker
-    duration_regex = re.compile(r'(\d{0,9}[:/]\d{2}[:/]\d{2})')
+    duration_regex = re.compile(r'(\d{0,9}[:/]\d{1,2}[:/]\d{1,2})')
 
     def __init__(self, *args, **kwargs):
         json.JSONDecoder.__init__(self, *args, **kwargs)

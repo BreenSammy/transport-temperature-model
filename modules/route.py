@@ -1,3 +1,4 @@
+from copy import deepcopy
 from dateutil.parser import parse as dateutilparser
 from datetime import datetime, timedelta 
 import json
@@ -21,6 +22,9 @@ class FTMRoute:
         self.coordinates = route['geometry']['coordinates']
   
     def _routing(self, start_coordinates, end_coordinates, stops = None):
+        """
+        Use FTM routing service for finding route. Needs connection to LRZ.
+        See also: https://wiki.tum.de/display/smartemobilitaet/Routing"""
 
         lat = []
         lon = []
@@ -42,14 +46,14 @@ class FTMRoute:
 
     def start(self):
         """Get the coordinates of start of route"""
-        coords_start = self.coordinates[0]
+        coords_start = deepcopy(self.coordinates[0])
         # URL returns coordinates in [Lon, Lat], convention is [Lat, Lon]
         coords_start.reverse()
         return coords_start
     
     def end(self):
         """Get the coordinates of end of route"""
-        coords_end = self.coordinates[-1]
+        coords_end = deepcopy(self.coordinates[-1])
         # URL returns coordinates in [Lon, Lat], convention is [Lat, Lon]
         coords_end.reverse()
         return coords_end
@@ -95,7 +99,7 @@ class FTMRoute:
         # Add waypoint for end of route
         end = date + timedelta(seconds = round(passed_time))
         waypoints_list.append(
-            {'Date': end, 'Lat': self.coordinates[-1][0], 'Lon': self.coordinates[-1][1]}
+            {'Date': end, 'Lat': coords_end[0], 'Lon': coords_end[1]}
             )
 
         return pd.DataFrame(waypoints_list)
@@ -128,7 +132,7 @@ class FTMRoute:
         with open(filename, 'w') as json_file:
             json.dump(self, json_file, default=lambda o: o.__dict__, indent = 4 )
 
-class RouteGPX:
+class GPXRoute:
     """Class for routes created from gpx file with timestamps"""
     def __init__(self, filename):
         filepath = os.path.join('routes', filename)
@@ -146,9 +150,6 @@ class RouteGPX:
         # Transform all timestamps to UTC timezzone and drop +0:00 timezone identifier
         self.dataframe_full['Date'] = pd.to_datetime(self.dataframe_full['Date'], utc=True)
         self.dataframe_full['Date'] = self.dataframe_full['Date'].dt.tz_localize(None)
-
-        self.start = start
-        self.end = end
 
         self.stops = []
 
@@ -177,41 +178,4 @@ class RouteGPX:
         df.index = range(len(df))
         
         return df
-
-class Stop:
-    """Class to represent a stop on the route."""
-    def __init__(self, duration, lat, lon):
-        self.duration = duration
-        self.lat = lat
-        self.lon = lon
-
-    def coordinates(self):
-        return np.array([self.lat, self.lon])
-
-    def to_dict(self):
-        return {
-            'duration': self.duration,
-            'lat': self.lat,
-            'lon': self.lon
-        }
-
-def stopDecoder(obj):
-    return Stop(obj['duration'], obj['lat'], obj['lon'])
-
-
-# stops = [
-#     Stop2(timedelta(hours = 9, minutes = 44),  50.978005, 11.870212),
-#     Stop2(timedelta(hours = 2),  49.882187, 11.583491)
-# ]
-
-# start = datetime(2019, 3, 2, 5, 23)
-# end = datetime(2019, 3, 2, 14, 30)
-
-# route = FTMRoute([52.51868, 13.37086], [48.26559, 11.67137], stops)
-
-# #print(route.coordinates)
-
-# print(route.waypoints(start, end, stops = stops))
-
-# #route.saveJSON('test.json')
 

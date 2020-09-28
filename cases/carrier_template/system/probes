@@ -16,20 +16,10 @@ Description
 
 fields  (T);
 
+// Do not change formating after this line or breaks probe postProcessing
+// See python module case.py, class Case, method add_probe() 
 probeLocations
 (
     (1 1 1)
 );
-
-// Override settings here
-setFormat csv;
-
-setConfig
-{
-    type    midPoint;
-}
-
-// Must be last entry
-// #includeEtc "caseDicts/postProcessing/graphs/graph.cfg"
-
 // ************************************************************************* //

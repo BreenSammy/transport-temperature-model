@@ -50,14 +50,14 @@ class Pallet:
         os.system(
             'surfaceTransformPoints -rollPitchYaw ' + self.vector_to_string(self.orientation) + " " + 
             os.path.join(case.constantDir(), "triSurface", self.templateSTL) + " " + 
-            os.path.join(case.constantDir(), "triSurface", target)
+            os.path.join(case.constantDir(), "triSurface", target) + '> {}/log.move_STL'.format(case.name) 
             )
 
         # Move STL to its position
         os.system(
             'surfaceTransformPoints -translate ' + self.vector_to_string(self.position) + " " + 
             os.path.join(case.constantDir(), "triSurface", target) + " " + 
-            os.path.join(case.constantDir(), "triSurface", target)
+            os.path.join(case.constantDir(), "triSurface", target) + '>> {}/log.move_STL'.format(case.name)
             )
         self.STL = target
 
