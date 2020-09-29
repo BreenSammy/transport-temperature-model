@@ -89,12 +89,6 @@ class TransportEncoder(JSONEncoder):
             stops = []
             for stop in transport.stops:
                 stop = stop.to_dict_serial()
-                # days = stop["duration"].days
-                # seconds = stop["duration"].seconds
-                # hours, remainder = divmod(seconds, 3600)
-                # minutes, seconds = divmod(remainder, 60)
-                # hours = hours + days*24
-                # stop["duration"] = '{0}:{1}:{2}'.format(hours, minutes, seconds)
                 stops.append(stop)
 
             # Return dictionary for json file

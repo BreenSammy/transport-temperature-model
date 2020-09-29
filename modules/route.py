@@ -132,7 +132,7 @@ class FTMRoute:
             "type": "FTM",
             "start_coordinates": self.start(),
             "end_coordinates": self.end(),
-        },
+        }
 
     def saveJSON(self, filename):
         with open(filename, 'w') as json_file:

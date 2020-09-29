@@ -100,12 +100,12 @@ class Case(SolutionDirectory):
 
         changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), "airInside", "changeDictionaryDict"))
 
-        # Delete internalField values, so values for the last timestep are not overwritten 
+        # Delete values that do not need to be changed anymore, so values for the last timestep are not overwritten 
         # when OpenFOAM function changeDict is executed
         del changeDictionaryDict['T']['internalField']
-        del changeDictionaryDict['U']['internalField']
-        del changeDictionaryDict['p_rgh']['internalField']
-        del changeDictionaryDict['p']['internalField']
+        del changeDictionaryDict['U']
+        del changeDictionaryDict['p_rgh']
+        del changeDictionaryDict['p']
 
         changeDictionaryDict.writeFile()
 
@@ -220,6 +220,9 @@ class Case(SolutionDirectory):
             changeDictionaryDict['T']['boundaryField']['carrier'] = {
                 'h': heattransfer_coefficient,
                 'Ta': temperature,
+            }
+            changeDictionaryDict['T']['boundaryField']['bottom'] = {
+                'Ta': temperature
             }
             changeDictionaryDict.writeFile()
             
