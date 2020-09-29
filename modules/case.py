@@ -253,6 +253,8 @@ class Case(SolutionDirectory):
         Can only be used before decomposing"""
 
         if not self.processorDirs():
+            print("Number of CPU cores set to {}".format(number))
+
             decomposeParDict_system = ParsedParameterFile(os.path.join(
                 self.systemDir(), "decomposeParDict")
                 )
@@ -271,6 +273,7 @@ class Case(SolutionDirectory):
 
             for decomposeParDict in list_decomposeParDicts:
                 decomposeParDict['numberOfSubdomains'] = number
+                decomposeParDict.writeFile()
         else:
             raise Exception('Case already decomposed. Clean case before changing number of subdomains.')
         
@@ -423,7 +426,7 @@ def probes_to_csv(probespath):
         probes.to_csv(csvfile, encoding='utf-8', index=False)
 
 
-def setup(transport, initial_temperature = None, force_clone = True):
+def setup(transport, initial_temperature = None, cpucores = 8, force_clone = True):
     """
     Function to setup OpenFOAM case for the transport. 
     Clones templatecase into the transport directory, loads the carrier with carg and creates mesh.
@@ -451,6 +454,7 @@ def setup(transport, initial_temperature = None, force_clone = True):
             print('Setting initial temperature for air and cargo to {} Kelvin'.format(initial_temperature))
             case.change_initial_temperature(initial_temperature)
 
+        case.cpucores(cpucores)
         case.load_cargo(transport.cargo)
         case.create_mesh()
 
