@@ -1,260 +1,260 @@
 {
-    "Name": "grandlgruber",
-    "Type": "carrier",
-    "Start": "2019-02-07 19:15:00",
-    "End": "2019-02-08 18:00:00",
-    "Route": {
-        "Filename": "grandlgruber.gpx",
-        "Stops": []
+    "name": "grandlgruber",
+    "type": "carrier",
+    "start": "2019-02-07 19:15:00",
+    "end": "2019-02-08 18:00:00",
+    "route": {
+        "type": "gpx"
     },
-    "Cargo": [
+    "stops": [],
+    "cargo": [
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 0.801,
                 -0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 0.801,
                 0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 2.201,
                 -0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 2.201,
                 0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 3.601,
                 -0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 3.601,
                 0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 5.001,
                 -0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 5.001,
                 0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 6.401,
                 -0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 6.401,
                 0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 7.801,
                 -0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 7.801,
                 0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 9.201,
                 -0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 9.201,
                 0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 10.601,
                 -0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 10.601,
                 0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 12.001,
                 -0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
             ]
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "industrial_pallet1x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet1x4.stl",
+            "position": [
                 12.001,
                 0.5805,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0

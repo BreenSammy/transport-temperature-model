@@ -37,8 +37,8 @@ FoamFile
     wallAbsorptionEmissionModel
     {
         type            multiBandAbsorption;
-        absorptivity    (0.6 0.6);
-        emissivity      (0.6 0.6);
+        absorptivity    (0.15 0.15);
+        emissivity      (0.15 0.15);
     };
 }
 
@@ -49,8 +49,8 @@ carrier
     wallAbsorptionEmissionModel
     {
         type            multiBandAbsorption;
-        absorptivity    (0.6 0.6);
-        emissivity      (0.6 0.6);
+        absorptivity    (0.15 0.15);
+        emissivity      (0.15 0.15);
     };
 }
 
@@ -61,8 +61,8 @@ bottom
     wallAbsorptionEmissionModel
     {
         type            multiBandAbsorption;
-        absorptivity    (0.6 0.6);
-        emissivity      (0.6 0.6);
+        absorptivity    (0.15 0.15);
+        emissivity      (0.15 0.15);
     };
 }
 // ************************************************************************* //

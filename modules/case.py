@@ -114,27 +114,31 @@ class Case(SolutionDirectory):
         # Value for current time is saved in folder for last time
         times = self.getParallelTimes()
 
-        # If times has only one entry, that means only 0 folder exists and simulation did not do any calculation
+        # If times has only one entry, that means only 0 folder exists, 
+        # thus average path temperature is initial temperature
         if len(times) == 1:
             airInside0T = ParsedParameterFile(os.path.join(self.name, '0', 'airInside', 'T'))
-            T_W = re.sub('\D','', str(airInside0T['internalField']))
+            T_W = re.findall(r"[-+]?\d*\.\d+|\d+", str(airInside0T['internalField']))
+            T_W = float(T_W[0])
         # Else use average patch temperature
         else:
             time = times[-2]
-
             path_averageTemperature = os.path.join(
                 self.name,'postProcessing','airInside','temperature_right', str(time),'surfaceFieldValue.dat'
                 )    
-
-            df_patch_temperature = pd.read_table(path_averageTemperature, sep="\s+", header=4, usecols = [0,1], names = ['time', 'T'])
+            df_patch_temperature = pd.read_table(
+                path_averageTemperature, sep="\s+", header=4, usecols = [0,1], names = ['time', 'T']
+                )
 
             # OpenFOAM sometimes changes naming of surfaceFieldValue file, make sure that dataframe reads the data
             if df_patch_temperature.empty:
                 path_averageTemperature = os.path.join(
-                    self.name,'postProcessing','airInside','temperature_right', str(time),'surfaceFieldValue_' + str(time) + '.dat'
+                    self.name,'postProcessing','airInside','temperature_right',
+                    str(time),'surfaceFieldValue_' + str(time) + '.dat'
                 )
-                df_patch_temperature = pd.read_table(path_averageTemperature, sep="\s+", header=4, usecols = [0,1], names = ['time', 'T'])
-
+                df_patch_temperature = pd.read_table(
+                    path_averageTemperature, sep="\s+", header=4, usecols = [0,1], names = ['time', 'T']
+                    )
             T_W = df_patch_temperature['T'].iloc[-1]
 
         snappyHexMeshDict = ParsedParameterFile(os.path.join(self.systemDir(), "snappyHexMeshDict"))
@@ -180,25 +184,21 @@ class Case(SolutionDirectory):
             # Read temperature and transform from Celsius to Kelvin
             temperature = self.weatherdata['T'].values[i] + 273.15
 
-            coordinates = self.weatherdata[['Lat', 'Lon']].values[i]
-            coordinates_next = self.weatherdata[['Lat', 'Lon']].values[i+1]
-
-            distance = geopy.distance.distance(coordinates, coordinates_next).m
-
             current_time = pd.to_datetime(self.weatherdata['Date'].values[i]) 
             string_current_time = current_time.strftime('%Y-%m-%d_%H:%M:%S')
 
             # Update endTime of the simulation
             endTime_delta = self.weatherdata['Date'].values[i+1] - self.weatherdata['Date'].values[i]
             endTime_delta = endTime_delta / np.timedelta64(1, 's')
-
-            travelspeed = distance / endTime_delta
-
-            print(travelspeed)
-
             controlDict['writeInterval'] = np.floor(endTime_delta)
             controlDict['endTime'] = latesttime + endTime_delta
             controlDict.writeFile()
+
+            # Calculate travelspeed between waypoints
+            coordinates = self.weatherdata[['Lat', 'Lon']].values[i]
+            coordinates_next = self.weatherdata[['Lat', 'Lon']].values[i+1]
+            distance = geopy.distance.distance(coordinates, coordinates_next).m
+            travelspeed = distance / endTime_delta
 
             #Upadate positon
             radiationProperties['solarLoadCoeffs']['latitude'] = coordinates[0]
@@ -219,9 +219,12 @@ class Case(SolutionDirectory):
 
             # Update ambient temperature
             changeDictionaryDict['T']['boundaryField']['carrier']['Ta'] = temperature
+            # Update boundary condition value
+            changeDictionaryDict['T']['boundaryField']['carrier']['value'] =  'uniform {}'.format(T_W)
             changeDictionaryDict.writeFile()
             
             # Execute solver
+            self.move_logs()
             os.system(os.path.join(self.name,"ChangeDictionary"))
             os.system(os.path.join(self.name,"Run"))
 
@@ -245,6 +248,32 @@ class Case(SolutionDirectory):
         else:
             print('Case is already reconstructed')
 
+    def cpucores(self, number):
+        """Change the number of CPU cores that should be used for the simulation. 
+        Can only be used before decomposing"""
+
+        if not self.processorDirs():
+            decomposeParDict_system = ParsedParameterFile(os.path.join(
+                self.systemDir(), "decomposeParDict")
+                )
+            decomposeParDict_airInside = ParsedParameterFile(os.path.join(
+                self.systemDir(), "airInside", "decomposeParDict")
+                )
+            decomposeParDict_battery_template = ParsedParameterFile(
+                os.path.join(self.systemDir(), "battery_template", "decomposeParDict")
+                )
+
+            list_decomposeParDicts = [
+                decomposeParDict_system, 
+                decomposeParDict_airInside, 
+                decomposeParDict_battery_template
+                ]
+
+            for decomposeParDict in list_decomposeParDicts:
+                decomposeParDict['numberOfSubdomains'] = number
+        else:
+            raise Exception('Case already decomposed. Clean case before changing number of subdomains.')
+        
     def postprocess(self):
         """Creates on post_process file for every region out of function object postProcessing files"""
         path_postProcessing = os.path.join(self.name, "postProcessing")
@@ -338,9 +367,7 @@ class Case(SolutionDirectory):
             probespath = os.path.join(probespath, time, 'T')
             
         command = 'postProcess -case {0} -time {1} -func probes -region {2} > {3}/log.probes'
-
         os.system(command.format(self.name, time, region, self.name))
-
         probes_to_csv(probespath)
         self.move_logs()
 
@@ -387,9 +414,11 @@ def probes_to_csv(probespath):
     # Write comments with probe locations
     with open(csvpath, 'a') as csvfile:
         with open(probespath) as f:
-            for i in range(len(probes.columns) - 1):
+            i = 0
+            while i < range(len(probes.columns)):
                 probe = f.readline()
                 csvfile.write(probe)
+                i += 1
 
         probes.to_csv(csvfile, encoding='utf-8', index=False)
 

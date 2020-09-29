@@ -112,16 +112,16 @@ T
         }
         bottom
         {
-            // type               zeroGradient;
-            type            externalWallHeatFluxTemperature;
-            mode            coefficient;
-            Ta              uniform 293.15;
-            h               uniform 10e5;
-            kappaMethod     fluidThermo;
-            kappa           none;
-            thicknessLayers (1 2);
-            kappaLayers     (100 200);
-            value           uniform 293.15;
+            type               zeroGradient;
+            // type            externalWallHeatFluxTemperature;
+            // mode            coefficient;
+            // Ta              uniform 293.15;
+            // h               uniform 10e5;
+            // kappaMethod     fluidThermo;
+            // kappa           none;
+            // thicknessLayers (1 2);
+            // kappaLayers     (100 200);
+            // value           uniform 293.15;
         }
     }
 }

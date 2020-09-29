@@ -15,7 +15,7 @@ from modules.route import GPXRoute, FTMRoute
 
 
 class Transport:
-    def __init__(self, name, transporttype, start, end, cargo, route, stops = None, reread_temperature = True):
+    def __init__(self, name, transporttype, start, end, cargo, route, stops = [], reread_temperature = True):
         # if route_filename.endswith('.gpx'):
         #     self.route = RouteGPX(start, end, route_filename)
         self.name = name
@@ -38,7 +38,11 @@ class Transport:
             self.weatherdata = self.get_weatherdata()
     
     def get_weatherdata(self):
-        weatherdata = self.route.waypoints(self.start, self.stops)
+        if isinstance(self.route, FTMRoute):
+            weatherdata = self.route.waypoints(self.start, self.stops)
+        elif isinstance(self.route, GPXRoute):
+            weatherdata = self.route.waypoints(self.start, self.end)
+
         length = len(weatherdata.index)
         temperature = np.zeros([length, 1])
         lat = weatherdata[['Lat']].values
@@ -81,19 +85,18 @@ class TransportEncoder(JSONEncoder):
     def default(self, transport):
 
         if isinstance(transport, Transport):
-            # Transform stop instances in list into dicts
-            stops = [stop.to_dict() for stop in transport.stops]
-            # Transform datetime instances to string
-            for stop in stops:
-                days = stop["duration"].days
-                seconds = stop["duration"].seconds
-                hours, remainder = divmod(seconds, 3600)
-                minutes, seconds = divmod(remainder, 60)
-                hours = hours + days*24
-                stop["duration"] = '{0}:{1}:{2}'.format(hours, minutes, seconds)
-                # stop["duration"] = stop["duration"].strftime("%s" % (
-                #         self.TIME_FORMAT
-                #     ))
+            # Serialize stops
+            stops = []
+            for stop in transport.stops:
+                stop = stop.to_dict_serial()
+                # days = stop["duration"].days
+                # seconds = stop["duration"].seconds
+                # hours, remainder = divmod(seconds, 3600)
+                # minutes, seconds = divmod(remainder, 60)
+                # hours = hours + days*24
+                # stop["duration"] = '{0}:{1}:{2}'.format(hours, minutes, seconds)
+                stops.append(stop)
+
             # Return dictionary for json file
             return {
                 "name": transport.name,
@@ -104,10 +107,7 @@ class TransportEncoder(JSONEncoder):
                 "end": transport.end.strftime("%s %s" % (
                     self.DATE_FORMAT, self.TIME_FORMAT
                 )),
-                "route": {
-                    "start_coordinates": transport.route.start(),
-                    "end_coordinates": transport.route.end(),
-                },
+                "route": transport.route.to_dict(),
                 "stops": stops,
                 "cargo": [item.to_dict() for item in transport.cargo]           
             }
@@ -172,13 +172,28 @@ class Stop:
             'lat': self.lat,
             'lon': self.lon
         }
+    
+    def to_dict_serial(self):
+        """Serialize timedelta object duration"""
+        days = self.duration.days
+        seconds = self.duration.seconds
+        hours, remainder = divmod(seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        hours = hours + days*24
+        duration = '{0}:{1}:{2}'.format(hours, minutes, seconds)
+        return {
+            'duration': duration,
+            'lat': self.lat,
+            'lon': self.lon
+        }
 
 def stopDecoder(obj):
     return Stop(obj['duration'], obj['lat'], obj['lon'])
 
 def from_json(filename, reread_temperature = True):
-    """Create Transport instance from json file"""
-    json_dict = json.load(filename, cls=TransportDecoder)
+    """Create Transport instance from json file"""   
+    with open(filename) as json_file:
+        json_dict = json.load(json_file, cls=TransportDecoder)
     # Read all parameters from the dict
     name = json_dict['name']
     transporttype = json_dict['type']
@@ -186,11 +201,23 @@ def from_json(filename, reread_temperature = True):
     end = json_dict['end']
     # Create cargo instances
     cargo = [cargoDecoder(item) for item in json_dict['cargo']]
-    route_start = json_dict['route']['start_coordinates']
-    route_end = json_dict['route']['end_coordinates']
-    route = FTMRoute(route_start, route_end)
+
+    if json_dict['route']['type'].lower() == 'gpx':
+        transportpath = os.path.dirname(filename)
+        gpxpath = os.path.join(transportpath, name + '.gpx')
+        route = GPXRoute(gpxpath)
+    elif json_dict['route']['type'].upper() == 'FTM':
+        route_start = json_dict['route']['start_coordinates']
+        route_end = json_dict['route']['end_coordinates']
+        route = FTMRoute(route_start, route_end)
+    else:
+        raise Exception('Route type is not supported, try FTM or gpx')
+        
     # Create stop instances
-    stops = [stopDecoder(stop) for stop in json_dict['stops']]
+    if 'stops' in json_dict:
+        stops = [stopDecoder(stop) for stop in json_dict['stops']]
+    else:
+        stops = []
     # Return the transport instance
     return Transport(
         name, transporttype, start, end, cargo, route, 
