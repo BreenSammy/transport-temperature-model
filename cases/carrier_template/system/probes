@@ -20,6 +20,6 @@ fields  (T);
 // See python module case.py, class Case, method add_probe() 
 probeLocations
 (
-    (1.6505 -0.905 0.105)
+    
 );
 // ************************************************************************* //

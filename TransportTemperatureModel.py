@@ -18,14 +18,13 @@ transport1 = transport.from_json(transport_path, reread_temperature = True)
 
 transport1.save()
 
-case = case.setup(transport1, initial_temperature = 298.15, force_clone = True)
+case = case.setup(transport1, initial_temperature = 298.15, cpucores = 20, force_clone = True)
 
 case.run()
 
 # case = Case(case_path)
-# case.probe( [2, 1, 1], 'airInside', time = 3605)
-#case.reconstruct()
-#case.probe([0, 0, 0])
+case.reconstruct()
+case.probe([1.6505, -0.905, 0.105], 'airInside')
 
 # gpx_path = os.path.join('transports', 'grandlgruber', 'grandlgruber.gpx')
 
