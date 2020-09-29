@@ -142,12 +142,13 @@ class Case(SolutionDirectory):
             T_W = df_patch_temperature['T'].iloc[-1]
 
         snappyHexMeshDict = ParsedParameterFile(os.path.join(self.systemDir(), "snappyHexMeshDict"))
-        if u < 1:
+        if u < 4:
             # Length for natural convection is z-axis value of geometry of carrier
             L = snappyHexMeshDict['geometry']['carrier']['max'][2]
             return convection.coeff_natural(L, T_W, T_U), T_W
         else:
             # Length for forced convection is x-axis value of geometry of carrier
+            u = 22
             L = snappyHexMeshDict['geometry']['carrier']['max'][0]
             return convection.coeff_forced(L, u), T_W
 
