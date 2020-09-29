@@ -215,12 +215,12 @@ class Case(SolutionDirectory):
             heattransfer_coefficient, T_W = self.heattransfer_coefficient(temperature, travelspeed)
             print('Recalculating heattransfer coefficient:')
             print('Heattransfer coeffcient: {0} with average wall temperature: {1}'.format(heattransfer_coefficient, T_W))
-            changeDictionaryDict['T']['boundaryField']['carrier']['h'] = heattransfer_coefficient
 
-            # Update ambient temperature
-            changeDictionaryDict['T']['boundaryField']['carrier']['Ta'] = temperature
-            # Update boundary condition value
-            changeDictionaryDict['T']['boundaryField']['carrier']['value'] =  'uniform {}'.format(T_W)
+            # Write changes to changeDictionaryDict
+            changeDictionaryDict['T']['boundaryField']['carrier'] = {
+                'h': heattransfer_coefficient,
+                'Ta': temperature,
+            }
             changeDictionaryDict.writeFile()
             
             # Execute solver
@@ -418,7 +418,7 @@ def probes_to_csv(probespath):
     with open(csvpath, 'a') as csvfile:
         with open(probespath) as f:
             i = 0
-            while i < range(len(probes.columns)):
+            while i < len(probes.columns):
                 probe = f.readline()
                 csvfile.write(probe)
                 i += 1
