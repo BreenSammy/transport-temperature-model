@@ -14,6 +14,15 @@ from PyFoam.Basics.DataStructures import Vector
 
 import modules.convection as convection
 
+# TRANSPORTTYPES = {
+#     'container': {
+
+#     },
+#     'truck': {
+
+#     }
+# }
+
 class Case(SolutionDirectory):
     def __init__(self, name, archive = None, paraviewLink = True):
         SolutionDirectory.__init__(self, name, archive = None, paraviewLink = True)
@@ -282,16 +291,15 @@ class Case(SolutionDirectory):
             raise Exception('Case already decomposed. Clean case before changing number of subdomains.')
         
     def postprocess(self):
-        """Creates on post_process file for every region out of function object postProcessing files"""
-        path_postProcessing = os.path.join(self.name, "postProcessing")
-        path_PyFoam = os.path.join(path_postProcessing, 'PyFoam')
+        """Creates one post_process file for every region out of function object postProcessing files"""
+        case_postProcessing = os.path.join(self.name, "postProcessing")
+        transport_postProcessing = os.path.join(os.path.dirname(self.name), 'postProcessing')
         #Create new folder for post_process results
-        if not os.path.exists(path_PyFoam):
-            os.makedirs(path_PyFoam)
+        if not os.path.exists(transport_postProcessing):
+            os.makedirs(transport_postProcessing)
 
-        # Find all regions by direcotries in postProcessing, PyFoam folder is no region
-        regions = os.listdir(path_postProcessing)
-        regions.remove('PyFoam')
+        # Find all regions
+        regions = self.regions()
         
         # Get all timesteps and delete last one, because for latestTime no postProcess folder exists
         times = self.getTimes()
@@ -300,9 +308,9 @@ class Case(SolutionDirectory):
         for i in range(len(regions)):
             df_temperature = None
             for j in range(len(times)):
-                path_average = os.path.join(path_postProcessing, regions[i], 'average_' + regions[i], times[j], 'volFieldValue.dat')
-                path_min = os.path.join(path_postProcessing, regions[i], 'min_' + regions[i], times[j], 'volFieldValue.dat')
-                path_max = os.path.join(path_postProcessing, regions[i], 'max_' + regions[i], times[j], 'volFieldValue.dat')
+                path_average = os.path.join(case_postProcessing, regions[i], 'average_' + regions[i], times[j], 'volFieldValue.dat')
+                path_min = os.path.join(case_postProcessing, regions[i], 'min_' + regions[i], times[j], 'volFieldValue.dat')
+                path_max = os.path.join(case_postProcessing, regions[i], 'max_' + regions[i], times[j], 'volFieldValue.dat')
                     
                 average_temperature = pd.read_table(path_average, sep="\s+", header=3, usecols = [0,1], names = ['time', 'average(T)'])
                 min_temperature = pd.read_table(path_min, sep="\s+", header=3, usecols = [0,1], names = ['time', 'min(T)'])
@@ -313,7 +321,7 @@ class Case(SolutionDirectory):
 
                 df_temperature = pd.concat([df_temperature, temperature], ignore_index = True)
 
-            file_name = os.path.join(path_PyFoam, regions[i] + '_temperature')
+            file_name = os.path.join(transport_postProcessing, regions[i] + '_temperature')
             df_temperature.to_csv(file_name, encoding='utf-8', index=False)  
 
     def add_probe(self, location):
@@ -375,8 +383,44 @@ class Case(SolutionDirectory):
             
         command = 'postProcess -case {0} -time {1} -func probes -region {2} > {3}/log.probes'
         os.system(command.format(self.name, time, region, self.name))
-        probes_to_csv(probespath)
+        self._probes_to_csv(probespath, region)
         self.move_logs()
+
+    def _probes_to_csv(self, probespath, region):
+
+        targetdirectory = os.path.join(os.path.dirname(self.name), 'postProcessing', 'probes')
+        #Create new folder for probes results
+        if not os.path.exists(targetdirectory):
+            os.makedirs(targetdirectory)
+
+        probes = pd.read_table(probespath, sep="\s+",  header = None, comment = '#')
+
+        # Rename column names, so naming fits probe number
+        probes.columns = probes.columns.values - 1
+        probes.rename(columns = {-1:'time'}, inplace = True) 
+
+        # Convert Klevin to Celsius
+        for columns in probes.columns.values[1:]:
+            probes[columns] -= 273.15
+
+        csvpath = os.path.join(targetdirectory, region + '.csv')
+        # csvpath = os.path.dirname(probespath)
+        # csvpath = os.path.join(csvpath, 'probes.csv')
+
+        # Delete old file
+        if os.path.exists(csvpath):
+            os.remove(csvpath)
+
+        # Write comments with probe locations
+        with open(csvpath, 'a') as csvfile:
+            with open(probespath) as f:
+                i = 0
+                while i < len(probes.columns):
+                    probe = f.readline()
+                    csvfile.write(probe)
+                    i += 1
+
+            probes.to_csv(csvfile, encoding='utf-8', index=False)
 
     def create_function_objects(self, battery_name, controlDict):
         """Create function objects for battery region. Needed for post processing."""
@@ -400,34 +444,7 @@ class Case(SolutionDirectory):
             logdestination = os.path.join(logfolder, logname)
             shutil.move(logfile, logdestination)  
 
-def probes_to_csv(probespath):
-    probes = pd.read_table(probespath, sep="\s+",  header = None, comment = '#')
 
-    # Rename column names, so naming fits probe number
-    probes.columns = probes.columns.values - 1
-    probes.rename(columns = {-1:'time'}, inplace = True) 
-
-    # Convert Klevin to Celsius
-    for columns in probes.columns.values[1:]:
-        probes[columns] -= 273.15
-
-    csvpath = os.path.dirname(probespath)
-    csvpath = os.path.join(csvpath, 'probes.csv')
-
-    # Delete old file
-    if os.path.exists(csvpath):
-        os.remove(csvpath)
-
-    # Write comments with probe locations
-    with open(csvpath, 'a') as csvfile:
-        with open(probespath) as f:
-            i = 0
-            while i < len(probes.columns):
-                probe = f.readline()
-                csvfile.write(probe)
-                i += 1
-
-        probes.to_csv(csvfile, encoding='utf-8', index=False)
 
 
 def setup(transport, initial_temperature = None, cpucores = 8, force_clone = True):
