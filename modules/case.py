@@ -444,6 +444,24 @@ class Case(SolutionDirectory):
             logdestination = os.path.join(logfolder, logname)
             shutil.move(logfile, logdestination)  
 
+    def pack_solution(self, logs = True):
+        """Compress case with solution time directories for better file transfer"""
+
+        pack_path = os.path.join(
+            os.path.dirname(self.name),
+            'compressedCase'
+        )
+
+        additional = self.getParallelTimes()
+        additional.append('postProcessing')
+        additional.append('case.foam')
+
+        if not logs:
+            exclude = ['logs']
+        else:
+            exclude = []
+
+        self.packCase(pack_path, additional = additional, exclude = exclude)
 
 
 
