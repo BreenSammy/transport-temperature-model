@@ -44,15 +44,18 @@ class Transport:
             weatherdata = self.route.waypoints(self.start, self.end)
 
         length = len(weatherdata.index)
-        temperature = np.zeros([length, 1])
-        lat = weatherdata[['Lat']].values
-        lon = weatherdata[['Lon']].values
+        temperature = np.zeros([length])
 
-        for i in range(length):
-            current_datetime = weatherdata['Date'].iloc[i]
-            current_datetime = pd.Timestamp(current_datetime)
-            current_datetime = current_datetime.to_pydatetime()
-            temperature[i] = weather.temperature(current_datetime, lat[i][0], lon[i][0])
+        i = 0
+        while i < length:
+            df = weatherdata.loc[weatherdata['Lat'] ==  weatherdata.loc[i, 'Lat']]
+            datetimes = df.Date.tolist()
+            lat = df.Lat.values[0]
+            lon = df.Lon.values[0]
+            read_temperature = weather.temperature_range(datetimes, lat, lon)
+            j = i + read_temperature.size
+            temperature[i:j] = read_temperature
+            i = j
 
         weatherdata['T'] = temperature
         return weatherdata

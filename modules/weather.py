@@ -19,6 +19,9 @@ WEATHERDATAPATH = os.path.abspath('weatherdata')
 if not os.path.exists(WEATHERDATAPATH):
             os.makedirs(WEATHERDATAPATH)
 
+#NOAA database saves temperature readings with scaling factor
+T_SCALINGFACTOR = 0.1
+
 class Station:
     """
     Class to represent a weather station of NOAA ISD database. 
@@ -207,30 +210,31 @@ class ICOADSFile(NOAAFile):
     def _read(self, ICOADSfile):
 
         # character lengths of columns and scaling factors for values, see IMMA_format.pdf in doc
-        col_lengths = {
+        COL_LENGTHS = {
             'YR': range(0, 4), 'MO': range(4, 6), 'DY': range(6, 8), 'HR': range(8, 12),
             'Lat': range(12,17), 'Lon': range(17, 23), 'T': range(69, 73)
             }
-        scalingfactors = {
-            'T': 0.1,
+        
+        SCALINGFACTORS = {
+            'T': T_SCALINGFACTOR,
             'Lat': 0.01,
             'Lon': 0.01,
-            'HR': 36, # 0.01* 3600 to transform into seconds
+            'HR': 36 # 0.01* 3600 to transform into seconds
         }
 
         dateparse = lambda x: datetime.strptime(x, '%Y %m %d')
 
         df = pd.read_fwf(
             ICOADSfile, parse_dates={'date': ['YR', 'MO', 'DY']}, date_parser=dateparse,
-            colspecs=[(min(x), max(x)+1) for x in col_lengths.values()],
-            header=None, names=col_lengths.keys()
+            colspecs=[(min(x), max(x)+1) for x in COL_LENGTHS.values()],
+            header=None, names=COL_LENGTHS.keys()
             )
 
         # drop all readings without temperature readings
         df = df[df['T'].notna()]
 
-        for key in scalingfactors:
-            df[key] = df[key] * scalingfactors[key]
+        for key in SCALINGFACTORS:
+            df[key] = df[key] * SCALINGFACTORS[key]
 
         # add time to date
         df['HR'] = pd.to_timedelta(df['HR'], 's')  
@@ -279,6 +283,8 @@ class OISSTFile(NOAAFile):
         fileurl = self._find_file(url.format(folderstring), datestring, 'nc')
         filename = os.path.basename(fileurl)
         targetpath = os.path.join(WEATHERDATAPATH, filename)
+
+        self._download(fileurl, targetpath)
         
         self.dataset = nc.Dataset(targetpath)
 
@@ -316,11 +322,11 @@ class OISSTFile(NOAAFile):
             units: Celsius
             current shape = (1, 1, 720, 1440)
     """
-
-        GRIDSIZE = 0.25
-
         # Transform longitude format
         lon = degrees_decimal_to_east(lon)
+
+        # Data points lie on a grid with 0.25° spacing, therfore closest datapoint location has to be found
+        GRIDSIZE = 0.25
 
         latdivmod = divmod(lat, GRIDSIZE)
         londivmod = divmod(lon, GRIDSIZE)
@@ -346,9 +352,11 @@ def temperature(input_datetime: datetime, lat: float, lon: float, use_ICOADS = F
 
     sst, distance = OISST.sea_surface_temperature(lat, lon)
 
-    if not use_ICOADS and isinstance(sst, np.float32):
+    coordinates_onsea = onsea(lat, lon)
+
+    if not use_ICOADS and coordinates_onsea:
         temperature = sst
-    elif use_ICOADS and isinstance(sst, np.float32):
+    elif use_ICOADS and coordinates_onsea:
         ICOADS = ICOADSFile(input_datetime)
         temperature, distance = ICOADS.temperature(input_datetime, lat, lon) 
     else:
@@ -376,7 +384,7 @@ def temperature(input_datetime: datetime, lat: float, lon: float, use_ICOADS = F
                 station.reload()
                 retry = True
             else:
-                temperature = df['T'].values[0] / 10  
+                temperature = df['T'].values[0] * T_SCALINGFACTOR  
                 retry = False
 
         distance = station.distance
@@ -386,68 +394,42 @@ def temperature(input_datetime: datetime, lat: float, lon: float, use_ICOADS = F
 
     return temperature
 
-def temperature_range(start: datetime, end: datetime, lat: float, lon: float):
-    """Find temperature for a time range at stationary location"""
+def temperature_range(datetimes, lat, lon):
 
-    station = Station(start, lat, lon)
-    col_names = ['Year', 'Month', 'Day', 'Hour', 'T']
+    station = Station(datetimes[0], lat, lon)
 
-    df = pd.read_csv(station.filepath, compression='gzip', quotechar='"', delim_whitespace=True, usecols=[0,1,2,3,4], names=col_names)
+    datetimes = [hour_rounder(entry) for entry in datetimes]
 
-    df["Date"] = df["Year"].astype(str) + '-' + df["Month"].astype(str) + '-' + df["Day"].astype(str) + ' ' + df["Hour"].astype(str)  + ':00:00'
+    # Sometimes the station has no data for the datetime, thus the loop
+    retry = True
+    while retry:
+        col_names = ['Year', 'Month', 'Day', 'Hour', 'T']
 
-    del df['Year']
-    del df['Month'] 
-    del df['Day'] 
-    del df['Hour']
+        df = pd.read_csv(
+            station.filepath, parse_dates={'Date': ['Year', 'Month', 'Day', 'Hour']}, 
+            compression='gzip', quotechar='"', delim_whitespace=True, usecols=[0,1,2,3,4], names=col_names
+            )
 
-    df.Date=pd.to_datetime(df.Date)
+        df = df[df.Date.between(datetimes[0], datetimes[-1])]
 
-    cols = df.columns.tolist()
-    cols = cols[-1:] + cols[:-1]
-    df = df[cols]
+        # If the dataframe is empty, station has no data for datetime and is removed from isd_history
+        if df.empty:
+            # Remove the current station from possible stations and search again
+            station.reload()
+            retry = True
+        else:
+            # Pick temperature for ever datetime in datetimes
+            df = df.set_index('Date')
+            df = df.loc[datetimes, :]
+            temperature = df['T'].values * T_SCALINGFACTOR
+            retry = False
 
-    df = df[df.Date.between(start, end)]
+    distance = station.distance
 
-    df.index = range(len(df.index))
+    if distance > 100:
+        warnings.warn('{0}: distance to {1}, {2} is {3} km.'.format(datetimes[0], lat[0], lon[0], distance))
 
-    # Apply scaling factor to temperature
-    df['T'] = df['T'] / 10  
-
-    return df
-
-def data(start: datetime, end: datetime, lat: float ,lon: float):
-    """Returns dataframe with needed data from station data."""
-
-    station = Station(start, lat, lon)
-    cols = ['Year', 'Month', 'Day', 'Hour', 'T', 'Sky_coverage']
-
-    # Read NOAA file for the station as pandas dataframe
-    df = pd.read_csv(station.filepath, compression='gzip', quotechar='"', delim_whitespace=True, usecols=[0,1,2,3,4,10], names=cols)
-
-    df['Lat'] = lat
-    df['Lon'] = lon
-
-    # Create new column for date so date can be saved as datetime object
-    df["Date"] = df["Year"].astype(str) + '-' + df["Month"].astype(str) + '-' + df["Day"].astype(str) + ' ' + df["Hour"].astype(str)  + ':00:00'
-    del df['Year']
-    del df['Month'] 
-    del df['Day'] 
-    del df['Hour']
-    df.Date=pd.to_datetime(df.Date)
-
-    # Rearrange columns so date and coordinates are first
-    cols = ['Date', 'Lat', 'Lon', 'T', 'Sky_coverage']
-    df = df[cols]
-
-    # Select rows between dates
-    df = df[df.Date.between(start, end)]
-    # Reindex 
-    df.index = range(len(df.index))
-    # Apply scaling factor to temperature
-    df['T'] = df['T'] / 10 
-
-    return df
+    return temperature
 
 def hour_rounder(t):
     """ Rounds to nearest hour by adding a timedelta hour if minute >= 30 """
@@ -469,6 +451,16 @@ def degrees_decimal_to_east(lon):
 
     return lon
 
-start = datetime(2020,8, 1, 16)
+def onsea(lat, lon):
+    """
+    Check if coordinates are on sea by reading value from OISST. 
+    If no value is available that means coordinates are on land.
+    Uses file from day before yesterday to definetly get file.
+    """
+    day_before_yesterday = date.today() - timedelta(days = 2) 
+    sst, _ = OISSTFile(day_before_yesterday).sea_surface_temperature(lat, lon)
 
-print(temperature(start, 35, 20, use_ICOADS = True))
+    if isinstance(sst, np.float32):
+        return True
+    else:
+        return False
