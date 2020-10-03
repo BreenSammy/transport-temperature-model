@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from modules.cargo import cargoDecoder
-import modules.weather.weather as weather
+import modules.weather as weather
 from modules.route import GPXRoute, FTMRoute
 
 
