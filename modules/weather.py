@@ -10,6 +10,11 @@ import numpy as np
 import pandas as pd 
 from scipy import spatial
 
+WEATHERDATAPATH = os.path.abspath('weatherdata')
+
+if not os.path.exists(WEATHERDATAPATH):
+            os.makedirs(WEATHERDATAPATH)
+
 class Station:
     """
     Class to represent a weather station of NOAA ISD database. 
@@ -21,12 +26,7 @@ class Station:
         self.date = input_date
         self.lat_query = lat
         self.lon_query = lon
-
-        datapath = os.path.abspath('weatherdata')
         
-        if not os.path.exists(datapath):
-            os.makedirs(datapath)
-
         isd_history = os.path.abspath('weatherdata/isd-history.csv')
         isd_inventory = os.path.abspath('weatherdata/isd-inventory.csv')
 
@@ -134,14 +134,9 @@ class Station:
 
     def _download_weatherdata(self):
         """Downloads weather data for the station"""
-
-        datapath = os.path.abspath('weatherdata')
         
-        if not os.path.exists(datapath):
-            os.makedirs(datapath)
-
         self.filename = self.USAF + '-' + self.WBAN + '-' + str(self.date.year) + '.gz'
-        self.filepath = os.path.join(datapath, self.filename)
+        self.filepath = os.path.join(WEATHERDATAPATH, self.filename)
         
         if not os.path.exists(self.filepath):
             ftp_filepath = 'isd-lite/' + str(self.date.year) + '/' + self.filename
