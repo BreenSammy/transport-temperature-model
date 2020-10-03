@@ -23,8 +23,9 @@ class FTMRoute:
   
     def _routing(self, start_coordinates, end_coordinates, stops = None):
         """
-        Use FTM routing service for finding route. Needs connection to LRZ.
-        See also: https://wiki.tum.de/display/smartemobilitaet/Routing"""
+        Use FTM routing service. Needs connection to LRZ.
+        See also: https://wiki.tum.de/display/smartemobilitaet/Routing
+        """
 
         lat = []
         lon = []
@@ -39,8 +40,11 @@ class FTMRoute:
         lat = quote(str(lat), safe='')
 
         url = "http://gis.ftm.mw.tum.de/route?lat={0}&lon={1}"
-        contents = urllib.request.urlopen(url.format(lat, lon)).read()
-        route = json.loads(contents)
+        try:
+            contents = urllib.request.urlopen(url.format(lat, lon)).read()
+            route = json.loads(contents)
+        except:
+            raise Exception('No connection to FTM routing service: Connect to LRZ VPN and try again')
 
         return route['routes'][0]
 
