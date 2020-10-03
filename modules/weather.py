@@ -4,10 +4,14 @@ from datetime import date, datetime, timedelta
 import ftplib
 import os
 import time
+import warnings
 
+from bs4 import BeautifulSoup
 import geopy.distance
+import netCDF4 as nc
 import numpy as np
 import pandas as pd 
+import requests
 from scipy import spatial
 
 WEATHERDATAPATH = os.path.abspath('weatherdata')
@@ -53,7 +57,7 @@ class Station:
         self._download_weatherdata()
 
     def _connect(self):
-        """Conncect to NOAA server with ftp connection. Retry to establish connection if it."""
+        """Conncect to NOAA server with ftp connection. Retry to establish connection if it fails."""
         retry = True
         while (retry):
             try:
@@ -86,7 +90,7 @@ class Station:
                 os.remove(target_file)
 
     def _find(self, input_date: date, lat: float, lon: float):
-        """Finds nearest station by lat and lon, that has data for specified date"""
+        """Finds nearest station by lat and lon that has data for specified date"""
         # Remove all stations which have no records at the desired date
         date_int = int(input_date.strftime('%Y%m%d'))
         possible_stations = copy.deepcopy(self.isd_history)
@@ -134,7 +138,7 @@ class Station:
 
     def _download_weatherdata(self):
         """Downloads weather data for the station"""
-        
+
         self.filename = self.USAF + '-' + self.WBAN + '-' + str(self.date.year) + '.gz'
         self.filepath = os.path.join(WEATHERDATAPATH, self.filename)
         
@@ -154,45 +158,231 @@ class Station:
         self._find(self.date, self.lat_query, self.lon_query)
         self._download_weatherdata()
 
-class OISST:
-    def __init__(self):
-        self.a = 3
+class NOAAFile(object):
+    """Base class for access to NOAA server"""
+    def __init__(self, input_date):   
 
-def temperature(input_datetime: datetime, lat: float, lon: float):
-    """Find temperature for datetime and location. Datetimes are rounded to nearest full hour."""
+        self.date = input_date
 
-    # Round to the next full hour, because database has data for full hours
-    input_datetime = hour_rounder(input_datetime)
+    def _find_file(self, url, datestring, extension):
+        """Find url for data file for input_date"""
 
-    date = input_datetime.date()
-    station = Station(date, lat, lon)
+        page = requests.get(url).text
+        soup = BeautifulSoup(page, 'html.parser')
+        available_files = [url + '/' + node.get('href') for node in soup.find_all('a') if node.get('href').endswith(extension)]
 
-    # Sometimes the station has no data for the datetime, thus the loop
-    retry = True
-    while retry:
-        col_names = ['Year', 'Month', 'Day', 'Hour', 'T']
+        return next((s for s in available_files if datestring in s), None) 
 
-        df = pd.read_csv(station.filepath, compression='gzip', quotechar='"', delim_whitespace=True, usecols=[0,1,2,3,4], names=col_names)
+    def _download(self, file_url: str, targetpath: str):
 
-        df["Date"] = df["Year"].astype(str) + '-' + df["Month"].astype(str) + '-' + df["Day"].astype(str) + ' ' + df["Hour"].astype(str)  + ':00:00'
+        if not os.path.exists(targetpath):
+            print('Downloading file from NOAA server from: \n' + file_url)
+            r = requests.get(file_url, allow_redirects=True)
+            with open(targetpath, 'wb') as outfile:
+                outfile.write(r.content)
+            print('Download finished')
 
-        del df['Year']
-        del df['Month'] 
-        del df['Day'] 
-        del df['Hour']
+class ICOADSFile(NOAAFile):
+    """
+    Class to handle files from NOAA International Comprehensive Ocean-Atmosphere Data Set.
+    See also: https://icoads.noaa.gov/index.shtml
+    """
+    def __init__(self, input_date, download = True):
 
-        df.Date=pd.to_datetime(df.Date)
+        super(ICOADSFile, self).__init__(input_date)
+        url = 'https://www.ncei.noaa.gov/data/international-comprehensive-ocean-atmosphere/v3/archive/enhanced-trim/'
+        datestring = 'd' + input_date.strftime('%Y%m')
+        fileurl = self._find_file(url, datestring, 'gz')
+        filename = 'ICOADS_' + self.date.strftime('%Y%m') + '.dat.gz'
+        targetpath = os.path.join(WEATHERDATAPATH, filename)
 
-        df = df[df.Date.between(input_datetime, input_datetime)]
+        if download:
+            self._download(fileurl, targetpath)
+            readfile = targetpath
+        else: 
+            readfile = fileurl
 
-        # If the dataframe is empty, station has no data for datetime and is removed from isd_history
-        if df.empty:
-            # Remove the current station from possible stations and search again
-            station.reload()
-            retry = True
-        else:
-            temperature = df['T'].values[0] / 10  
-            retry = False
+        self.dataframe = self._read(readfile)
+
+    def _read(self, ICOADSfile):
+
+        # character lengths of columns and scaling factors for values, see IMMA_format.pdf in doc
+        col_lengths = {
+            'YR': range(0, 4), 'MO': range(4, 6), 'DY': range(6, 8), 'HR': range(8, 12),
+            'Lat': range(12,17), 'Lon': range(17, 23), 'T': range(69, 73)
+            }
+        scalingfactors = {
+            'T': 0.1,
+            'Lat': 0.01,
+            'Lon': 0.01,
+            'HR': 36, # 0.01* 3600 to transform into seconds
+        }
+
+        dateparse = lambda x: datetime.strptime(x, '%Y %m %d')
+
+        df = pd.read_fwf(
+            ICOADSfile, parse_dates={'date': ['YR', 'MO', 'DY']}, date_parser=dateparse,
+            colspecs=[(min(x), max(x)+1) for x in col_lengths.values()],
+            header=None, names=col_lengths.keys()
+            )
+
+        # drop all readings without temperature readings
+        df = df[df['T'].notna()]
+
+        for key in scalingfactors:
+            df[key] = df[key] * scalingfactors[key]
+
+        # add time to date
+        df['HR'] = pd.to_timedelta(df['HR'], 's')  
+        df['date'] = df['date'] + df['HR']
+        df = df.drop(columns = ['HR'])
+
+        return df
+
+    def temperature(self, input_datetime, lat, lon):
+
+            # df = copy.deepcopy(self.dataframe)
+            df = self.dataframe
+
+            df = df[df.date.between(
+                input_datetime - timedelta(hours = 3),
+                input_datetime + timedelta(hours = 3)
+                )]
+
+            coordinates = df[['Lat', 'Lon']].values
+
+            # Search for closest reading
+            tree = spatial.KDTree(coordinates)
+            index = tree.query([(lat,lon)])[1][0]
+
+            distance = geopy.distance.distance([lat, lon], coordinates[index]).km
+ 
+            return df.iloc[index]['T'], distance
+
+class OISSTFile(NOAAFile):
+    """
+    Class to handle files from NOAA sea surface temperature optimum interpolation database. 
+    Daily files in netCDF format are availabe.
+    See also:
+    https://www.ncdc.noaa.gov/oisst
+    https://towardsdatascience.com/read-netcdf-data-with-python-901f7ff61648
+    https://iescoders.com/reading-netcdf4-data-in-python/
+    """
+    def __init__(self, input_date):
+        super(OISSTFile, self).__init__(input_date)
+         
+        url = 'https://www.ncei.noaa.gov/data/sea-surface-temperature-optimum-interpolation/v2.1/access/avhrr/{}'
+
+        folderstring = input_date.strftime('%Y%m')
+        datestring = input_date.strftime('%Y%m%d')
+
+        fileurl = self._find_file(url.format(folderstring), datestring, 'nc')
+        filename = os.path.basename(fileurl)
+        targetpath = os.path.join(WEATHERDATAPATH, filename)
+        
+        self.dataset = nc.Dataset(targetpath)
+
+    def sea_surface_temperature(self, lat, lon):
+        """
+        Read sea surface temperature from netCDF file. sst is variable of dimensions time, zlev, lat and lon.
+        Documentation from dataset:
+
+        time(time)
+            long_name: Center time of the day
+            units: days since 1978-01-01 12:00:00
+            unlimited dimensions: time
+            current shape = (1,)
+
+        zlev(zlev)
+            long_name: Sea surface height
+            units: meters
+            positive: down
+            actual_range: 0, 0
+
+        lat(lat)
+            long_name: Latitude
+            units: degrees_north
+            grids: Uniform grid from -89.875 to 89.875 by 0.25
+            current shape = (720)
+
+        lon(lon)
+            long_name: Longitude
+            units: degrees_east
+            grids: Uniform grid from 0.125 to 359.875 by 0.25
+            current shape = (1440)
+
+        sst(time, zlev, lat, lon)
+            long_name: Daily sea surface temperature
+            units: Celsius
+            current shape = (1, 1, 720, 1440)
+    """
+
+        GRIDSIZE = 0.25
+
+        # Transform longitude format
+        lon = degrees_decimal_to_east(lon)
+
+        latdivmod = divmod(lat, GRIDSIZE)
+        londivmod = divmod(lon, GRIDSIZE)
+
+        lat_sst = latdivmod[0] * GRIDSIZE + round(latdivmod[1]) + GRIDSIZE / 2
+        lon_sst = londivmod[0] * GRIDSIZE + round(londivmod[1]) + GRIDSIZE / 2
+
+        dataset_lon = self.dataset['lon'][:]
+        dataset_lat = self.dataset['lat'][:]
+
+        index_lon = np.where(np.isclose(dataset_lon, lon_sst))[0]
+        index_lat = np.where(np.isclose(dataset_lat, lat_sst))[0]
+
+        temperature = self.dataset['sst'][0,0, index_lat, index_lon][0][0]
+        distance = geopy.distance.distance([lat, lon], [lat_sst, lon_sst]).km
+
+        return temperature, distance
+
+def temperature(input_datetime: datetime, lat: float, lon: float, use_ICOADS = False):
+    """Find temperature for datetime and location."""
+
+    OISST = OISSTFile(input_datetime)
+
+    sst, distance = OISST.sea_surface_temperature(lat, lon)
+
+    if not use_ICOADS and isinstance(sst, np.float32):
+        temperature = sst
+    elif use_ICOADS and isinstance(sst, np.float32):
+        ICOADS = ICOADSFile(input_datetime)
+        temperature, distance = ICOADS.temperature(input_datetime, lat, lon) 
+    else:
+        # Round to the next full hour, because database has data for full hours
+        input_datetime = hour_rounder(input_datetime)
+
+        date = input_datetime.date()
+        station = Station(date, lat, lon)
+
+        # Sometimes the station has no data for the datetime, thus the loop
+        retry = True
+        while retry:
+            col_names = ['Year', 'Month', 'Day', 'Hour', 'T']
+
+            df = pd.read_csv(
+                station.filepath, parse_dates={'Date': ['Year', 'Month', 'Day', 'Hour']}, 
+                compression='gzip', quotechar='"', delim_whitespace=True, usecols=[0,1,2,3,4], names=col_names
+                )
+
+            df = df[df.Date.between(input_datetime, input_datetime)]
+
+            # If the dataframe is empty, station has no data for datetime and is removed from isd_history
+            if df.empty:
+                # Remove the current station from possible stations and search again
+                station.reload()
+                retry = True
+            else:
+                temperature = df['T'].values[0] / 10  
+                retry = False
+
+        distance = station.distance
+
+    if distance > 100:
+        warnings.warn('{0}: distance to {1}, {2} is {3} km.'.format(input_datetime, lat, lon, distance))
 
     return temperature
 
@@ -264,3 +454,21 @@ def hour_rounder(t):
     return (t.replace(second=0, microsecond=0, minute=0, hour=t.hour)
                +timedelta(hours=t.minute//30))
 
+def degrees_decimal_to_east(lon):
+    """
+    Transform longitude in decimal format to degrees east.
+    Example:
+    Longitude: 122.61458° W
+    decimal format:
+    -122.61458
+    degrees east:
+    237.38542 
+    """
+    if lon < 0:
+        lon = 360 - abs(lon)
+
+    return lon
+
+start = datetime(2020,8, 1, 16)
+
+print(temperature(start, 35, 20, use_ICOADS = True))
