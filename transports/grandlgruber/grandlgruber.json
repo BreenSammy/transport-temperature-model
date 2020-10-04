@@ -6,7 +6,6 @@
     "route": {
         "type": "gpx"
     },
-    "stops": [],
     "cargo": [
         {
             "type": "Pallet",
