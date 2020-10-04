@@ -4,7 +4,8 @@
     "start": "2019-02-07 19:15:00",
     "end": "2019-02-08 18:00:00",
     "route": {
-        "type": "gpx"
+        "type": "gpx",
+        "filename": "grandlgruber.gpx"
     },
     "cargo": [
         {
