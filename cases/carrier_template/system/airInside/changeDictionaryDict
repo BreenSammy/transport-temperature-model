@@ -51,8 +51,8 @@ T
             Ta              285;
             h               2;
             kappaMethod     fluidThermo;
-            // thicknessLayers (0.02);
-            // kappaLayers     (44);
+            thicknessLayers (0.02);
+            kappaLayers     (0.5);
             qr              qr;
             value           uniform 293.15;
         }
