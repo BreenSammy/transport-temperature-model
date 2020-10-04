@@ -176,11 +176,11 @@ class NOAAFile(object):
 
         return next((s for s in available_files if datestring in s), None) 
 
-    def _download(self, file_url: str, targetpath: str):
+    def _download(self, fileurl: str, targetpath: str):
 
         if not os.path.exists(targetpath):
-            print('Downloading file from NOAA server from: \n' + file_url)
-            r = requests.get(file_url, allow_redirects=True)
+            print('Downloading file from: \n' + fileurl)
+            r = requests.get(fileurl, allow_redirects=True)
             with open(targetpath, 'wb') as outfile:
                 outfile.write(r.content)
             print('Download finished')
@@ -360,34 +360,7 @@ def temperature(input_datetime: datetime, lat: float, lon: float, use_ICOADS = F
         ICOADS = ICOADSFile(input_datetime)
         temperature, distance = ICOADS.temperature(input_datetime, lat, lon) 
     else:
-        # Round to the next full hour, because database has data for full hours
-        input_datetime = hour_rounder(input_datetime)
-
-        date = input_datetime.date()
-        station = Station(date, lat, lon)
-
-        # Sometimes the station has no data for the datetime, thus the loop
-        retry = True
-        while retry:
-            col_names = ['Year', 'Month', 'Day', 'Hour', 'T']
-
-            df = pd.read_csv(
-                station.filepath, parse_dates={'Date': ['Year', 'Month', 'Day', 'Hour']}, 
-                compression='gzip', quotechar='"', delim_whitespace=True, usecols=[0,1,2,3,4], names=col_names
-                )
-
-            df = df[df.Date.between(input_datetime, input_datetime)]
-
-            # If the dataframe is empty, station has no data for datetime and is removed from isd_history
-            if df.empty:
-                # Remove the current station from possible stations and search again
-                station.reload()
-                retry = True
-            else:
-                temperature = df['T'].values[0] * T_SCALINGFACTOR  
-                retry = False
-
-        distance = station.distance
+        temperature, distance = _get_temperature_at_station(input_datetime, lat, lon)
 
     if distance > 100:
         warnings.warn('{0}: distance to {1}, {2} is {3} km.'.format(input_datetime, lat, lon, distance))
@@ -396,9 +369,12 @@ def temperature(input_datetime: datetime, lat: float, lon: float, use_ICOADS = F
 
 def temperature_range(datetimes, lat, lon):
 
-    station = Station(datetimes[0], lat, lon)
-
-    datetimes = [hour_rounder(entry) for entry in datetimes]
+    if isinstance(datetimes, list):
+        station = Station(datetimes[0], lat, lon)
+        datetimes = [hour_rounder(entry) for entry in datetimes]
+    else:
+        station = Station(datetimes, lat, lon)
+        datetimes = hour_rounder(datetimes)
 
     # Sometimes the station has no data for the datetime, thus the loop
     retry = True
@@ -427,9 +403,75 @@ def temperature_range(datetimes, lat, lon):
     distance = station.distance
 
     if distance > 100:
-        warnings.warn('{0}: distance to {1}, {2} is {3} km.'.format(datetimes[0], lat[0], lon[0], distance))
+        warnings.warn('{0}: distance to {1}, {2} is {3} km.'.format(datetimes[0], lat, lon, distance))
 
-    return temperature
+    return temperature, distance
+
+def waypoints_temperature(datetimes, lat, lon):
+    """ Get temperature for all waypoints
+    """
+    length = lat.size
+    temperatures = np.zeros(length)
+
+    OISST = OISSTFile(datetimes[0])
+
+    sst, _ =  OISST.sea_surface_temperature(lat[0], lon[0])
+
+    day = datetimes[0].day
+
+    for i in range(length):
+        # Read new OISST file if day switches
+        if day != datetimes[i].day:
+            day = datetimes[i].day
+            OISST = OISSTFile(datetimes[i])
+
+        sst, _ =  OISST.sea_surface_temperature(lat[i], lon[i])
+        # If sst is number, location is on sea
+        if isinstance(sst, np.float32):
+            temperatures[i] = sst
+        # Else on land
+        else:
+            temperature_at_station, distance = _get_temperature_at_station(datetimes[i], lat[i], lon[i])
+            # If distance to weatherstation is to big, use last temperature
+            if distance > 300:
+                warnings.warn('{0}: distance to {1}, {2} is {3} km. \n Using last temperature'.format(datetimes[i], lat[i], lon[i], distance))
+                temperatures[i] = temperatures[i-1]
+            else:
+                temperatures[i] = temperature_at_station
+
+    return np.around(temperatures, 2)
+
+def _get_temperature_at_station(input_datetime, lat, lon):
+    # Round to the next full hour, because database has data for full hours
+    input_datetime = hour_rounder(input_datetime)
+
+    date = input_datetime.date()
+    station = Station(date, lat, lon)
+
+    # Sometimes the station has no data for the datetime, thus the loop
+    retry = True
+    while retry:
+        col_names = ['Year', 'Month', 'Day', 'Hour', 'T']
+
+        df = pd.read_csv(
+            station.filepath, parse_dates={'Date': ['Year', 'Month', 'Day', 'Hour']}, 
+            compression='gzip', quotechar='"', delim_whitespace=True, usecols=[0,1,2,3,4], names=col_names
+            )
+
+        df = df[df.Date.between(input_datetime, input_datetime)]
+
+        # If the dataframe is empty, station has no data for datetime and is removed from isd_history
+        if df.empty:
+            # Remove the current station from possible stations and search again
+            station.reload()
+            retry = True
+        else:
+            temperature = df['T'].values[0] * T_SCALINGFACTOR  
+            retry = False
+
+    distance = station.distance
+
+    return temperature, distance
 
 def hour_rounder(t):
     """ Rounds to nearest hour by adding a timedelta hour if minute >= 30 """

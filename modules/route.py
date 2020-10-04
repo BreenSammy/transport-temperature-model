@@ -11,12 +11,8 @@ import geopy.distance
 import numpy as np
 import pandas as pd
 
-# import modules.gps as gps
-# from modules.weather import onsea
-
-import gps 
-from weather import onsea
-
+import modules.gps as gps
+from modules.weather import onsea
 
 class FTMRoute:
     def __init__(self, start_coordinates, end_coordinates, stops = None):
@@ -167,7 +163,8 @@ class GPXRoute:
     
     def to_dict(self):
         return {
-            'type': 'gpx' 
+            'type': 'gpx',
+            'filename': os.path.basename(self.filename)
         }
 
     def waypoints(self, start, end):
@@ -197,7 +194,7 @@ class GPXRoute:
         return waypoints
 
 class CSVRoute:
-    def __init__(self, filename):
+    def __init__(self, filename: str):
         self.filename = filename
 
         self.dataframe = pd.read_csv(
@@ -207,31 +204,21 @@ class CSVRoute:
         self.start = self.dataframe['Date'].iloc[0]
         self.end = self.dataframe['Date'].iloc[-1]
 
-        #self.check_onsea(self.dataframe)
-
-    def waypoints(self, start = None, sea = False):
+    def waypoints(self, start = None):
         """Get dataframe with hourly waypoints along route
 
             Args:
-                start (datetime): Use custom start datetime for waypoints
-                sea (boolean): Switch to include check for sea or land for waypoints
-
+                start: Use custom start datetime for waypoints
+                
             Returns:
-                waypoints: Dataframe with hourls dates and coordinates of route 
+                waypoints: DataFrame with hourly dates and coordinates of route 
         """
-        
-        # if no start is specified, use timestamps of source file
-        if start == None:
-            start = self.start
-            end = self.end
-        else:
-            end = start + timedelta(seconds = (self.end - self.start).total_seconds())
-        
+      
         filename = os.path.splitext(self.filename)[0] + '_waypoints.csv'
         if os.path.exists(filename):
             waypoints = pd.read_csv(filename, parse_dates = ['Date'])
         else:
-            waypoints = self._create_waypoints(start, end, sea)
+            waypoints = self._create_waypoints()
 
         # Save waypoints for faster access
         waypoints.to_csv(filename, encoding='utf-8', index=False)
@@ -245,16 +232,13 @@ class CSVRoute:
 
         return waypoints
 
-    def _create_waypoints(self, start, end, sea):
+    def _create_waypoints(self):
         waypoints_list = []
 
-        if sea:
-            self.dataframe['sea'] = check_onsea(self.dataframe)
-
         waypoints_list.append(self.dataframe.head(1))
-        timestamp = start
+        timestamp = self.start
         i = 1
-        while (end - timestamp) > timedelta(hours = 1):
+        while (self.end - timestamp) > timedelta(hours = 1):
             nexttimestamp = self.dataframe.loc[i, 'Date']
 
             timedelta_nextpoint = nexttimestamp - timestamp
@@ -278,8 +262,6 @@ class CSVRoute:
                         'Lat': current_coordinates[0] + (j + 1)*step[0],
                         'Lon': current_coordinates[1] + (j+1)*step[1]
                     }
-                    if sea:
-                        df_dict['sea'] = self.dataframe.loc[i, 'sea']
                     df = pd.DataFrame(df_dict, index = [0])
                     waypoints_list.append(df)
 
@@ -290,7 +272,13 @@ class CSVRoute:
         waypoints = pd.concat(waypoints_list)
         waypoints.index = range(len(waypoints))
         return waypoints
-                
+
+    def to_dict(self):
+        return {
+            'type': 'csv',
+            'filename': os.path.basename(self.filename)
+        }          
+
 def check_onsea(dataframe):
     """Check for all coordinates in dataframe, whether they are on the sea or not"""
     coordinates = dataframe[['Lat', 'Lon']].values
@@ -331,11 +319,3 @@ def add_seconds(dataframe):
         seconds[i] = passed_timedelta.total_seconds()
 
     dataframe.insert(1, 'seconds', seconds, True) 
-
-start = datetime(2018, 1, 19, 20)
-
-route = CSVRoute('container_A').waypoints(start = start, sea = True)
-
-print(route)
-
-# print(onsea(-12.103400, -77.019600))

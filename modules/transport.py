@@ -11,11 +11,12 @@ import pandas as pd
 
 from modules.cargo import cargoDecoder
 import modules.weather as weather
-from modules.route import GPXRoute, FTMRoute
+from modules.route import GPXRoute, FTMRoute, CSVRoute
 
+ROUTESPATH = os.path.abspath('routes')
 
 class Transport:
-    def __init__(self, name, transporttype, start, end, cargo, route, stops = [], reread_temperature = True):
+    def __init__(self, name, transporttype, start, end, cargo, route, stops = []):
         # if route_filename.endswith('.gpx'):
         #     self.route = RouteGPX(start, end, route_filename)
         self.name = name
@@ -30,39 +31,71 @@ class Transport:
         self._jsonpath = os.path.join(self._folder, self.name + '.json')
         self._weatherdatapath = os.path.join(self._folder, 'weatherdata.csv')
         
-        if reread_temperature:
-            self.weatherdata = self.get_weatherdata()
-        elif os.path.exists(self._weatherdatapath):
-            self.weatherdata = pd.read_csv( self._weatherdatapath, parse_dates = ['Date'])
+        if os.path.exists(self._weatherdatapath):
+            self.weatherdata = pd.read_csv(self._weatherdatapath, parse_dates = ['Date'])
+            start = self.weatherdata['Date'].iloc[0]
         else:
             self.weatherdata = self.get_weatherdata()
-    
+
+        if self.start != start:
+            self.weatherdata = self.get_weatherdata()
+
     def get_weatherdata(self):
         if isinstance(self.route, FTMRoute):
             weatherdata = self.route.waypoints(self.start, self.stops)
         elif isinstance(self.route, GPXRoute):
             weatherdata = self.route.waypoints(self.start, self.end)
+        elif isinstance(self.route, CSVRoute):
+            weatherdata = self.route.waypoints(self.start)
 
-        length = len(weatherdata.index)
-        temperature = np.zeros([length])
+        datetimes = weatherdata.Date.tolist()
+        lat = weatherdata.Lat.values
+        lon = weatherdata.Lon.values
 
-        i = 0
-        while i < length:
-            df = weatherdata.loc[weatherdata['Lat'] ==  weatherdata.loc[i, 'Lat']]
-            datetimes = df.Date.tolist()
-            lat = df.Lat.values[0]
-            lon = df.Lon.values[0]
-            read_temperature = weather.temperature_range(datetimes, lat, lon)
-            j = i + read_temperature.size
-            temperature[i:j] = read_temperature
-            i = j
+        weatherdata['T'] = weather.waypoints_temperature(datetimes, lat, lon)
 
-        weatherdata['T'] = temperature
+        # sections = weatherdata.groupby(['sea'])
+
+        # for _, section in sections:
+        #     print(section)
+        #     datetimes = section.Date.tolist()
+        #     lat = section.Lat.values
+        #     lon = section.Lon.values
+        #     onsea = section['sea'].iloc[0]
+        #     if onsea:
+        #         section['T'] = weather.temperature_onsea(datetimes, lat, lon)
+        #     else:
+        #         section['T'] = weather.temperature_onland(datetimes, lat, lon)
+
+        # sections_onsea = weatherdata[weatherdata['sea'] == True].groupby((weatherdata['sea'] == False).cumsum())
+        # sections_onsea_keys = [key for key, _ in sections_onsea]
+        # sections_onland = weatherdata[weatherdata['sea'] == False].groupby((weatherdata['sea'] == True).cumsum())
+        # sections_onland_keys = [key for key, _ in sections_onland]
+
+        # for _, section in sections_onland:
+        #     print(section)
+
+        # print(sections_onsea_keys)
+        # print(sections_onsea.get_group(sections_onsea_keys[0]))
+        # print(sections_onland_keys)
+        # print(sections_onland.get_group(sections_onland_keys[0]))
+        # # print(df[1])
+        # i = 0
+        # while i < length:
+        #     df = weatherdata.loc[weatherdata['Lat'] ==  weatherdata.loc[i, 'Lat']]
+        #     datetimes = df.Date.tolist()
+        #     lat = df.Lat.values[0]
+        #     lon = df.Lon.values[0]
+        #     read_temperature = weather.temperature_range(datetimes, lat, lon)
+        #     j = i + read_temperature.size
+        #     temperature[i:j] = read_temperature
+        #     i = j
+
+        # weatherdata['T'] = temperature
+
+        weatherdata.to_csv(self._weatherdatapath, encoding='utf-8', index=False)
+
         return weatherdata
-
-    def save_weatherdata(self, filename):
-        """Saves transport dataframe as .csv file"""
-        self.weatherdata.to_csv(filename, encoding='utf-8', index=False)
     
     def to_json(self, filename):
         """Saves transport object data as json file"""
@@ -75,7 +108,7 @@ class Transport:
             os.makedirs(self._folder)
 
         self.to_json(self._jsonpath)
-        self.save_weatherdata(self._weatherdatapath)
+        self.weatherdata.to_csv(self._weatherdatapath, encoding='utf-8', index=False)
 
 class TransportEncoder(JSONEncoder):
     """
@@ -200,9 +233,11 @@ def from_json(filename, reread_temperature = True):
     cargo = [cargoDecoder(item) for item in json_dict['cargo']]
 
     if json_dict['route']['type'].lower() == 'gpx':
-        transportpath = os.path.dirname(filename)
-        gpxpath = os.path.join(transportpath, name + '.gpx')
-        route = GPXRoute(gpxpath)
+        routepath = os.path.join(ROUTESPATH, json_dict['route']['filename'])
+        route = GPXRoute(routepath)
+    elif json_dict['route']['type'].lower() == 'csv':
+        routepath = os.path.join(ROUTESPATH, json_dict['route']['filename'])
+        route = CSVRoute(routepath)
     elif json_dict['route']['type'].upper() == 'FTM':
         route_start = json_dict['route']['start_coordinates']
         route_end = json_dict['route']['end_coordinates']
@@ -216,8 +251,5 @@ def from_json(filename, reread_temperature = True):
     else:
         stops = []
     # Return the transport instance
-    return Transport(
-        name, transporttype, start, end, cargo, route, 
-        stops = stops, reread_temperature = reread_temperature
-        )
+    return Transport(name, transporttype, start, end, cargo, route, stops = stops)
 
