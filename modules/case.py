@@ -1,11 +1,14 @@
+from contextlib import redirect_stdout
 import copy
 from datetime import datetime, timedelta
 import glob
+import io
 from math import ceil
 import os
 import pytz
 import re
 import shutil
+import sys
 
 import geopy.distance
 import numpy as np
@@ -563,7 +566,13 @@ def setup(transport, initial_temperature = None, cpucores = 2, force_clone = Tru
 
 def utcoffset(utc_datetime, lat, lon):
     """Get the offset to UTC time at a specified location"""
-    timezone_str = tzwhere.tzwhere().tzNameAt(lat, lon)
+    # Surpressing error output, because tzwhere uses depreciated numpy function
+    with open(os.devnull, "w") as devnull:
+        sys.stderr = devnull
+        # find timezone at location
+        timezone_str = tzwhere.tzwhere().tzNameAt(lat, lon)
+        sys.stderr = sys.__stderr__
+        
     print('Current timezone: {}'.format(timezone_str))
     timezone = pytz.timezone(timezone_str)
     offset = timezone.utcoffset(utc_datetime).total_seconds()/3600 
