@@ -118,12 +118,12 @@ class Case(SolutionDirectory):
             snappyHexMeshDict['castellatedMeshControls']['refinementSurfaces'].__setitem__(cargo_name, {'level': refinementSurfacesLevel})
 
             # Iteration over all individual battery regions in the cargo
-            for j in range(len(cargo[i].batteries)):
-                battery = cargo[i].batteries[j]
+            for j in range(len(cargo[i].battery_regions)):
+                battery = cargo[i].battery_regions[j]
                 battery.name = "battery" + str(i) + '_' + str(j)
 
                 snappyHexMeshDict['castellatedMeshControls']['locationsInMesh'].append(
-                    [battery.position, battery.name]
+                    [Vector(battery.position[0], battery.position[1], battery.position[2]), battery.name]
                     )
 
                 # Copy the battery template folders 

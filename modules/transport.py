@@ -113,7 +113,7 @@ class Transport:
 class TransportEncoder(JSONEncoder):
     """
     JSONEncoder for Transport object. 
-    Mainly handles serialisation of datetime.datetime objects.
+    Handles serialisation of datetime.datetime objects.
     See also: https://gist.github.com/simonw/7000493
     """
     DATE_FORMAT = "%Y-%m-%d"
