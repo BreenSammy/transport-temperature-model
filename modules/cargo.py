@@ -51,9 +51,9 @@ class Pallet:
         elements_per_axis = self.freight_elements()
 
         #Get array of center points of each freightelement in one package
-        points_x = np.linspace(0, dimensions_package[0], elements_per_axis[0] + 2)[1:-1]
-        points_y = np.linspace(0, dimensions_package[1], elements_per_axis[1] + 2)[1:-1] 
-        points_z = np.linspace(0, dimensions_package[2], elements_per_axis[2] + 2)[1:-1]
+        points_x = np.linspace(-dimensions_package[0]/2, dimensions_package[0]/2, elements_per_axis[0] * 3 + 2)[2::3]
+        points_y = np.linspace(-dimensions_package[1]/2, dimensions_package[1]/2, elements_per_axis[1] * 3 + 2)[2::3] 
+        points_z = np.linspace(-dimensions_package[2]/2, dimensions_package[2]/2, elements_per_axis[2] * 3 + 2)[2::3]
         points_freight_elements = np.vstack(np.meshgrid(points_x, points_y, points_z)).reshape(3,-1).T
 
         # Save positions of seperate packages for locationsInMesh in snappyHexMeshDict 
@@ -116,7 +116,7 @@ class Pallet:
             'templateSTL': self.templateSTL,
             'position': self.position,
             'orientation': self.orientation, 
-            'freight': self.freight
+            'freight': self.freight.to_dict()
         }
 
 def cargoDecoder(obj):

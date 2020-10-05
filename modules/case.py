@@ -3,6 +3,7 @@ import copy
 from datetime import datetime, timedelta
 import glob
 import io
+import json
 from math import ceil
 import os
 import pytz
@@ -20,7 +21,9 @@ from scipy.spatial.transform import Rotation
 from tzwhere import tzwhere
 
 import modules.convection as convection
+from modules.cargo import cargoDecoder
 from modules.route import direction_crossover
+from modules.transport import TransportDecoder
 
 # Specific parameter values for different types of transports
 TRANSPORTTYPES = {
@@ -28,8 +31,8 @@ TRANSPORTTYPES = {
         'length': 6.0585,
         'width': 2.4390, 
         'height': 2.3855,
-        'kappaLayers': 0.02,
-        'thicknessLayers': 44
+        'kappaLayers': 44,
+        'thicknessLayers': 0.02
     },
     'carrier': {
         'length': 13.0005,
@@ -104,7 +107,9 @@ class Case(SolutionDirectory):
         """Loads the carrier with cargo. New regions for cargo 
         are added to snappyHexMeshDict and regionProperties"""
         # refinementLevel for cargo regions
-        refinementSurfacesLevel = [3,3]
+        REFINEMENTSURFACELEVEL = [3,3]
+
+        self.cargo = cargo
 
         # Open files that need to be modified
         regionProperties = ParsedParameterFile(os.path.join(self.constantDir(),'regionProperties'))
@@ -118,7 +123,7 @@ class Case(SolutionDirectory):
 
             # Adding current cargo to the snappyHexMeshDict
             snappyHexMeshDict['geometry'].__setitem__(cargo_name + '.stl', {'type': 'triSurfaceMesh', 'name': cargo_name})
-            snappyHexMeshDict['castellatedMeshControls']['refinementSurfaces'].__setitem__(cargo_name, {'level': refinementSurfacesLevel})
+            snappyHexMeshDict['castellatedMeshControls']['refinementSurfaces'].__setitem__(cargo_name, {'level': REFINEMENTSURFACELEVEL})
 
             # Iteration over all individual battery regions in the cargo
             for j in range(len(cargo[i].battery_regions)):
@@ -389,6 +394,28 @@ class Case(SolutionDirectory):
             file_name = os.path.join(transport_postProcessing, regions[i] + '_temperature')
             df_temperature.to_csv(file_name, encoding='utf-8', index=False)  
 
+    def probe_freight(self, regionname):
+        cargo_number, region_number = re.findall(r'\d+', regionname)
+
+        if not hasattr(self, 'cargo'):
+            json_filenames = [f for f in os.listdir(os.path.join(self.name, os.pardir)) if f.endswith('.json')]
+            if len(json_filenames) != 1:
+                raise ValueError('Should be only one json file in the transport directory')
+            with open(json_filenames[0]) as json_file: 
+                json_dict = json.load(json_file, cls=TransportDecoder)
+            self.cargo = [cargoDecoder(item) for item in json_dict['cargo']]
+
+        battery_region = self.cargo[int(cargo_number)].battery_regions[int(region_number)]
+
+        self.clear_probes()
+
+        for i in range(battery_region.positions_freight_elements.shape[0]):
+            self.add_probe(battery_region.positions_freight_elements[i, :])
+        
+        self.probe(regionname)
+        self.clear_probes()
+        
+
     def add_probe(self, location):
         """Add location of a new probe to probes file"""
         
@@ -425,7 +452,7 @@ class Case(SolutionDirectory):
         with open(probefunction, 'w') as f:
             f.writelines(probefunction_lines)
 
-    def probe(self, location, region, time = None, clear = False):
+    def probe(self, region, location = None, time = None, clear = False):
         """
         Execute OpenFOAM postProcess function for probing a location for T value.
         Region of probe must be specified. 
@@ -433,7 +460,8 @@ class Case(SolutionDirectory):
         if clear:
             self.clear_probes()
 
-        self.add_probe(location)
+        if location != None: 
+            self.add_probe(location)
 
         probespath = os.path.join(self.name, 'postProcessing', 'probes', region)
 
@@ -530,7 +558,7 @@ class Case(SolutionDirectory):
 def setup(transport, initial_temperature = None, cpucores = 2, force_clone = True):
     """
     Function to setup OpenFOAM case for the transport. 
-    Clones templatecase into the transport directory, loads the carrier with carg and creates mesh.
+    Clones templatecase into the transport directory, loads the carrier with cargo and creates mesh.
     """
     
     templatecase = Case(os.path.join('cases', 'carrier_template'))
