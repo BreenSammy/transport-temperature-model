@@ -20,11 +20,12 @@ from PyFoam.RunDictionary.ParsedParameterFile import ParsedParameterFile
 from PyFoam.RunDictionary.SolutionDirectory import SolutionDirectory
 from PyFoam.Basics.DataStructures import Vector
 from scipy.spatial.transform import Rotation
+import tikzplotlib
 from tzwhere import tzwhere
 
 import modules.convection as convection
 from modules.cargo import cargoDecoder
-from modules.route import direction_crossover
+from modules.route import direction_crossover, add_seconds
 from modules.transport import TransportDecoder
 
 matplotlib.use('Agg')
@@ -398,7 +399,12 @@ class Case(SolutionDirectory):
 
                 df_temperature = pd.concat([df_temperature, temperature], ignore_index = True)
 
-            file_name = os.path.join(transport_postProcessing, regions[i] + '_temperature')
+            # Convert to Celsius
+            df_temperature['average(T)'] = df_temperature['average(T)'] - 273.15
+            df_temperature['min(T)'] = df_temperature['min(T)'] - 273.15
+            df_temperature['max(T)'] = df_temperature['max(T)'] - 273.15
+
+            file_name = os.path.join(transport_postProcessing, regions[i] + '.csv')
             df_temperature.to_csv(file_name, encoding='utf-8', index=False)  
 
     def probe_freight(self, regionname):
@@ -561,29 +567,90 @@ class Case(SolutionDirectory):
 
         self.packCase(pack_path, additional = additional, exclude = exclude)
 
-    def plot(self):
+    def plot(self, probes = None, tikz = False):
+        """Create plots for the simulation results"""
+        DPI = 250
+        FORMAT = '.jpg'
+
         self.load_weatherdata()
+        add_seconds(self.weatherdata)
         
         postprocessing_path = os.path.join(self.name, os.pardir, 'postProcessing')
-        pp_airInside_path = os.path.join(postprocessing_path, 'airInside_temperature')
+        plots_path = os.path.join(self.name, os.pardir, 'plots')
+        pp_probes_path = os.path.join(postprocessing_path, 'probes')
 
+        if not os.path.exists(plots_path):
+            os.makedirs(plots_path)
+
+        if probes != None:
+            plot_probes_path = os.path.join(plots_path, 'probes')
+            if not os.path.exists(plot_probes_path):
+                os.makedirs(plot_probes_path)
+            for probe in probes:
+                probefile = os.path.join(pp_probes_path, probe + '.csv')
+                # Create probe data if it not already exists
+                if not os.path.exists(probefile):
+                    self.probe_freight(probe)
+                # Plot data
+                df_probe = pd.read_csv(probefile, sep=',', comment='#')
+                [plt.plot(df_probe['time'] / 3600, df_probe[str(i)], marker = 's') for i in range(df_probe.shape[1] - 1)]
+                # Annotate plot
+                plt.xlabel('time in s')
+                plt.ylabel('temperature in °C')
+                plt.grid(linestyle='--', linewidth=2, axis='y')
+                # Save plot
+                plotpath = os.path.join(plot_probes_path, probe + FORMAT)
+                plt.savefig(plotpath, dpi = DPI)
+                if tikz:
+                    self._tikz_plot(plotpath)
+                plt.clf()
+
+        # Plot average temperature of the air inside the carrier and ambient temperature
+        pp_airInside_path = os.path.join(postprocessing_path, 'airInside.csv')
         df_airInside = pd.read_csv(pp_airInside_path)
-        print(df_airInside)
-        # # df = pd.concat([self.weatherdata, df_airInside])
-        # df = self.weatherdata
-        # df = df.merge(df_airInside , how='left', left_on='T', right_on='time')
-        # print(df)
-        # df_airInside.plot(x = 'time', y = 'average(T)')
-        df_airInside.plot(x = 'time', y = 'T')
-        plt.savefig('out.jpg')
-        
-# df = df[df['AT'].notna()]
-# df = df[df['DY'] == 1]
-# df.plot(kind='scatter',x='LON',y='LAT',color='red', s = 0.1)
-# plt.savefig('output.png')
-# #tikzplotlib.save('plot.pgf', externalize_tables = True)
-# print(df)
+        legendlabels = []
+        plt.plot(df_airInside['time'] / 3600, df_airInside['average(T)'], marker = 's')
+        legendlabels.append('average air temperature')
+        # Plot ambient temperature
+        plt.plot(self.weatherdata['seconds'] / 3600, self.weatherdata['T'],  marker = 's')
+        legendlabels.append('ambient temperature')
 
+        plt.xlabel('time in s')
+        plt.ylabel('temperature in °C')
+        plt.grid(linestyle='--', linewidth=2, axis='y')
+        plt.legend(legendlabels, loc='upper center', bbox_to_anchor=(0.5, -0.12), ncol = 2)
+
+        plotpath = os.path.join(plots_path, 'plot' + FORMAT)
+        plt.savefig(plotpath, dpi = DPI, bbox_inches='tight')
+        if tikz:
+            self._tikz_plot(plotpath)
+        plt.clf()
+
+        # Plot average temperature of cargo
+        legendlabels = []
+        battery_files = glob.iglob(os.path.join(postprocessing_path, "battery*"))
+        
+        for battery_file in battery_files:
+            df_battery = pd.read_csv(battery_file)
+            plt.plot(df_battery['time'] / 3600, df_battery['average(T)'], marker = 's')
+            legendlabels.append(os.path.splitext(os.path.basename(battery_file))[0])
+
+        plt.xlabel('time in s')
+        plt.ylabel('temperature in °C')
+        plt.grid(linestyle='--', linewidth=2, axis='y')    
+        plt.legend(legendlabels, loc='center left', bbox_to_anchor=(1, 0.5))
+        plotpath = os.path.join(plots_path, 'batteries' + FORMAT)
+        plt.savefig(plotpath, dpi = DPI, bbox_inches='tight')
+        if tikz:
+            self._tikz_plot(plotpath)     
+        
+    def _tikz_plot(self, plotpath):
+            filename = os.path.splitext(os.path.basename(plotpath))[0] + '.pgf'
+            plotpath = os.path.join(os.path.dirname(plotpath), 'tikz', filename)
+            if not os.path.exists(os.path.dirname(plotpath)):
+                os.makedirs(os.path.dirname(plotpath))
+            tikzplotlib.save(plotpath, externalize_tables = True)
+   
 def setup(transport, initial_temperature = None, cpucores = 2, force_clone = True):
     """
     Function to setup OpenFOAM case for the transport. 
