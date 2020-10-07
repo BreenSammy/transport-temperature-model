@@ -10,7 +10,7 @@ from scipy.spatial.transform import Rotation
 # (number of layers, packages per layer) 
 NUMBER_PACKAGES = {
     'pallet1x4.stl': (1, 4),
-    'pallet2x4.stl': (1, 4),
+    'pallet2x4.stl': (2, 4),
     'pallet3x4.stl': (3, 4),
     'industrial_pallet1x1.stl': (1, 1),
     'industrial_pallet1x4.stl': (1, 4)
