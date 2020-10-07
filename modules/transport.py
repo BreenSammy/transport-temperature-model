@@ -133,7 +133,6 @@ class TransportEncoder(JSONEncoder):
 
             # Return dictionary for json file
             return {
-                "name": transport.name,
                 "type": transport.type,
                 "start": transport.start.strftime("%s %s" % (
                     self.DATE_FORMAT, self.TIME_FORMAT
@@ -228,8 +227,8 @@ def from_json(filename):
     """Create Transport instance from json file"""   
     with open(filename) as json_file:
         json_dict = json.load(json_file, cls=TransportDecoder)
+    name = os.path.splitext(os.path.basename(filename))[0]
     # Read all parameters from the dict
-    name = json_dict['name']
     transporttype = json_dict['type']
     start = json_dict['start']
     end = json_dict['end']
