@@ -56,14 +56,14 @@
             }
         }, 
         {
-            "Type": "Pallet",
-            "TemplateSTL": "pallet2x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "pallet2x4.stl",
+            "position": [
                 2.2001,
                 -0.54,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 90
@@ -79,14 +79,14 @@
             }
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "pallet2x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "pallet2x4.stl",
+            "position": [
                 3.0401,
                 -0.54,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 90
@@ -102,14 +102,14 @@
             }
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "pallet2x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "pallet2x4.stl",
+            "position": [
                 3.8801,
                 -0.54,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 90
@@ -125,14 +125,14 @@
             }
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "pallet2x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "pallet2x4.stl",
+            "position": [
                 4.7201,
                 -0.54,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 90
@@ -148,14 +148,14 @@
             }
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "pallet2x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "pallet2x4.stl",
+            "position": [
                 5.5601,
                 -0.54,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 90
@@ -171,14 +171,14 @@
             }
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "pallet2x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "pallet2x4.stl",
+            "position": [
                 0.8801,
                 0.5301,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
@@ -194,14 +194,14 @@
             }
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "pallet2x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "pallet2x4.stl",
+            "position": [
                 2.3201,
                 0.5301,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
@@ -217,14 +217,14 @@
             }
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "pallet2x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "pallet2x4.stl",
+            "position": [
                 3.7601,
                 0.5301,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
@@ -240,14 +240,14 @@
             }
         },
         {
-            "Type": "Pallet",
-            "TemplateSTL": "pallet2x4.stl",
-            "Position": [
+            "type": "Pallet",
+            "templateSTL": "pallet2x4.stl",
+            "position": [
                 5.2001,
                 0.5301,
                 0.144
             ],
-            "Orientation": [
+            "orientation": [
                 0,
                 0,
                 0
