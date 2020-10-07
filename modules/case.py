@@ -2,7 +2,7 @@ from contextlib import redirect_stdout
 import copy
 from datetime import datetime, timedelta
 import glob
-import io
+#import io
 import json
 from math import ceil
 import os
@@ -383,8 +383,20 @@ class Case(SolutionDirectory):
         times = self.getTimes()
         del times[-1]
 
+        internalField = ParsedParameterFile(
+            os.path.join(self.name, '0', 'airInside', 'T')
+            )['internalField']
+
+        initial_temperature = internalField.val
+        
         for i in range(len(regions)):
-            df_temperature = None
+            df_head = {
+                'time': 0,
+                'average(T)': initial_temperature,
+                'min(T)': initial_temperature,
+                'max(T)': initial_temperature
+            }
+            df_temperature = pd.DataFrame(data = df_head, index = [0])
             for j in range(len(times)):
                 path_average = os.path.join(case_postProcessing, regions[i], 'average_' + regions[i], times[j], 'volFieldValue.dat')
                 path_min = os.path.join(case_postProcessing, regions[i], 'min_' + regions[i], times[j], 'volFieldValue.dat')
@@ -567,11 +579,8 @@ class Case(SolutionDirectory):
 
         self.packCase(pack_path, additional = additional, exclude = exclude)
 
-    def plot(self, probes = None, tikz = False):
+    def plot(self, probes = None, tikz = False, format_ext = '.jpg', dpi = 250):
         """Create plots for the simulation results"""
-        DPI = 250
-        FORMAT = '.jpg'
-
         self.load_weatherdata()
         add_seconds(self.weatherdata)
         
@@ -599,8 +608,8 @@ class Case(SolutionDirectory):
                 plt.ylabel('temperature in °C')
                 plt.grid(linestyle='--', linewidth=2, axis='y')
                 # Save plot
-                plotpath = os.path.join(plot_probes_path, probe + FORMAT)
-                plt.savefig(plotpath, dpi = DPI)
+                plotpath = os.path.join(plot_probes_path, probe + format_ext)
+                plt.savefig(plotpath, dpi = dpi)
                 if tikz:
                     self._tikz_plot(plotpath)
                 plt.clf()
@@ -620,8 +629,8 @@ class Case(SolutionDirectory):
         plt.grid(linestyle='--', linewidth=2, axis='y')
         plt.legend(legendlabels, loc='upper center', bbox_to_anchor=(0.5, -0.12), ncol = 2)
 
-        plotpath = os.path.join(plots_path, 'plot' + FORMAT)
-        plt.savefig(plotpath, dpi = DPI, bbox_inches='tight')
+        plotpath = os.path.join(plots_path, 'plot' + format_ext)
+        plt.savefig(plotpath, dpi = dpi, bbox_inches='tight')
         if tikz:
             self._tikz_plot(plotpath)
         plt.clf()
@@ -629,21 +638,42 @@ class Case(SolutionDirectory):
         # Plot average temperature of cargo
         legendlabels = []
         battery_files = glob.iglob(os.path.join(postprocessing_path, "battery*"))
+
+        fig_average = plt.figure(1)
+        fig_max = plt.figure(2)
+        fig_min = plt.figure(3)
+
+        ax_average = fig_average.add_subplot(111)
+        ax_max = fig_max.add_subplot(111)
+        ax_min = fig_min.add_subplot(111)
+
+        ax_handles = [ax_average, ax_max, ax_min]
         
         for battery_file in battery_files:
             df_battery = pd.read_csv(battery_file)
-            plt.plot(df_battery['time'] / 3600, df_battery['average(T)'], marker = 's')
+            ax_average.plot(df_battery['time'] / 3600, df_battery['average(T)'], marker = 's')
+            ax_max.plot(df_battery['time'] / 3600, df_battery['max(T)'], marker = 's')
+            ax_min.plot(df_battery['time'] / 3600, df_battery['min(T)'], marker = 's')
             legendlabels.append(os.path.splitext(os.path.basename(battery_file))[0])
 
-        plt.xlabel('time in s')
-        plt.ylabel('temperature in °C')
-        plt.grid(linestyle='--', linewidth=2, axis='y')    
-        plt.legend(legendlabels, loc='center left', bbox_to_anchor=(1, 0.5))
-        plotpath = os.path.join(plots_path, 'batteries' + FORMAT)
-        plt.savefig(plotpath, dpi = DPI, bbox_inches='tight')
+        for ax_handle in ax_handles:
+            ax_handle.set_xlabel('time in s')
+            ax_handle.set_ylabel('temperature in °C')
+            ax_handle.grid(linestyle='--', linewidth=2, axis='y')    
+            ax_handle.legend(legendlabels, loc='center left', bbox_to_anchor=(1, 0.5))
+
+        plotpath_average = os.path.join(plots_path, 'batteries_average' + format_ext)
+        fig_average.savefig(plotpath_average, dpi = dpi, bbox_inches='tight')
+        plotpath_max = os.path.join(plots_path, 'batteries_max' + format_ext)
+        fig_max.savefig(plotpath_max, dpi = dpi, bbox_inches='tight')
+        plotpath_min = os.path.join(plots_path, 'batteries_min' + format_ext)
+        fig_min.savefig(plotpath_min, dpi = dpi, bbox_inches='tight')
+
         if tikz:
-            self._tikz_plot(plotpath)     
-        
+            self._tikz_plot(plotpath_average)     
+            self._tikz_plot(plotpath_max)     
+            self._tikz_plot(plotpath_min)     
+     
     def _tikz_plot(self, plotpath):
             filename = os.path.splitext(os.path.basename(plotpath))[0] + '.pgf'
             plotpath = os.path.join(os.path.dirname(plotpath), 'tikz', filename)
