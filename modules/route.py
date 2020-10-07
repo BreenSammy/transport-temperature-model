@@ -215,10 +215,10 @@ class CSVRoute:
         """
       
         filename = os.path.splitext(self.filename)[0] + '_waypoints.csv'
-        if os.path.exists(filename):
-            waypoints = pd.read_csv(filename, parse_dates = ['Date'])
-        else:
-            waypoints = self._create_waypoints()
+        # if os.path.exists(filename):
+        #     waypoints = pd.read_csv(filename, parse_dates = ['Date'])
+        # else:
+        waypoints = self._create_waypoints()
 
         # Save waypoints for faster access
         waypoints.to_csv(filename, encoding='utf-8', index=False)
@@ -236,6 +236,8 @@ class CSVRoute:
         waypoints_list = []
 
         waypoints_list.append(self.dataframe.head(1))
+        waypoints_list[0].at[0,'Lon'] = normalize_longitude(waypoints_list[0].at[0,'Lon'])
+        # waypoints_list[0].loc[0,'Lon'] = -normalize_longitude(waypoints_list[0].at[0,'Lon'])
         timestamp = self.start
         i = 1
         while (self.end - timestamp) > timedelta(hours = 1):
@@ -259,13 +261,14 @@ class CSVRoute:
                 for j in range(number_points-1):
                     df_dict = {
                         'Date':  (timestamp + (j + 1)*timestep).replace(microsecond = 0, nanosecond = 0),
-                        'Lat': normalize_longitude(current_coordinates[0] + (j + 1)*step[0]),
-                        'Lon': current_coordinates[1] + (j+1)*step[1]
+                        'Lat': current_coordinates[0] + (j + 1)*step[0],
+                        'Lon': normalize_longitude(current_coordinates[1] + (j+1)*step[1])
                     }
                     df = pd.DataFrame(df_dict, index = [0])
                     waypoints_list.append(df)
 
                 waypoints_list.append(self.dataframe.loc[[i], :])
+                waypoints_list[-1].at[i,'Lon'] = normalize_longitude(waypoints_list[-1].at[i,'Lon'])
                 timestamp = self.dataframe['Date'].iloc[i]
             i += 1
 
@@ -317,7 +320,10 @@ def normalize_longitude(longitude):
             >>> normalize_longitude(182)
             -178
     """
-    return longitude - 360 * np.sign(longitude)
+    if abs(longitude) > 180:
+        return longitude - 360 * np.sign(longitude)
+    else:
+        return longitude
 
 def add_seconds(dataframe):
     """Add a column with total passed seconds to dataframe with ['Date'] column"""
