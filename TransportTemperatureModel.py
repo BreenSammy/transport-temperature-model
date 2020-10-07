@@ -5,16 +5,17 @@ import pandas as pd
 
 import modules.case as case
 from modules.case import Case
-
 import modules.transport as transport
 
 
-transport_path = os.path.join('transports', 'grandlgruber', 'grandlgruber.json')
-#transport_path = os.path.join('transports', 'Berlin-Garching', 'Berlin-Garching.json')
-case_path = os.path.join('transports', 'Berlin-Garching', 'case')
+#transport_path = os.path.join('transports', 'grandlgruber', 'grandlgruber.json')
+# transport_path = os.path.join('transports', 'Berlin-Garching', 'Berlin-Garching.json')
+# transport_path = os.path.join('transports', 'fairWeather_container_template', 'fairWeather_container_template.json')
+transport_path = os.path.join('transports', 'schenker_A', 'schenker_A.json')
+# case_path = os.path.join('transports', 'Berlin-Garching', 'case')
 #case_path = os.path.join('transports', 'grandlgruber', 'case')
 
-transport1 = transport.from_json(transport_path, reread_temperature = True)
+transport1 = transport.from_json(transport_path)
 
 transport1.save()
 
@@ -22,15 +23,16 @@ case = case.setup(transport1, initial_temperature = 298.15, cpucores = 20, force
 
 case.run()
 
-# case = Case(case_path)
 case.reconstruct()
-case.probe([1.6505, -0.905, 0.105], 'airInside')
 
-# gpx_path = os.path.join('transports', 'grandlgruber', 'grandlgruber.gpx')
+case.postprocess()
 
-# route = RouteGPX(gpx_path)
+# case = Case(case_path)
+# case.plot()
+case.probe_freight('battery0_0')
 
-#print(route.dataframe_full)
+# # # case.probe([1.6505, -0.905, 0.105], 'airInside', clear = True)
 
+case.pack_solution(logs = False)
 
 

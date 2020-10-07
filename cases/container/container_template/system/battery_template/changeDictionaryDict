@@ -28,8 +28,8 @@ T
         {
             type            compressible::turbulentTemperatureCoupledBaffleMixed;            
             Tnbr            T;
-            thicknessLayers (0.01);
-            kappaLayers     (0.5);
+            thicknessLayers (0.05);
+            kappaLayers     (0.05);
             kappaMethod     directionalSolidThermo;
             alphaAni        Anialpha;
             value           $internalField;

@@ -2,7 +2,6 @@ import gpxpy
 import numpy as np
 import pandas as pd
 
-
 def coordinates(filename):
     """Reads coordinates from gpx file"""
     amount_points = 0
@@ -47,7 +46,3 @@ def dataframe(filename):
                     df_list.append(df)
 
     return pd.concat(df_list)
-
-# dataframe = dataframe('LKW.gpx')
-
-# dataframe.to_csv('LKW.csv', encoding='utf-8', index=False)

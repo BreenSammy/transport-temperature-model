@@ -17,8 +17,6 @@ ROUTESPATH = os.path.abspath('routes')
 
 class Transport:
     def __init__(self, name, transporttype, start, end, cargo, route, stops = []):
-        # if route_filename.endswith('.gpx'):
-        #     self.route = RouteGPX(start, end, route_filename)
         self.name = name
         self.type = transporttype
         self.start = start
@@ -34,11 +32,17 @@ class Transport:
         if os.path.exists(self._weatherdatapath):
             self.weatherdata = pd.read_csv(self._weatherdatapath, parse_dates = ['Date'])
             start = self.weatherdata['Date'].iloc[0]
+            end = self.weatherdata['Date'].iloc[-1]
         else:
             self.weatherdata = self.get_weatherdata()
 
-        if self.start != start:
+        if self.start != start or self.end != end:
             self.weatherdata = self.get_weatherdata()
+
+        # Write start and end of weatherdata back to transport
+        self.start = self.weatherdata['Date'].iloc[0]
+        self.end = self.weatherdata['Date'].iloc[-1]
+        
 
     def get_weatherdata(self):
         if isinstance(self.route, FTMRoute):
@@ -220,7 +224,7 @@ class Stop:
 def stopDecoder(obj):
     return Stop(obj['duration'], obj['lat'], obj['lon'])
 
-def from_json(filename, reread_temperature = True):
+def from_json(filename):
     """Create Transport instance from json file"""   
     with open(filename) as json_file:
         json_dict = json.load(json_file, cls=TransportDecoder)

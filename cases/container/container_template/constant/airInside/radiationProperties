@@ -49,7 +49,7 @@ solarLoadCoeffs
     // Solar model:
 
         // sunLoadConstant-sunLoadFairWeatherConditions-SunLoadTheoreticalMaximum;
-        //  sunLoadModel sunLoadConstant;
+        // sunLoadModel sunLoadConstant;
         sunLoadModel sunLoadFairWeatherConditions;
 
 
@@ -59,7 +59,7 @@ solarLoadCoeffs
 
         // // Fair Weather Conditions Model Constants.
         // Calculate beta from the Solar calculator or input
-        skyCloudCoverFraction 1;
+        skyCloudCoverFraction 0;
         A       1000;        // Apparent solar irradiation at air mass m = 0
         B       0.142;      // Atmospheric extinction coefficient
         // beta    45;         // Solar altitude (in degrees) above the horizontal

@@ -267,6 +267,7 @@ class OISSTFile(NOAAFile):
     """
     Class to handle files from NOAA sea surface temperature optimum interpolation database. 
     Daily files in netCDF format are availabe.
+    
     See also:
     https://www.ncdc.noaa.gov/oisst
     https://towardsdatascience.com/read-netcdf-data-with-python-901f7ff61648

@@ -12,6 +12,8 @@ import shutil
 import sys
 
 import geopy.distance
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from PyFoam.RunDictionary.ParsedParameterFile import ParsedParameterFile
@@ -24,6 +26,8 @@ import modules.convection as convection
 from modules.cargo import cargoDecoder
 from modules.route import direction_crossover
 from modules.transport import TransportDecoder
+
+matplotlib.use('Agg')
 
 # Specific parameter values for different types of transports
 TRANSPORTTYPES = {
@@ -85,13 +89,13 @@ class Case(SolutionDirectory):
         snappyHexMeshDict = ParsedParameterFile(os.path.join(self.systemDir(), "snappyHexMeshDict"))
 
         # Minimal cellsize of blockMesh background mesh cells
-        cellsize = 0.32
+        CELLSIZE = 0.32
 
         # Calculate dimensions for blockMesh 
-        blockMeshDict['length'] = ceil(transport['length'] / cellsize) * cellsize
-        blockMeshDict['width'] = ceil(transport['width'] / cellsize) * cellsize / 2
-        blockMeshDict['negWidth'] = - ceil(transport['width'] / cellsize) * cellsize / 2
-        blockMeshDict['height'] = ceil(transport['height'] / cellsize) * cellsize
+        blockMeshDict['length'] = ceil(transport['length'] / CELLSIZE) * CELLSIZE
+        blockMeshDict['width'] = ceil(transport['width'] / CELLSIZE) * CELLSIZE / 2
+        blockMeshDict['negWidth'] = - ceil(transport['width'] / CELLSIZE) * CELLSIZE / 2
+        blockMeshDict['height'] = ceil(transport['height'] / CELLSIZE) * CELLSIZE
 
         changeDictionaryDict['T']['boundaryField']['carrier']['kappaLayers'] = '( {} )'.format(transport['kappaLayers'])
         changeDictionaryDict['T']['boundaryField']['carrier']['thicknessLayers'] = '( {} )'.format(transport['thicknessLayers'])
@@ -252,7 +256,7 @@ class Case(SolutionDirectory):
             distance = geopy.distance.distance(coordinates, coordinates_next).m
             travelspeed = distance / endTime_delta
 
-            #Upadate positon
+            # #Upadate positon
             self._update_radiationProperties(
                 radiationProperties, current_timestamp, coordinates, coordinates_next
                 )
@@ -313,12 +317,15 @@ class Case(SolutionDirectory):
         east_vector = np.array([1, 0, 0])
         east_vector = coordinate_transformation(x_axis, east_vector)
 
+        
+
         radiationProperties['solarLoadCoeffs']['startDay'] = startday
         radiationProperties['solarLoadCoeffs']['startTime'] = starttime
         radiationProperties['solarLoadCoeffs']['localStandardMeridian'] = localStandardMeridian
         radiationProperties['solarLoadCoeffs']['latitude'] = coordinates[0]
         radiationProperties['solarLoadCoeffs']['longitude'] = coordinates[1]
-        radiationProperties['solarLoadCoeffs']['gridEast'] = Vector(east_vector[0], east_vector[1], east_vector[2])
+        if not np.isnan(east_vector).any():
+            radiationProperties['solarLoadCoeffs']['gridEast'] = Vector(east_vector[0], east_vector[1], east_vector[2])
         radiationProperties.writeFile()
 
     def reconstruct(self):
@@ -415,7 +422,6 @@ class Case(SolutionDirectory):
         self.probe(regionname)
         self.clear_probes()
         
-
     def add_probe(self, location):
         """Add location of a new probe to probes file"""
         
@@ -555,14 +561,37 @@ class Case(SolutionDirectory):
 
         self.packCase(pack_path, additional = additional, exclude = exclude)
 
+    def plot(self):
+        self.load_weatherdata()
+        
+        postprocessing_path = os.path.join(self.name, os.pardir, 'postProcessing')
+        pp_airInside_path = os.path.join(postprocessing_path, 'airInside_temperature')
+
+        df_airInside = pd.read_csv(pp_airInside_path)
+        print(df_airInside)
+        # # df = pd.concat([self.weatherdata, df_airInside])
+        # df = self.weatherdata
+        # df = df.merge(df_airInside , how='left', left_on='T', right_on='time')
+        # print(df)
+        # df_airInside.plot(x = 'time', y = 'average(T)')
+        df_airInside.plot(x = 'time', y = 'T')
+        plt.savefig('out.jpg')
+        
+# df = df[df['AT'].notna()]
+# df = df[df['DY'] == 1]
+# df.plot(kind='scatter',x='LON',y='LAT',color='red', s = 0.1)
+# plt.savefig('output.png')
+# #tikzplotlib.save('plot.pgf', externalize_tables = True)
+# print(df)
+
 def setup(transport, initial_temperature = None, cpucores = 2, force_clone = True):
     """
     Function to setup OpenFOAM case for the transport. 
     Clones templatecase into the transport directory, loads the carrier with cargo and creates mesh.
     """
     
-    templatecase = Case(os.path.join('cases', 'carrier_template'))
-        
+    # templatecase = Case(os.path.join('cases', 'carrier_template'))
+    templatecase = Case(os.path.join('cases', 'container', 'container_template'))
     casepath = os.path.join('transports', transport.name, 'case')
     if force_clone:
         case = templatecase.cloneCase(casepath)

@@ -22,7 +22,15 @@
                 0,
                 90
             ],
-            "freight": null
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -37,7 +45,222 @@
                 0,
                 90
             ],
-            "freight": null
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
+        }, 
+        {
+            "Type": "Pallet",
+            "TemplateSTL": "pallet2x4.stl",
+            "Position": [
+                2.2001,
+                -0.54,
+                0.144
+            ],
+            "Orientation": [
+                0,
+                0,
+                90
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
+        },
+        {
+            "Type": "Pallet",
+            "TemplateSTL": "pallet2x4.stl",
+            "Position": [
+                3.0401,
+                -0.54,
+                0.144
+            ],
+            "Orientation": [
+                0,
+                0,
+                90
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
+        },
+        {
+            "Type": "Pallet",
+            "TemplateSTL": "pallet2x4.stl",
+            "Position": [
+                3.8801,
+                -0.54,
+                0.144
+            ],
+            "Orientation": [
+                0,
+                0,
+                90
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
+        },
+        {
+            "Type": "Pallet",
+            "TemplateSTL": "pallet2x4.stl",
+            "Position": [
+                4.7201,
+                -0.54,
+                0.144
+            ],
+            "Orientation": [
+                0,
+                0,
+                90
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
+        },
+        {
+            "Type": "Pallet",
+            "TemplateSTL": "pallet2x4.stl",
+            "Position": [
+                5.5601,
+                -0.54,
+                0.144
+            ],
+            "Orientation": [
+                0,
+                0,
+                90
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
+        },
+        {
+            "Type": "Pallet",
+            "TemplateSTL": "pallet2x4.stl",
+            "Position": [
+                0.8801,
+                0.5301,
+                0.144
+            ],
+            "Orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
+        },
+        {
+            "Type": "Pallet",
+            "TemplateSTL": "pallet2x4.stl",
+            "Position": [
+                2.3201,
+                0.5301,
+                0.144
+            ],
+            "Orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
+        },
+        {
+            "Type": "Pallet",
+            "TemplateSTL": "pallet2x4.stl",
+            "Position": [
+                3.7601,
+                0.5301,
+                0.144
+            ],
+            "Orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
+        },
+        {
+            "Type": "Pallet",
+            "TemplateSTL": "pallet2x4.stl",
+            "Position": [
+                5.2001,
+                0.5301,
+                0.144
+            ],
+            "Orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         }
     ]
 }
