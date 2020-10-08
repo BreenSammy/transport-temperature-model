@@ -1,12 +1,12 @@
 {
-    "name": "grandlgruber",
     "type": "carrier",
-    "start": "2019-02-07 19:15:00",
-    "end": "2019-02-08 18:00:00",
+    "start": "2019-02-07 16:54:12",
+    "end": "2019-02-08 17:51:13",
     "route": {
         "type": "gpx",
         "filename": "grandlgruber.gpx"
     },
+    "stops": [],
     "cargo": [
         {
             "type": "Pallet",
@@ -20,7 +20,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -34,7 +43,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -48,7 +66,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -62,7 +89,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -76,7 +112,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -90,7 +135,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -104,7 +158,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -118,7 +181,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -132,7 +204,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -146,7 +227,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -160,7 +250,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -174,7 +273,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -188,7 +296,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -202,7 +319,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -216,7 +342,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -230,7 +365,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -244,7 +388,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         },
         {
             "type": "Pallet",
@@ -258,7 +411,16 @@
                 0,
                 0,
                 0
-            ]
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": "2.06"
+            }
         }
     ]
 }

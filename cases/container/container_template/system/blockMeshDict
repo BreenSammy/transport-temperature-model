@@ -36,7 +36,7 @@ vertices
 
 );
 
-//block size 64x64x64cm
+//block size 32x32x32cm
 
 blocks
 (
