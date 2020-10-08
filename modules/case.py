@@ -388,6 +388,10 @@ class Case(SolutionDirectory):
         # Get all timesteps and delete last one, because for latestTime no postProcess folder exists
         times = self.getTimes()
         del times[-1]
+        # If case is not reconstructed self.getTimes() only returns 0 directory, use parallel times instead
+        if not times:
+            times = self.getParallelTimes()
+            del times[-1]
 
         initial_temperature = ParsedParameterFile(
             os.path.join(self.name, '0', 'airInside', 'T')
