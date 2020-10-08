@@ -426,11 +426,13 @@ class Case(SolutionDirectory):
     def probe_freight(self, regionname):
         cargo_number, region_number = re.findall(r'\d+', regionname)
 
+        # Read cargo if not existent
         if not hasattr(self, 'cargo'):
             json_filenames = [f for f in os.listdir(os.path.join(self.name, os.pardir)) if f.endswith('.json')]
             if len(json_filenames) != 1:
                 raise ValueError('Should be only one json file in the transport directory')
-            with open(json_filenames[0]) as json_file: 
+            json_path = os.path.join(self.name, os.pardir, json_filenames[0])
+            with open(json_path) as json_file: 
                 json_dict = json.load(json_file, cls=TransportDecoder)
             self.cargo = [cargoDecoder(item) for item in json_dict['cargo']]
 
@@ -500,9 +502,19 @@ class Case(SolutionDirectory):
         else:
             time = str(time)
             probespath = os.path.join(probespath, time, 'T')
-            
-        command = 'postProcess -case {0} -time {1} -func probes -region {2} > {3}/log.probes'
-        os.system(command.format(self.name, time, region, self.name))
+
+        # Execute postProcess in reconstructed case, if processor folders are empty
+        if len(self.getTimes()) > len(self.getParallelTimes()):
+            command = 'postProcess -case {0} -time {1} -func probes -region {2} > {3}/log.probes'
+            os.system(command.format(self.name, time, region, self.name))
+        # Execute in decomposed case else
+        elif len(self.getTimes()) <= len(self.getParallelTimes()):
+            number_processors = len(self.processorDirs())
+            command = 'mpirun -np {0} postProcess -parallel -case {1} -time {2} -func probes -region {3} > {4}/log.probes'
+            os.system(command.format(number_processors,self.name, time, region, self.name))
+        else:
+            raise OSError('Can not execute OpenFOAM postProcess utility. Check case for time directories')
+        
         self._probes_to_csv(probespath, region)
         self._move_logs()
 
@@ -583,7 +595,7 @@ class Case(SolutionDirectory):
 
         self.packCase(pack_path, additional = additional, exclude = exclude)
 
-    def plot(self, probes = None, tikz = False, format_ext = '.jpg', dpi = 250):
+    def plot(self, probes = None, tikz = False, format_ext = '.jpg', dpi = 250, marker = None):
         """Create plots for the simulation results"""
         self.load_weatherdata()
         add_seconds(self.weatherdata)
@@ -606,9 +618,9 @@ class Case(SolutionDirectory):
                     self.probe_freight(probe)
                 # Plot data
                 df_probe = pd.read_csv(probefile, sep=',', comment='#')
-                [plt.plot(df_probe['time'] / 3600, df_probe[str(i)], marker = 's') for i in range(df_probe.shape[1] - 1)]
+                [plt.plot(df_probe['time'] / 3600, df_probe[str(i)], marker = marker) for i in range(df_probe.shape[1] - 1)]
                 # Annotate plot
-                plt.xlabel('time in s')
+                plt.xlabel('time in h')
                 plt.ylabel('temperature in °C')
                 plt.grid(linestyle='--', linewidth=2, axis='y')
                 # Save plot
@@ -622,13 +634,13 @@ class Case(SolutionDirectory):
         pp_airInside_path = os.path.join(postprocessing_path, 'airInside.csv')
         df_airInside = pd.read_csv(pp_airInside_path)
         legendlabels = []
-        plt.plot(df_airInside['time'] / 3600, df_airInside['average(T)'], marker = 's')
+        plt.plot(df_airInside['time'] / 3600, df_airInside['average(T)'], marker = marker)
         legendlabels.append('average air temperature')
         # Plot ambient temperature
-        plt.plot(self.weatherdata['seconds'] / 3600, self.weatherdata['T'],  marker = 's')
+        plt.plot(self.weatherdata['seconds'] / 3600, self.weatherdata['T'],  marker = marker)
         legendlabels.append('ambient temperature')
 
-        plt.xlabel('time in s')
+        plt.xlabel('time in h')
         plt.ylabel('temperature in °C')
         plt.grid(linestyle='--', linewidth=2, axis='y')
         plt.legend(legendlabels, loc='upper center', bbox_to_anchor=(0.5, -0.12), ncol = 2)
@@ -655,16 +667,16 @@ class Case(SolutionDirectory):
         
         for battery_file in battery_files:
             df_battery = pd.read_csv(battery_file)
-            ax_average.plot(df_battery['time'] / 3600, df_battery['average(T)'], marker = 's')
-            ax_max.plot(df_battery['time'] / 3600, df_battery['max(T)'], marker = 's')
-            ax_min.plot(df_battery['time'] / 3600, df_battery['min(T)'], marker = 's')
+            ax_average.plot(df_battery['time'] / 3600, df_battery['average(T)'], marker = marker)
+            ax_max.plot(df_battery['time'] / 3600, df_battery['max(T)'], marker = marker)
+            ax_min.plot(df_battery['time'] / 3600, df_battery['min(T)'], marker = marker)
             legendlabels.append(os.path.splitext(os.path.basename(battery_file))[0])
 
         for ax_handle in ax_handles:
-            ax_handle.set_xlabel('time in s')
+            ax_handle.set_xlabel('time in h')
             ax_handle.set_ylabel('temperature in °C')
             ax_handle.grid(linestyle='--', linewidth=2, axis='y')    
-            ax_handle.legend(legendlabels, loc='center left', bbox_to_anchor=(1, 0.5))
+            ax_handle.legend(legendlabels, loc='center left', bbox_to_anchor=(1, 0.5), ncol = ceil(len(legendlabels) / 16))
 
         plotpath_average = os.path.join(plots_path, 'batteries_average' + format_ext)
         fig_average.savefig(plotpath_average, dpi = dpi, bbox_inches='tight')
