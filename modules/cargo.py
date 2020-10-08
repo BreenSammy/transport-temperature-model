@@ -26,10 +26,41 @@ DIMENSIONS_PACKAGE = {
 
 FREIGHTTYPES = {'cells', 'modules', 'packs'}
 
+THERMAL_CAPACITY_PACKAGING = 1600
+THERMAL_CONDUCTIVITY_PACKAGING = 0.053
+DENSITY_PACKAGING = 132
+THERMAL_CAPACITY_BATTERY = 1243
+THERMAL_CONDUCTIVITY_BATTERY_RADIAL = 21
+THERMAL_CONDUCTIVITY_BATTERY_AXIAL = 0.48
+
 class BatteryRegion:
-    def __init__(self, position, positions_freight_elements):
+    def __init__(self, position, dimensions, freight):
         self.position = position
-        self.positions_freight_elements = positions_freight_elements
+        self.dimensions = dimensions
+        self.freight = freight
+
+    def density(self):
+        """Calculate the average density"""
+        volume_region = np.prod(self.dimensions)
+        volume_battery = np.prod(self.freight.dimensions) * np.prod(self.freight.elements_in_package(self.dimensions))
+        volume_packaging = volume_region - volume_battery
+        return volume_packaging / volume_region * DENSITY_PACKAGING + volume_battery / volume_region * self.freight.density()
+
+    def packaging_thickness(self):
+        """Calculate the thickness of the packaging"""
+        dimension_freight = np.array(self.freight.elements_in_package(self.dimensions)) * np.array(self.freight.dimensions)
+        return np.average(self.dimensions - dimension_freight)
+
+    def thermal_capacity(self):
+        """Calculate the average thermal capacity of the region"""
+        volume_region = np.prod(self.dimensions)
+        volume_battery = np.prod(self.freight.dimensions) * np.prod(self.freight.elements_in_package(self.dimensions))
+        volume_packaging = volume_region - volume_battery
+        return (
+            ((volume_packaging * DENSITY_PACKAGING * THERMAL_CONDUCTIVITY_PACKAGING + 
+             volume_battery * self.freight.density() * THERMAL_CAPACITY_BATTERY))
+             / (volume_region * self.density())
+            )
 
 class Pallet:
     """Class to describe a pallet full of packages filled with batteries."""
@@ -48,13 +79,8 @@ class Pallet:
         dimensions_package = DIMENSIONS_PACKAGE[self.templateSTL]
         dimensions_package = list(map(abs, rotation.apply(dimensions_package)))
 
-        elements_per_axis = self.freight_elements()
-
         #Get array of center points of each freightelement in one package
-        points_x = np.linspace(-dimensions_package[0]/2, dimensions_package[0]/2, elements_per_axis[0] * 3 + 2)[2::3]
-        points_y = np.linspace(-dimensions_package[1]/2, dimensions_package[1]/2, elements_per_axis[1] * 3 + 2)[2::3] 
-        points_z = np.linspace(-dimensions_package[2]/2, dimensions_package[2]/2, elements_per_axis[2] * 3 + 2)[2::3]
-        points_freight_elements = np.vstack(np.meshgrid(points_x, points_y, points_z)).reshape(3,-1).T
+        points_freight_elements = self.freight.location_elements(dimensions_package)
 
         # Save positions of seperate packages for locationsInMesh in snappyHexMeshDict 
         number_packages = NUMBER_PACKAGES[self.templateSTL]
@@ -73,10 +99,10 @@ class Pallet:
             # Iterate over number of packages per layer
             for j in range(number_packages[1]):
                 battery_region_position = copy.deepcopy(battery_regions_positions[j, :])
-                freight_elements_positions = battery_region_position + points_freight_elements
+                self.freight.elements_positions = battery_region_position + points_freight_elements
                 # Add battery region
                 battery_regions.append(
-                    BatteryRegion(battery_region_position, freight_elements_positions)
+                    BatteryRegion(battery_region_position, dimensions_package, self.freight)
                 )  
             battery_regions_positions += np.array([0, 0, dimensions_package[2]])
             layercounter += 1
@@ -132,6 +158,22 @@ class Freight:
         self.dimensions = dimensions
         self.weight = weight
 
+    def density(self):
+        volume = np.prod(self.dimensions)
+        return self.weight / volume
+
+    def location_elements(self, dimensions_package):
+        """Get array of center points of each freightelement in one package in the initial coordinate system (0, 0, 0)"""
+        elements_in_package = self.elements_in_package(dimensions_package)
+        points_x = np.linspace(-dimensions_package[0]/2, dimensions_package[0]/2, elements_in_package[0] * 3 + 2)[2::3]
+        points_y = np.linspace(-dimensions_package[1]/2, dimensions_package[1]/2, elements_in_package[1] * 3 + 2)[2::3] 
+        points_z = np.linspace(-dimensions_package[2]/2, dimensions_package[2]/2, elements_in_package[2] * 3 + 2)[2::3]
+        return np.vstack(np.meshgrid(points_x, points_y, points_z)).reshape(3,-1).T
+
+    def elements_in_package(self, dimensions_package):
+        """Returns list with number of individual freight elements per axis"""
+        return [floor(dimensions_package[i] / self.dimensions[i]) for i in range(len(self.dimensions))]
+
     def to_dict(self):
         return {
             'type': self.type,
@@ -140,5 +182,5 @@ class Freight:
         }
 
 def freightDecoder(obj):
-    return Freight(obj['type'], obj['dimensions'], obj['weight'])
+    return Freight(obj['type'], obj['dimensions'], float(obj['weight']))
 

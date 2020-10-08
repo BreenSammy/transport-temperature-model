@@ -150,6 +150,13 @@ class Case(SolutionDirectory):
                 shutil.copytree(os.path.join(self.constantDir(), "battery_template"), os.path.join(self.name, "constant", battery.name))
                 shutil.copytree(os.path.join(self.name, "0.org", "battery_template"), os.path.join(self.name, "0.org", battery.name))
 
+                thermophysicalProperties = ParsedParameterFile(os.path.join(self.constantDir(), battery.name, 'thermophysicalProperties'))
+                thermophysicalProperties['mixture']['thermodynamics']['Cp'] = battery.thermal_capacity()
+                thermophysicalProperties['mixture']['equationOfState']['rho'] = battery.density()
+                thermophysicalProperties.writeFile()
+
+                # changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), battery.name, 'changeDictionaryDict'))
+
                 #Names of the solid regions are in third entry of the list regions, adding batteries
                 regionProperties['regions'][3].append(battery.name)
 
@@ -445,8 +452,8 @@ class Case(SolutionDirectory):
 
         self.clear_probes()
 
-        for i in range(battery_region.positions_freight_elements.shape[0]):
-            self.add_probe(battery_region.positions_freight_elements[i, :])
+        for i in range(battery_region.elements_positions.shape[0]):
+            self.add_probe(battery_region.elements_positions[i, :])
         
         self.probe(regionname)
         self.clear_probes()
