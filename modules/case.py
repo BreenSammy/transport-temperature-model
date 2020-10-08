@@ -93,10 +93,16 @@ class Case(SolutionDirectory):
         CELLSIZE = 0.32
 
         # Calculate dimensions for blockMesh 
-        blockMeshDict['length'] = ceil(transport['length'] / CELLSIZE) * CELLSIZE
-        blockMeshDict['width'] = ceil(transport['width'] / CELLSIZE) * CELLSIZE / 2
-        blockMeshDict['negWidth'] = - ceil(transport['width'] / CELLSIZE) * CELLSIZE / 2
-        blockMeshDict['height'] = ceil(transport['height'] / CELLSIZE) * CELLSIZE
+        number_blocks_x = ceil(transport['length'] / CELLSIZE)
+        number_blocks_y = ceil(transport['width'] / CELLSIZE)
+        number_blocks_z = ceil(transport['height'] / CELLSIZE)
+
+        blockMeshDict['length'] = number_blocks_x * CELLSIZE
+        blockMeshDict['width'] = number_blocks_y * CELLSIZE / 2
+        blockMeshDict['negWidth'] = - number_blocks_y * CELLSIZE / 2
+        blockMeshDict['height'] = number_blocks_z * CELLSIZE
+
+        blockMeshDict['blocks'][2] = Vector(number_blocks_y, number_blocks_x, number_blocks_z)
 
         changeDictionaryDict['T']['boundaryField']['carrier']['kappaLayers'] = '( {} )'.format(transport['kappaLayers'])
         changeDictionaryDict['T']['boundaryField']['carrier']['thicknessLayers'] = '( {} )'.format(transport['thicknessLayers'])
@@ -387,13 +393,12 @@ class Case(SolutionDirectory):
             times = self.getParallelTimes()
             del times[-1]
 
-        internalField = ParsedParameterFile(
+        initial_temperature = ParsedParameterFile(
             os.path.join(self.name, '0', 'airInside', 'T')
-            )['internalField']
-
-        initial_temperature = internalField.val
-        
+            )['internalField'].val
+    
         for i in range(len(regions)):
+            # Add zero time head with initial temperatures
             df_head = {
                 'time': 0,
                 'average(T)': initial_temperature,
