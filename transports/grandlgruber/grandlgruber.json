@@ -1,6 +1,6 @@
 {
     "type": "carrier",
-    "start": "2019-02-07 16:54:12",
+    "start": "2019-02-07 19:15:06",
     "end": "2019-02-08 17:51:13",
     "route": {
         "type": "gpx",
@@ -22,13 +22,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -45,13 +45,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -68,13 +68,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -91,13 +91,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -114,13 +114,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -137,13 +137,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -160,13 +160,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -183,13 +183,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -206,13 +206,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -229,13 +229,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -252,13 +252,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -275,13 +275,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -298,13 +298,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -321,13 +321,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -344,13 +344,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -367,13 +367,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -390,13 +390,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         },
         {
@@ -413,13 +413,13 @@
                 0
             ],
             "freight": {
-                "type": "cells",
+                "type": "modules",
                 "dimensions": [
-                    0.173,
-                    0.125,
-                    0.045
+                    0.25,
+                    0.375,
+                    0.125
                 ],
-                "weight": 2.06
+                "weight": 22.0
             }
         }
     ]
