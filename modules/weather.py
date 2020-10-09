@@ -127,10 +127,10 @@ class Station:
             if not inventory.empty:
                 if inventory[month].values[0]/days_in_month > 24:
                     break
-            else: 
-                # Remove the current station from possible stations and search again
-                index = possible_stations.loc[possible_stations['USAF'] == station['USAF'].values[0]].index.item()
-                possible_stations = possible_stations.drop([index])
+                
+            # Remove the current station from possible stations and search again
+            index = possible_stations.loc[possible_stations['USAF'] == station['USAF'].values[0]].index.item()
+            possible_stations = possible_stations.drop([index])
 
         self.USAF = station['USAF'].values[0]
         self.WBAN = station['WBAN'].values[0]
