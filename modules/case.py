@@ -43,8 +43,8 @@ TRANSPORTTYPES = {
         'length': 13.0005,
         'width': 2.4610, 
         'height': 2.5505,
-        'kappaLayers': 0.01,
-        'thicknessLayers': 0.5
+        'kappaLayers': 0.5,
+        'thicknessLayers': 0.01
     }
 }
 
@@ -452,8 +452,8 @@ class Case(SolutionDirectory):
 
         self.clear_probes()
 
-        for i in range(battery_region.elements_positions.shape[0]):
-            self.add_probe(battery_region.elements_positions[i, :])
+        for i in range(battery_region.freight.elements_positions.shape[0]):
+            self.add_probe(battery_region.freight.elements_positions[i, :])
         
         self.probe(regionname)
         self.clear_probes()
@@ -596,7 +596,7 @@ class Case(SolutionDirectory):
             'compressedCase'
         )
 
-        additional = self.getParallelTimes()
+        additional = self.getTimes()
         additional.append('postProcessing')
         additional.append('case.foam')
 
