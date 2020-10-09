@@ -3,6 +3,7 @@ import copy
 from datetime import date, datetime, timedelta 
 import ftplib
 import os
+import shutil
 import time
 import warnings
 
@@ -123,8 +124,11 @@ class Station:
             days_in_month = calendar.monthrange(input_date.year, input_date.month)[1]
 
             # Check if the dataset of the station has hourly data for that month
-            if inventory[month].values[0]/days_in_month > 24:
+            if not inventory.empty:
+                print(lat)
                 break
+                # if inventory[month].values[0]/days_in_month > 24:
+                #     break
             else: 
                 # Remove the current station from possible stations and search again
                 index = possible_stations.loc[possible_stations['USAF'] == station['USAF'].values[0]].index.item()
@@ -409,15 +413,12 @@ def temperature_range(datetimes, lat, lon):
     return temperature, distance
 
 def waypoints_temperature(datetimes, lat, lon):
-    """ Get temperature for all waypoints
-    """
+    """ Get temperature for a series of waypoints"""
+    
     length = lat.size
     temperatures = np.zeros(length)
 
     OISST = OISSTFile(datetimes[0])
-
-    sst, _ =  OISST.sea_surface_temperature(lat[0], lon[0])
-
     day = datetimes[0].day
 
     for i in range(length):
@@ -427,18 +428,19 @@ def waypoints_temperature(datetimes, lat, lon):
             OISST = OISSTFile(datetimes[i])
 
         sst, _ =  OISST.sea_surface_temperature(lat[i], lon[i])
+
         # If sst is number, location is on sea
         if isinstance(sst, np.float32):
             temperatures[i] = sst
         # Else on land
         else:
             temperature_at_station, distance = _get_temperature_at_station(datetimes[i], lat[i], lon[i])
-            # If distance to weatherstation is to big, use last temperature
-            if distance > 300:
-                warnings.warn('{0}: distance to {1}, {2} is {3} km. \n Using last temperature'.format(datetimes[i], lat[i], lon[i], distance))
-                temperatures[i] = temperatures[i-1]
-            else:
+            # If distance to weatherstation is to big, use interpolated temperature
+            if distance < 300:
                 temperatures[i] = temperature_at_station
+            else:
+                warnings.warn('{0}: distance to {1}, {2} is {3} km. \n Interpolationg with closest values'.format(datetimes[i], lat[i], lon[i], distance))
+                temperatures[i] = float('nan')
 
     return np.around(temperatures, 2)
 
@@ -507,3 +509,7 @@ def onsea(lat, lon):
         return True
     else:
         return False
+
+def clear():
+    """Delete all downloaded weatherdata"""
+    shutil.rmtree(WEATHERDATAPATH)

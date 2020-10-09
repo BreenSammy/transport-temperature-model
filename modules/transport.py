@@ -57,6 +57,7 @@ class Transport:
         lon = weatherdata.Lon.values
 
         weatherdata['T'] = weather.waypoints_temperature(datetimes, lat, lon)
+        weatherdata['T'] = weatherdata['T'].interpolate()
 
         # sections = weatherdata.groupby(['sea'])
 
