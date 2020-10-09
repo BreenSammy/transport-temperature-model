@@ -120,8 +120,6 @@ class Case(SolutionDirectory):
         # refinementLevel for cargo regions
         REFINEMENTSURFACELEVEL = [3,3]
 
-        self.cargo = cargo
-
         # Open files that need to be modified
         regionProperties = ParsedParameterFile(os.path.join(self.constantDir(),'regionProperties'))
         snappyHexMeshDict = ParsedParameterFile(os.path.join(self.systemDir(), "snappyHexMeshDict"))
@@ -155,7 +153,17 @@ class Case(SolutionDirectory):
                 thermophysicalProperties['mixture']['equationOfState']['rho'] = battery.density()
                 thermophysicalProperties.writeFile()
 
-                # changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), battery.name, 'changeDictionaryDict'))
+                changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), battery.name, 'changeDictionaryDict'))
+                changeDictionaryDict['T']['boundaryField'][battery.name + '_to_airInside'] = {
+                        'type': 'compressible::turbulentTemperatureCoupledBaffleMixed',        
+                        'Tnbr': 'T',
+                        'thicknessLayers': '( {} )'.format(battery.packaging_thickness()),
+                        'kappaLayers': '( {} )'.format(battery.thermal_conductivity_packaging),
+                        'kappaMethod': 'directionalSolidThermo',
+                        'alphaAni': 'Anialpha',
+                        'value': '$internalField'
+                    }
+                changeDictionaryDict.writeFile()
 
                 #Names of the solid regions are in third entry of the list regions, adding batteries
                 regionProperties['regions'][3].append(battery.name)

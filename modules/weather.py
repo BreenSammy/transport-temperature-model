@@ -125,10 +125,8 @@ class Station:
 
             # Check if the dataset of the station has hourly data for that month
             if not inventory.empty:
-                print(lat)
-                break
-                # if inventory[month].values[0]/days_in_month > 24:
-                #     break
+                if inventory[month].values[0]/days_in_month > 24:
+                    break
             else: 
                 # Remove the current station from possible stations and search again
                 index = possible_stations.loc[possible_stations['USAF'] == station['USAF'].values[0]].index.item()

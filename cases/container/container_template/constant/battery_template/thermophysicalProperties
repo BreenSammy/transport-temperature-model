@@ -47,13 +47,13 @@ mixture
 
     transport
     {
-        kappa   (21 21 1.1);
+        kappa   (21 21 0.48);
     }
 
     thermodynamics
     {
         Hf      0;
-        Cp      1100;
+        Cp      1243;
     }
 
     equationOfState

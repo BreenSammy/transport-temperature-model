@@ -38,6 +38,7 @@ class BatteryRegion:
         self.position = position
         self.dimensions = dimensions
         self.freight = freight
+        self.thermal_conductivity_packaging = THERMAL_CONDUCTIVITY_PACKAGING
 
     def density(self):
         """Calculate the average density"""
@@ -57,7 +58,7 @@ class BatteryRegion:
         volume_battery = np.prod(self.freight.dimensions) * np.prod(self.freight.elements_in_package(self.dimensions))
         volume_packaging = volume_region - volume_battery
         return (
-            ((volume_packaging * DENSITY_PACKAGING * THERMAL_CONDUCTIVITY_PACKAGING + 
+            ((volume_packaging * DENSITY_PACKAGING * THERMAL_CAPACITY_PACKAGING + 
              volume_battery * self.freight.density() * THERMAL_CAPACITY_BATTERY))
              / (volume_region * self.density())
             )
@@ -160,6 +161,8 @@ class Freight:
 
     def density(self):
         volume = np.prod(self.dimensions)
+        if volume == 0:
+            raise ValueError('Volume of freight is 0. Check dimensions of freight.')
         return self.weight / volume
 
     def location_elements(self, dimensions_package):
@@ -172,7 +175,11 @@ class Freight:
 
     def elements_in_package(self, dimensions_package):
         """Returns list with number of individual freight elements per axis"""
-        return [floor(dimensions_package[i] / self.dimensions[i]) for i in range(len(self.dimensions))]
+        result = [floor(dimensions_package[i] / self.dimensions[i]) for i in range(len(self.dimensions))]
+        if np.prod(result) == 0:
+            raise ValueError('Freight does not fit into packaging. Check dimensions of freight against dimensions of package.')
+        else:
+            return result
 
     def to_dict(self):
         return {
