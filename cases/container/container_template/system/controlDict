@@ -54,6 +54,17 @@ adjustTimeStep  yes;
 
 functions
 {
+    wallHeatFlux
+    {
+      type        wallHeatFlux;
+      libs        ("fieldFunctionObjects");
+      region      airInside;
+      qr          qr;
+      executeControl  writeTime;
+      executeInterval 1;
+      writeControl    writeTime;
+      writeInterval   1;
+    }
     temperature_right
     {
       type            surfaceFieldValue;

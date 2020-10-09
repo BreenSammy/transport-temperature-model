@@ -1,5 +1,6 @@
 from contextlib import redirect_stdout
 import copy
+import csv   
 from datetime import datetime, timedelta
 import glob
 #import io
@@ -25,6 +26,7 @@ from tzwhere import tzwhere
 
 import modules.convection as convection
 from modules.cargo import cargoDecoder
+import modules.openfoam as openfoam
 from modules.route import direction_crossover, add_seconds
 from modules.transport import TransportDecoder
 
@@ -147,22 +149,32 @@ class Case(SolutionDirectory):
                 shutil.copytree(os.path.join(self.systemDir(), "battery_template"), os.path.join(self.systemDir(), battery.name))
                 shutil.copytree(os.path.join(self.constantDir(), "battery_template"), os.path.join(self.name, "constant", battery.name))
                 shutil.copytree(os.path.join(self.name, "0.org", "battery_template"), os.path.join(self.name, "0.org", battery.name))
-
+                # Write thermophysical properties to the region
                 thermophysicalProperties = ParsedParameterFile(os.path.join(self.constantDir(), battery.name, 'thermophysicalProperties'))
                 thermophysicalProperties['mixture']['thermodynamics']['Cp'] = battery.thermal_capacity()
                 thermophysicalProperties['mixture']['equationOfState']['rho'] = battery.density()
                 thermophysicalProperties.writeFile()
-
+                # Write boundary conditions for battery region and airInside region
                 changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), battery.name, 'changeDictionaryDict'))
-                changeDictionaryDict['T']['boundaryField'][battery.name + '_to_airInside'] = {
-                        'type': 'compressible::turbulentTemperatureCoupledBaffleMixed',        
-                        'Tnbr': 'T',
-                        'thicknessLayers': '( {} )'.format(battery.packaging_thickness()),
-                        'kappaLayers': '( {} )'.format(battery.thermal_conductivity_packaging),
-                        'kappaMethod': 'directionalSolidThermo',
-                        'alphaAni': 'Anialpha',
-                        'value': '$internalField'
-                    }
+                openfoam.region_coupling_solid_anisotrop['thicknessLayers'] = '( {} )'.format(battery.packaging_thickness())
+                openfoam.region_coupling_solid_anisotrop['kappaLayers'] = '( {} )'.format(battery.thermal_conductivity_packaging)
+                changeDictionaryDict['T']['boundaryField'][battery.name + '_to_airInside'] = openfoam.region_coupling_solid_anisotrop
+                changeDictionaryDict.writeFile()
+
+                changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), 'airInside', 'changeDictionaryDict'))
+                openfoam.region_coupling_fluid['thicknessLayers'] = '( {} )'.format(battery.packaging_thickness())
+                openfoam.region_coupling_fluid['kappaLayers'] = '( {} )'.format(battery.thermal_conductivity_packaging)
+                changeDictionaryDict['T']['boundaryField']['airInside_to'+ battery.name] = openfoam.region_coupling_fluid
+                changeDictionaryDict.writeFile()
+                # changeDictionaryDict['T']['boundaryField'][battery.name + '_to_airInside'] = {
+                #         'type': 'compressible::turbulentTemperatureCoupledBaffleMixed',        
+                #         'Tnbr': 'T',
+                #         'thicknessLayers': '( {} )'.format(battery.packaging_thickness()),
+                #         'kappaLayers': '( {} )'.format(battery.thermal_conductivity_packaging),
+                #         'kappaMethod': 'directionalSolidThermo',
+                #         'alphaAni': 'Anialpha',
+                #         'value': '$internalField'
+                #     }
                 changeDictionaryDict.writeFile()
 
                 #Names of the solid regions are in third entry of the list regions, adding batteries
@@ -304,6 +316,10 @@ class Case(SolutionDirectory):
             }
             changeDictionaryDict.writeFile()
             
+            #Write travelspeed and heattransfercoeffiecient to file
+            self._save_data([latesttime, travelspeed], 'speed.csv')
+            self._save_data([latesttime, heattransfer_coefficient], 'heattransfercoefficient.csv')
+
             # Execute solver
             self._move_logs()
             os.system(os.path.join(self.name,"ChangeDictionary"))
@@ -717,6 +733,13 @@ class Case(SolutionDirectory):
                 os.makedirs(os.path.dirname(plotpath))
             tikzplotlib.save(plotpath, externalize_tables = True)
    
+    def _save_data(self, data, filename):
+        postProcessing_path = os.path.join(os.path.dirname(self.name), 'postProcessing')
+        filepath = os.path.join(postProcessing_path, filename)
+        with open(filepath, 'a') as f:
+            writer = csv.writer(f)
+            writer.writerow(data)
+        
 def setup(transport, initial_temperature = None, cpucores = 2, force_clone = True):
     """
     Function to setup OpenFOAM case for the transport. 
