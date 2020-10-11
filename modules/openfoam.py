@@ -1,3 +1,5 @@
+# Dictionaries for OpenFOAM boundary conditions
+
 region_coupling_fluid = {
     'type': 'compressible::turbulentTemperatureCoupledBaffleMixed',        
     'Tnbr': 'T',

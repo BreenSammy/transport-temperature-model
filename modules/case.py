@@ -154,6 +154,7 @@ class Case(SolutionDirectory):
                 thermophysicalProperties['mixture']['thermodynamics']['Cp'] = battery.thermal_capacity()
                 thermophysicalProperties['mixture']['equationOfState']['rho'] = battery.density()
                 thermophysicalProperties.writeFile()
+
                 # Write boundary conditions for battery region and airInside region
                 changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), battery.name, 'changeDictionaryDict'))
                 openfoam.region_coupling_solid_anisotrop['thicknessLayers'] = '( {} )'.format(battery.packaging_thickness())
@@ -161,21 +162,11 @@ class Case(SolutionDirectory):
                 changeDictionaryDict['T']['boundaryField'][battery.name + '_to_airInside'] = openfoam.region_coupling_solid_anisotrop
                 changeDictionaryDict.writeFile()
 
-                changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), 'airInside', 'changeDictionaryDict'))
-                openfoam.region_coupling_fluid['thicknessLayers'] = '( {} )'.format(battery.packaging_thickness())
-                openfoam.region_coupling_fluid['kappaLayers'] = '( {} )'.format(battery.thermal_conductivity_packaging)
-                changeDictionaryDict['T']['boundaryField']['airInside_to'+ battery.name] = openfoam.region_coupling_fluid
-                changeDictionaryDict.writeFile()
-                # changeDictionaryDict['T']['boundaryField'][battery.name + '_to_airInside'] = {
-                #         'type': 'compressible::turbulentTemperatureCoupledBaffleMixed',        
-                #         'Tnbr': 'T',
-                #         'thicknessLayers': '( {} )'.format(battery.packaging_thickness()),
-                #         'kappaLayers': '( {} )'.format(battery.thermal_conductivity_packaging),
-                #         'kappaMethod': 'directionalSolidThermo',
-                #         'alphaAni': 'Anialpha',
-                #         'value': '$internalField'
-                #     }
-                changeDictionaryDict.writeFile()
+                # changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), 'airInside', 'changeDictionaryDict'))
+                # openfoam.region_coupling_fluid['thicknessLayers'] = '( {} )'.format(battery.packaging_thickness())
+                # openfoam.region_coupling_fluid['kappaLayers'] = '( {} )'.format(battery.thermal_conductivity_packaging)
+                # changeDictionaryDict['T']['boundaryField']['airInside_to'+ battery.name] = openfoam.region_coupling_fluid
+                # changeDictionaryDict.writeFile()
 
                 #Names of the solid regions are in third entry of the list regions, adding batteries
                 regionProperties['regions'][3].append(battery.name)
@@ -406,12 +397,21 @@ class Case(SolutionDirectory):
             raise Exception('Case already decomposed. Clean case before changing number of subdomains.')
         
     def postprocess(self):
-        """Creates one post_process file for every region out of function object postProcessing files"""
+        """
+        Creates one postprocess file for every region out of function object postProcessing files.
+
+        For every restart of solver OpenFOAM creates a new directory for postProcessing results. 
+        This method creates single files for all timesteps and saves them in the transport directory. 
+        """
+
         case_postProcessing = os.path.join(self.name, "postProcessing")
-        transport_postProcessing = os.path.join(os.path.dirname(self.name), 'postProcessing')
-        #Create new folder for post_process results
-        if not os.path.exists(transport_postProcessing):
-            os.makedirs(transport_postProcessing)
+        targetpath_temperature = os.path.join(os.path.dirname(self.name), 'postProcessing', 'temperature')
+        targetpath_wallHeatFlux =  os.path.join(os.path.dirname(self.name), 'postProcessing', 'wallHeatFlux')
+        #Create new folders for postprocess results
+        if not os.path.exists(targetpath_temperature):
+            os.makedirs(targetpath_temperature)
+        if not os.path.exists(targetpath_wallHeatFlux):
+            os.makedirs(targetpath_wallHeatFlux)
 
         # Find all regions
         regions = self.regions()
@@ -437,27 +437,61 @@ class Case(SolutionDirectory):
                 'max(T)': initial_temperature
             }
             df_temperature = pd.DataFrame(data = df_head, index = [0])
+            df_wallHeatFlux = pd.DataFrame()
             for j in range(len(times)):
-                path_average = os.path.join(case_postProcessing, regions[i], 'average_' + regions[i], times[j], 'volFieldValue.dat')
-                path_min = os.path.join(case_postProcessing, regions[i], 'min_' + regions[i], times[j], 'volFieldValue.dat')
-                path_max = os.path.join(case_postProcessing, regions[i], 'max_' + regions[i], times[j], 'volFieldValue.dat')
-                    
-                average_temperature = pd.read_table(path_average, sep="\s+", header=3, usecols = [0,1], names = ['time', 'average(T)'])
-                min_temperature = pd.read_table(path_min, sep="\s+", header=3, usecols = [0,1], names = ['time', 'min(T)'])
-                max_temperature = pd.read_table(path_max, sep="\s+", header=3, usecols = [0,1], names = ['time', 'max(T)'])
-
+                # Create paths to files
+                path_average = os.path.join(
+                    case_postProcessing, regions[i], 'average_' + regions[i], times[j], 'volFieldValue.dat'
+                    )
+                path_min = os.path.join(
+                    case_postProcessing, regions[i], 'min_' + regions[i], times[j], 'volFieldValue.dat'
+                    )
+                path_max = os.path.join(
+                    case_postProcessing, regions[i], 'max_' + regions[i], times[j], 'volFieldValue.dat'
+                    )
+                path_wallHeatFlux = os.path.join(
+                    case_postProcessing, 'airInside', 'wallHeatFlux', times[j], 'wallHeatFlux.dat'
+                    )
+                # Read as pandas dataframe
+                average_temperature = pd.read_table(
+                    path_average, sep="\s+", header=3, usecols = [0,1], names = ['time', 'average(T)']
+                    )
+                min_temperature = pd.read_table(
+                    path_min, sep="\s+", header=3, usecols = [0,1], names = ['time', 'min(T)']
+                    )
+                max_temperature = pd.read_table(
+                    path_max, sep="\s+", header=3, usecols = [0,1], names = ['time', 'max(T)']
+                    )
+                wallHeatFlux = pd.read_table(
+                    path_wallHeatFlux, sep="\s+", header=1, usecols = [0,1,2,3,4], 
+                    names = ['time', 'patch', 'min', 'max', 'integral']
+                    )
+                # Join temperatures to single file
                 temperature = average_temperature.join(min_temperature['min(T)'])
-                temperature = temperature.join(max_temperature['max(T)'])                
+                temperature = temperature.join(max_temperature['max(T)'])  
+                # Select wallHeatFlux for the region
+                if regions[i] == 'airInside':
+                    wallHeatFlux = wallHeatFlux.loc[wallHeatFlux['patch'] == 'carrier']
+                else:
+                    wallHeatFlux = wallHeatFlux.loc[wallHeatFlux['patch'] == 'airInside_to_' + regions[i]]
+                    # Heatflux in region is positive
+                    wallHeatFlux.loc[:, ['min', 'max', 'integral']] = -1 * wallHeatFlux.loc[:, ['min', 'max', 'integral']]
+
+                wallHeatFlux = wallHeatFlux.drop(columns = ['patch'])              
 
                 df_temperature = pd.concat([df_temperature, temperature], ignore_index = True)
+                df_wallHeatFlux = pd.concat([df_wallHeatFlux, wallHeatFlux], ignore_index = True)
 
             # Convert to Celsius
             df_temperature['average(T)'] = df_temperature['average(T)'] - 273.15
             df_temperature['min(T)'] = df_temperature['min(T)'] - 273.15
             df_temperature['max(T)'] = df_temperature['max(T)'] - 273.15
 
-            file_name = os.path.join(transport_postProcessing, regions[i] + '.csv')
-            df_temperature.to_csv(file_name, encoding='utf-8', index=False)  
+            filename_temperature = os.path.join(targetpath_temperature, regions[i] + '.csv')
+            df_temperature.to_csv(filename_temperature, encoding='utf-8', index=False) 
+
+            filename_wallHeatFlux = os.path.join(targetpath_wallHeatFlux, regions[i] + '.csv')
+            df_wallHeatFlux.to_csv(filename_wallHeatFlux, encoding='utf-8', index=False) 
 
     def probe_freight(self, regionname):
         cargo_number, region_number = re.findall(r'\d+', regionname)
@@ -540,14 +574,14 @@ class Case(SolutionDirectory):
             probespath = os.path.join(probespath, time, 'T')
 
         # Execute postProcess in reconstructed case, if processor folders are empty
-        if len(self.getTimes()) > len(self.getParallelTimes()):
+        if os.path.basename(self.latestDir())== self.getParallelTimes()[-1]:
             command = 'postProcess -case {0} -time {1} -func probes -region {2} > {3}/log.probes'
             os.system(command.format(self.name, time, region, self.name))
         # Execute in decomposed case else
-        elif len(self.getTimes()) <= len(self.getParallelTimes()):
+        elif len(self.getTimes()) < len(self.getParallelTimes()):
             number_processors = len(self.processorDirs())
             command = 'mpirun -np {0} postProcess -parallel -case {1} -time {2} -func probes -region {3} > {4}/log.probes'
-            os.system(command.format(number_processors,self.name, time, region, self.name))
+            os.system(command.format(number_processors, self.name, time, region, self.name))
         else:
             raise OSError('Can not execute OpenFOAM postProcess utility. Check case for time directories')
         
@@ -649,9 +683,8 @@ class Case(SolutionDirectory):
                 os.makedirs(plot_probes_path)
             for probe in probes:
                 probefile = os.path.join(pp_probes_path, probe + '.csv')
-                # Create probe data if it not already exists
-                if not os.path.exists(probefile):
-                    self.probe_freight(probe)
+                # Create probe data
+                self.probe_freight(probe)
                 # Plot data
                 df_probe = pd.read_csv(probefile, sep=',', comment='#')
                 [plt.plot(df_probe['time'] / 3600, df_probe[str(i)], marker = marker) for i in range(df_probe.shape[1] - 1)]
@@ -667,7 +700,7 @@ class Case(SolutionDirectory):
                 plt.clf()
 
         # Plot average temperature of the air inside the carrier and ambient temperature
-        pp_airInside_path = os.path.join(postprocessing_path, 'airInside.csv')
+        pp_airInside_path = os.path.join(postprocessing_path, 'temperature', 'airInside.csv')
         df_airInside = pd.read_csv(pp_airInside_path)
         legendlabels = []
         plt.plot(df_airInside['time'] / 3600, df_airInside['average(T)'], marker = marker)
@@ -689,7 +722,7 @@ class Case(SolutionDirectory):
 
         # Plot average temperature of cargo
         legendlabels = []
-        battery_files = glob.iglob(os.path.join(postprocessing_path, "battery*"))
+        battery_files = glob.iglob(os.path.join(postprocessing_path, 'temperature', 'battery*'))
 
         fig_average = plt.figure(1)
         fig_max = plt.figure(2)
@@ -703,6 +736,7 @@ class Case(SolutionDirectory):
         
         for battery_file in battery_files:
             df_battery = pd.read_csv(battery_file)
+            print(df_battery['max(T)'])
             ax_average.plot(df_battery['time'] / 3600, df_battery['average(T)'], marker = marker)
             ax_max.plot(df_battery['time'] / 3600, df_battery['max(T)'], marker = marker)
             ax_min.plot(df_battery['time'] / 3600, df_battery['min(T)'], marker = marker)
