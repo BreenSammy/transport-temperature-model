@@ -51,65 +51,65 @@ T
             Ta              285;
             h               2;
             kappaMethod     fluidThermo;
-            thicknessLayers (0.02);
-            kappaLayers     (44);
+            // thicknessLayers (0.02);
+            // kappaLayers     (44);
             qr              qr;
             value           uniform 293.15;
         }
-        carrier_left
-        {
-            type            externalWallHeatFluxTemperature;
-            mode            coefficient;
-            Ta              285;
-            h               10;
-            kappaMethod     fluidThermo;
-            qr              qr;
-            value           $internalField;
-        }
-        carrier_right
-        {
-            type            externalWallHeatFluxTemperature;
-            mode            coefficient;
-            Ta              285;
-            h               10;
-            kappaMethod     fluidThermo;
-            qr              qr;
-            value           $internalField;
-        }
-        carrier_front
-        {
-            type            externalWallHeatFluxTemperature;
-            mode            coefficient;
-            Ta              285;
-            h               10;
-            kappaMethod     fluidThermo;
-            qr              qr;
-            value           $internalField;
-        }
-        carrier_back
-        {
-            type            externalWallHeatFluxTemperature;
-            mode            coefficient;
-            Ta              285;
-            h               10;
-            kappaMethod     fluidThermo;
-            qr              qr;
-            value           $internalField;
-        }
-        carrier_top
-        {
-            type            externalWallHeatFluxTemperature;
-            mode            coefficient;
-            Ta              285;
-            h               10;
-            kappaMethod     fluidThermo;
-            qr              qr;
-            value           $internalField;
-        }
-        carrier_bottom
-        {
-            type            zeroGradient;
-        }
+        // carrier_left
+        // {
+        //     type            externalWallHeatFluxTemperature;
+        //     mode            coefficient;
+        //     Ta              285;
+        //     h               10;
+        //     kappaMethod     fluidThermo;
+        //     qr              qr;
+        //     value           $internalField;
+        // }
+        // carrier_right
+        // {
+        //     type            externalWallHeatFluxTemperature;
+        //     mode            coefficient;
+        //     Ta              285;
+        //     h               10;
+        //     kappaMethod     fluidThermo;
+        //     qr              qr;
+        //     value           $internalField;
+        // }
+        // carrier_front
+        // {
+        //     type            externalWallHeatFluxTemperature;
+        //     mode            coefficient;
+        //     Ta              285;
+        //     h               10;
+        //     kappaMethod     fluidThermo;
+        //     qr              qr;
+        //     value           $internalField;
+        // }
+        // carrier_back
+        // {
+        //     type            externalWallHeatFluxTemperature;
+        //     mode            coefficient;
+        //     Ta              285;
+        //     h               10;
+        //     kappaMethod     fluidThermo;
+        //     qr              qr;
+        //     value           $internalField;
+        // }
+        // carrier_top
+        // {
+        //     type            externalWallHeatFluxTemperature;
+        //     mode            coefficient;
+        //     Ta              285;
+        //     h               10;
+        //     kappaMethod     fluidThermo;
+        //     qr              qr;
+        //     value           $internalField;
+        // }
+        // carrier_bottom
+        // {
+        //     type            zeroGradient;
+        // }
         bottom
         {
             type               zeroGradient;

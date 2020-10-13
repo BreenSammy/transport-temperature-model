@@ -106,8 +106,8 @@ class Case(SolutionDirectory):
 
         blockMeshDict['blocks'][2] = Vector(number_blocks_y, number_blocks_x, number_blocks_z)
 
-        changeDictionaryDict['T']['boundaryField']['carrier']['kappaLayers'] = '( {} )'.format(transport['kappaLayers'])
-        changeDictionaryDict['T']['boundaryField']['carrier']['thicknessLayers'] = '( {} )'.format(transport['thicknessLayers'])
+        # changeDictionaryDict['T']['boundaryField']['carrier']['kappaLayers'] = '( {} )'.format(transport['kappaLayers'])
+        # changeDictionaryDict['T']['boundaryField']['carrier']['thicknessLayers'] = '( {} )'.format(transport['thicknessLayers'])
 
         snappyHexMeshDict['geometry']['carrier']['min'] = Vector(0.0005, -transport['width']/2, -0.0005)
         snappyHexMeshDict['geometry']['carrier']['max'] = Vector(transport['length'], transport['width']/2, transport['height'])
@@ -162,11 +162,11 @@ class Case(SolutionDirectory):
                 changeDictionaryDict['T']['boundaryField'][battery.name + '_to_airInside'] = openfoam.region_coupling_solid_anisotrop
                 changeDictionaryDict.writeFile()
 
-                # changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), 'airInside', 'changeDictionaryDict'))
-                # openfoam.region_coupling_fluid['thicknessLayers'] = '( {} )'.format(battery.packaging_thickness())
-                # openfoam.region_coupling_fluid['kappaLayers'] = '( {} )'.format(battery.thermal_conductivity_packaging)
-                # changeDictionaryDict['T']['boundaryField']['airInside_to'+ battery.name] = openfoam.region_coupling_fluid
-                # changeDictionaryDict.writeFile()
+                changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), 'airInside', 'changeDictionaryDict'))
+                openfoam.region_coupling_fluid['thicknessLayers'] = '( {} )'.format(battery.packaging_thickness())
+                openfoam.region_coupling_fluid['kappaLayers'] = '( {} )'.format(battery.thermal_conductivity_packaging)
+                changeDictionaryDict['T']['boundaryField']['airInside_to_'+ battery.name] = openfoam.region_coupling_fluid
+                changeDictionaryDict.writeFile()
 
                 #Names of the solid regions are in third entry of the list regions, adding batteries
                 regionProperties['regions'][3].append(battery.name)
@@ -298,6 +298,7 @@ class Case(SolutionDirectory):
             print('Heattransfer coeffcient: {0} with average wall temperature: {1}'.format(heattransfer_coefficient, T_W))
 
             # Write changes to changeDictionaryDict
+            changeDictionaryDict['T']['boundaryField'] = {}
             changeDictionaryDict['T']['boundaryField']['carrier'] = {
                 'h': heattransfer_coefficient,
                 'Ta': temperature,
@@ -345,8 +346,6 @@ class Case(SolutionDirectory):
         x_axis = np.array([direction[1], direction[0], 0])
         east_vector = np.array([1, 0, 0])
         east_vector = coordinate_transformation(x_axis, east_vector)
-
-        
 
         radiationProperties['solarLoadCoeffs']['startDay'] = startday
         radiationProperties['solarLoadCoeffs']['startTime'] = starttime

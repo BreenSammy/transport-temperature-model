@@ -5,6 +5,10 @@ cd "${0%/*}" || exit                                # Run from this directory
 # Script to reconstruct the case
 #------------------------------------------------------------------------------
 
-runApplication reconstructPar -allRegions
+for time in $(foamListTimes) 
+do
+reconstructPar -allRegions -newTimes -time 0:$time
+rm -rf processor*/$time
+done
 
 #------------------------------------------------------------------------------
