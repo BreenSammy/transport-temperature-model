@@ -18,3 +18,13 @@ region_coupling_solid_anisotrop = {
     'alphaAni': 'Anialpha',
     'value': '$internalField'
 }
+
+external_wall = {
+    'type': 'externalWallHeatFluxTemperature',
+    'mode': 'coefficient',
+    'Ta': '298.15',
+    'h': '2',
+    'kappaMethod': 'directionalSolidThermo',
+    'alphaAni': 'Anialpha',
+    'value': 'uniform 293.15'
+}

@@ -63,6 +63,7 @@ class Case(SolutionDirectory):
         self.addToClone('Reconstruct')
         self.addToClone('PostProcess')
         self.addToClone('ChangeDictionary')
+        self.addToClone('ChangeDictionarySolid')
         self.addToClone('logs')
 
     def change_initial_temperature(self, temperature):
@@ -197,7 +198,7 @@ class Case(SolutionDirectory):
 
         changeDictionaryDict.writeFile()
 
-    def heattransfer_coefficient(self, T_U, u):
+    def heattransfer_coefficient(self, T_U, u, region = 'airInside'):
         """Calculate heattransfer coefficient"""
         # Value for current time is saved in folder for last time
         times = self.getParallelTimes()
@@ -205,14 +206,14 @@ class Case(SolutionDirectory):
         # If times has only one entry, that means only 0 folder exists, 
         # thus average path temperature is initial temperature
         if len(times) == 1:
-            airInside0T = ParsedParameterFile(os.path.join(self.name, '0', 'airInside', 'T'))
+            airInside0T = ParsedParameterFile(os.path.join(self.name, '0', region, 'T'))
             T_W = re.findall(r"[-+]?\d*\.\d+|\d+", str(airInside0T['internalField']))
             T_W = float(T_W[0])
         # Else use average patch temperature
         else:
             time = times[-2]
             path_averageTemperature = os.path.join(
-                self.name,'postProcessing','airInside','temperature_right', str(time),'surfaceFieldValue.dat'
+                self.name,'postProcessing',region,'wallTemperature_' + region, str(time),'surfaceFieldValue.dat'
                 )    
             df_patch_temperature = pd.read_table(
                 path_averageTemperature, sep="\s+", header=4, usecols = [0,1], names = ['time', 'T']
@@ -221,7 +222,7 @@ class Case(SolutionDirectory):
             # OpenFOAM sometimes changes naming of surfaceFieldValue file, make sure that dataframe reads the data
             if df_patch_temperature.empty:
                 path_averageTemperature = os.path.join(
-                    self.name,'postProcessing','airInside','temperature_right',
+                    self.name,'postProcessing',region,'wallTemperature_' + region,
                     str(time),'surfaceFieldValue_' + str(time) + '.dat'
                 )
                 df_patch_temperature = pd.read_table(
@@ -631,11 +632,14 @@ class Case(SolutionDirectory):
         controlDict['functions']['average_' + battery_name] = copy.deepcopy(controlDict['functions']['average_battery0_0'])
         controlDict['functions']['min_' + battery_name] = copy.deepcopy(controlDict['functions']['min_battery0_0'])
         controlDict['functions']['max_' + battery_name] = copy.deepcopy(controlDict['functions']['max_battery0_0'])
+        controlDict['functions']['wallTemperature_' + battery_name] = copy.deepcopy(controlDict['functions']['wallTemperature_battery0_0'])
 
         # Change region entry
         controlDict['functions']['average_' + battery_name ]['region'] = battery_name
         controlDict['functions']['min_' + battery_name]['region'] = battery_name
         controlDict['functions']['max_' + battery_name]['region'] = battery_name
+        controlDict['functions']['wallTemperature_' + battery_name]['region'] = battery_name
+        controlDict['functions']['wallTemperature_' + battery_name]['name'] = battery_name + '_to_airInside'
 
     def _move_logs(self):
         """Move log. files into logs folder"""
@@ -774,6 +778,112 @@ class Case(SolutionDirectory):
             writer = csv.writer(f)
             writer.writerow(data)
         
+    def _setup_arrival(self, ambienttemperature):
+        # Remove fluid regions from the case (namely airInside region)
+        regionProperties = ParsedParameterFile(os.path.join(self.constantDir(),'regionProperties'))
+        regionProperties['regions'][1].clear()
+        regionProperties.writeFile()
+
+        # Disable function objects for airInside region
+        controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
+        controlDict['functions']['wallHeatFlux']['enabled'] = 'no'
+        controlDict['functions']['wallTemperature_airInside']['enabled'] = 'no'
+        controlDict['functions']['average_airInside']['enabled'] = 'no'
+        controlDict['functions']['min_airInside']['enabled'] = 'no'
+        controlDict['functions']['max_airInside']['enabled'] = 'no'
+        controlDict.writeFile()
+
+        self._change_dictionary_solids(ambienttemperature)
+        
+    def _change_dictionary_solids(self, ambienttemperature):
+        # Change the changeDictionaryDict for all battery regions
+        regions = self.regions()
+        regions.remove('airInside')
+        for region in regions:
+            changeDictionaryDict = ParsedParameterFile(
+                os.path.join(os.path.join(self.systemDir(), region, 'changeDictionaryDict'))
+            )
+
+            openfoam.external_wall['Ta'] = ambienttemperature
+            openfoam.external_wall['h'] =  self.heattransfer_coefficient(ambienttemperature, 0, region = region)
+
+            changeDictionaryDict['T']['boundaryField'][region + '_to_airInside'] = openfoam.external_wall
+
+            if 'internalField' in changeDictionaryDict['T']:
+                del changeDictionaryDict['T']['internalField']
+
+            changeDictionaryDict.writeFile()
+
+        os.system(os.path.join(self.name,"ChangeDictionarySolid"))
+        self._move_logs()
+ 
+    def _get_max_delta(self, reftemperature):
+        """Calculate the maximal temperature difference of all solid regions to a reference temperature"""
+        latesttime = self.getParallelTimes()[-2]
+        path_postprocessing = os.path.join(self.name, "postProcessing")
+
+        regions = self.regions()
+        regions.remove('airInside')
+
+        min_temperature = np.zeros(len(regions))
+        max_temperature = np.zeros(len(regions))
+        
+        i = 0
+        for region in regions:
+            path_min = os.path.join(
+                path_postprocessing, region, 'min_' + region, latesttime, 'volFieldValue.dat'
+                )
+            path_max = os.path.join(
+                path_postprocessing, region, 'max_' + region, latesttime, 'volFieldValue.dat'
+                )
+
+            df_min = pd.read_table(
+                path_min, sep="\s+", header=3, usecols = [1], names = ['min(T)']
+                )
+            df_max = pd.read_table(
+                    path_max, sep="\s+", header=3, usecols = [1], names = ['max(T)']
+                    )
+            
+            min_temperature[i] = df_min['min(T)'].iloc[-1]
+            max_temperature[i] = df_max['max(T)'].iloc[-1]
+
+            i += 1
+
+        temperature = np.absolute(
+            np.concatenate((min_temperature, max_temperature)) - reftemperature
+            )
+        return np.amax(temperature)
+
+    def simulate_arrival(self, ambienttemperature):
+        arrivaltime = float(self.getParallelTimes()[-1])
+
+        self._setup_arrival(ambienttemperature)
+
+        deltaT = self._get_max_delta(ambienttemperature)
+        max_deltaT = 1
+        
+        while deltaT > max_deltaT:
+            latesttime = float(self.getParallelTimes()[-1])
+            controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
+            controlDict['endTime'] = latesttime + 3600
+            controlDict['writeInterval'] = 3600
+            controlDict.writeFile()
+
+            self._change_dictionary_solids(ambienttemperature)
+
+            os.system(os.path.join(self.name,"Run"))
+            self._move_logs()
+
+            plt.plot((latesttime - arrivaltime) / 3600, deltaT)
+            plot = True
+
+            deltaT = self._get_max_delta(ambienttemperature)
+
+        if plot:
+            plotpath = os.path.join(os.path.dirname(self.name), 'plots', 'arrival.jpg')
+            plt.axhline(y=ambienttemperature - 273.15, xmin=0, xmax= (latesttime - arrivaltime) / 3600)
+            plt.savefig(plotpath, dpi = 250, bbox_inches='tight')
+
 def setup(transport, initial_temperature = None, cpucores = 2, force_clone = True):
     """
     Function to setup OpenFOAM case for the transport. 

@@ -65,7 +65,7 @@ functions
       writeControl    writeTime;
       writeInterval   1;
     }
-    temperature_right
+    wallTemperature_airInside
     {
       type            surfaceFieldValue;
       libs            ("fieldFunctionObjects");
@@ -120,6 +120,22 @@ functions
       fields          (T);
       operation       max;
       regionType      all;
+      writeFields     false;
+      executeControl  writeTime;
+      executeInterval 1;
+      writeControl    writeTime;
+      writeInterval   1;
+    }
+    wallTemperature_battery0_0
+    {
+      type            surfaceFieldValue;
+      libs            ("fieldFunctionObjects");
+      enabled         true;
+      region          battery0_0;
+      fields          (T);
+      operation       areaAverage;
+      regionType      patch;
+      name            carrier;
       writeFields     false;
       executeControl  writeTime;
       executeInterval 1;
