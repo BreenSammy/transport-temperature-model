@@ -418,11 +418,12 @@ class Case(SolutionDirectory):
         
         # Get all timesteps and delete last one, because for latestTime no postProcess folder exists
         times = self.getTimes()
-        del times[-1]
         # If case is not reconstructed self.getTimes() only returns 0 directory, use parallel times instead
-        if not times:
+        if len(times) == 1:
             times = self.getParallelTimes()
-            del times[-1]
+        # Filter times so only times during transport are postprocessed
+        times = [time for time in times if float(time) <= self.duration()]
+        del times[-1]
 
         initial_temperature = ParsedParameterFile(
             os.path.join(self.name, '0', 'airInside', 'T')
@@ -438,6 +439,7 @@ class Case(SolutionDirectory):
             }
             df_temperature = pd.DataFrame(data = df_head, index = [0])
             df_wallHeatFlux = pd.DataFrame()
+
             for j in range(len(times)):
                 # Create paths to files
                 path_average = os.path.join(
@@ -777,6 +779,12 @@ class Case(SolutionDirectory):
             writer = csv.writer(f)
             writer.writerow(data)
         
+    def duration(self):
+        """Return the duration of the transport in seconds"""
+        self.load_weatherdata()
+        duration = self.weatherdata['Date'].iloc[-1] - self.weatherdata['Date'].iloc[0]
+        return duration.total_seconds() 
+
     def _setup_arrival(self, ambienttemperature):
         # Remove fluid regions from the case (namely airInside region)
         regionProperties = ParsedParameterFile(os.path.join(self.constantDir(),'regionProperties'))
@@ -854,18 +862,27 @@ class Case(SolutionDirectory):
         return np.amax(temperature)
 
     def simulate_arrival(self, ambienttemperature):
-        arrivaltime = float(self.getParallelTimes()[-1])
+
+        transportduration = self.duration()
+
+        if transportduration > float(self.getParallelTimes()[-1]):
+            raise ValueError('Transport simulation did not finish yet. Complete the transport before simulating arrival.')
 
         self._setup_arrival(ambienttemperature)
 
         deltaT = self._get_max_delta(ambienttemperature)
         max_deltaT = 1
+
+        plot = False
+        
+        print('Initial temperature difference to ambienttemperature: {}'.format(deltaT))
         
         while deltaT > max_deltaT:
+            print(deltaT)
             latesttime = float(self.getParallelTimes()[-1])
             controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
-            controlDict['endTime'] = latesttime + 3600
-            controlDict['writeInterval'] = 3600
+            controlDict['endTime'] = latesttime + 21600
+            controlDict['writeInterval'] = 21600
             controlDict.writeFile()
 
             self._change_dictionary_solids(ambienttemperature)
@@ -873,14 +890,16 @@ class Case(SolutionDirectory):
             os.system(os.path.join(self.name,"Run"))
             self._move_logs()
 
-            plt.plot((latesttime - arrivaltime) / 3600, deltaT)
+            plt.plot((latesttime - transportduration) / 3600, deltaT)
             plot = True
 
             deltaT = self._get_max_delta(ambienttemperature)
 
+        print('Finished simulation of arrival. Final difference to ambient temperature: {}'.format(deltaT))
+
         if plot:
             plotpath = os.path.join(os.path.dirname(self.name), 'plots', 'arrival.jpg')
-            plt.axhline(y=ambienttemperature - 273.15, xmin=0, xmax= (latesttime - arrivaltime) / 3600)
+            plt.axhline(y=ambienttemperature - 273.15, xmin=0, xmax= (latesttime - transportduration) / 3600)
             plt.savefig(plotpath, dpi = 250, bbox_inches='tight')
 
 def setup(transport, initial_temperature = None, cpucores = 2, force_clone = True):
