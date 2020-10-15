@@ -11,6 +11,7 @@ plots/
 weatherdata/
 case/
 weatherdata.csv
+route.html
 compressedCase
 cellToRegion
 *.gz

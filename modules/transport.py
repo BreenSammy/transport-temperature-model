@@ -6,12 +6,17 @@ from json import JSONEncoder, JSONDecoder
 import os
 import re
 
+import matplotlib
+import matplotlib.pyplot as plt
+import mplleaflet
 import numpy as np
 import pandas as pd
 
 from modules.cargo import cargoDecoder
 import modules.weather as weather
 from modules.route import GPXRoute, FTMRoute, CSVRoute
+
+matplotlib.use('Agg')
 
 ROUTESPATH = os.path.abspath('routes')
 
@@ -42,8 +47,16 @@ class Transport:
         # Write start and end of weatherdata back to transport
         self.start = self.weatherdata['Date'].iloc[0]
         self.end = self.weatherdata['Date'].iloc[-1]
-        
 
+    def plot_waypoints(self, tiles = 'cartodb_positron'):
+        xy = self.weatherdata[['Lon', 'Lat']].values
+        # Plot the path as red dots connected by a blue line
+        plt.plot(xy[:,0], xy[:,1], 'r.')
+        plt.plot(xy[:,0], xy[:,1], 'b')
+
+        filename = os.path.join(self._folder, 'route.html')
+        mplleaflet.save_html(fileobj=filename, tiles = tiles)
+        
     def get_weatherdata(self):
         if isinstance(self.route, FTMRoute):
             weatherdata = self.route.waypoints(self.start, self.stops)
