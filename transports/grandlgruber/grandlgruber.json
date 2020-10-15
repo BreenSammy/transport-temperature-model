@@ -1,10 +1,10 @@
 {
     "type": "carrier",
     "start": "2019-02-07 19:15:06",
-    "end": "2019-02-08 17:51:13",
     "route": {
-        "type": "gpx",
-        "filename": "grandlgruber.gpx"
+        "filename": "grandlgruber.gpx",
+        "trimstart": "2:19:0",
+        "trimend": "0:00:00"
     },
     "stops": [],
     "cargo": [

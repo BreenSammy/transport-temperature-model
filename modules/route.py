@@ -15,7 +15,7 @@ import modules.gps as gps
 from modules.weather import onsea
 
 class FTMRoute:
-    def __init__(self, start_coordinates, end_coordinates, stops = None):
+    def __init__(self, start_coordinates, end_coordinates):
         route = self._routing(start_coordinates, end_coordinates)
 
         self.distance = route['distance']
@@ -36,7 +36,7 @@ class FTMRoute:
         coords_end.reverse()
         return coords_end
 
-    def waypoints(self, start, stops):
+    def waypoints(self, start, stops = []):
         """Get a dataframe with date and location for hourly waypoints along route"""
 
         date = start
@@ -81,7 +81,7 @@ class FTMRoute:
 
         return pd.DataFrame(waypoints_list)
 
-    def _routing(self, start_coordinates, end_coordinates, stops = None):
+    def _routing(self, start_coordinates, end_coordinates):
         """
         Use FTM routing service. Needs connection to LRZ.
         See also: https://wiki.tum.de/display/smartemobilitaet/Routing
@@ -143,68 +143,31 @@ class FTMRoute:
         with open(filename, 'w') as json_file:
             json.dump(self, json_file, default=lambda o: o.__dict__, indent = 4 )
 
-class GPXRoute:
-    """Class for routes created from gpx file with timestamps"""
-    def __init__(self, filename):
+class FileRoute:
+    def __init__(self, filename: str, trimstart, trimend):
         self.filename = filename
-        # Reading point data from .gpx file takes long, so caching the read data in .csv file 
-        csvpath = os.path.splitext(filename)[0] + '.csv'
-        if os.path.exists(csvpath):
-            self.dataframe = pd.read_csv(
+        self.trimstart = trimstart
+        self.trimend = trimend
+
+        if filename.endswith('.csv'):
+            self.dataframe = self.dataframe_from_csv(filename)
+        elif filename.endswith('.gpx'):
+            # Cache the coordinates in csv format for faster access
+            csvpath = os.path.splitext(filename)[0] + '.csv'
+            if os.path.exists(csvpath):
+                self.dataframe = self.dataframe_from_csv(csvpath)
+            else:
+                self.dataframe = gps.dataframe(filename)
+                self.dataframe.to_csv(csvpath, encoding='utf-8', index=False)
+        else:
+            raise ValueError('Supported file formats for routes are gpx or csv')
+
+    def dataframe_from_csv(self, csvpath):
+        return pd.read_csv(
                 csvpath, usecols=[0, 1, 2], names=['Date', 'Lat', 'Lon'], header = 1, parse_dates = ['Date']
                 )
-        elif filename.endswith('.gpx'):
-            self.dataframe = gps.dataframe(filename)
-            self.dataframe.to_csv(csvpath, encoding='utf-8', index=False)
 
-        # Transform all timestamps to UTC timezzone and drop +0:00 timezone identifier
-        self.dataframe['Date'] = pd.to_datetime(self.dataframe['Date'], utc=True)
-        self.dataframe['Date'] = self.dataframe['Date'].dt.tz_localize(None)
-    
-    def to_dict(self):
-        return {
-            'type': 'gpx',
-            'filename': os.path.basename(self.filename)
-        }
-
-    def waypoints(self, start, end):
-        """Get a dataframe with date and location for every hour."""
-        waypoints_list = []
-        
-        # Finding dataframe entry closest to start date and adding it
-        start_index = self.dataframe['Date'].sub(start).abs().idxmin()
-        waypoints_list.append(self.dataframe.iloc[[start_index]])
-
-        time = start + timedelta(hours = 1)
-
-        # Add timestamps for every hour, if next timesamp is longer than one hour, take next
-        while time < end:
-            waypoints = self.dataframe[self.dataframe.Date.between(time, end)]
-            waypoints_list.append(waypoints.head(1))
-            time = waypoints['Date'].iloc[0] + timedelta(hours = 1)
-
-        # Finding dataframe entry closest to end date and adding it
-        end_index = self.dataframe['Date'].sub(end).abs().idxmin()
-        waypoints_list.append(self.dataframe.iloc[[end_index]])
-
-        waypoints = pd.concat(waypoints_list)
-
-        waypoints.index = range(len(waypoints))
-        
-        return waypoints
-
-class CSVRoute:
-    def __init__(self, filename: str):
-        self.filename = filename
-
-        self.dataframe = pd.read_csv(
-                filename, usecols=[0, 1, 2], names=['Date', 'Lat', 'Lon'], header = 1, parse_dates = ['Date']
-                )
-
-        self.start = self.dataframe['Date'].iloc[0]
-        self.end = self.dataframe['Date'].iloc[-1]
-
-    def waypoints(self, start = None):
+    def waypoints(self, start = None, stops = []):
         """Get dataframe with hourly waypoints along route
 
             Args:
@@ -214,14 +177,14 @@ class CSVRoute:
                 waypoints: DataFrame with hourly dates and coordinates of route 
         """
       
-        filename = os.path.splitext(self.filename)[0] + '_waypoints.csv'
+        # filename = os.path.splitext(self.filename)[0] + '_waypoints.csv'
         # if os.path.exists(filename):
         #     waypoints = pd.read_csv(filename, parse_dates = ['Date'])
         # else:
         waypoints = self._create_waypoints()
 
-        # Save waypoints for faster access
-        waypoints.to_csv(filename, encoding='utf-8', index=False)
+        # # Save waypoints for faster access
+        # waypoints.to_csv(filename, encoding='utf-8', index=False)
 
         if start != None:
             add_seconds(waypoints)
@@ -233,14 +196,24 @@ class CSVRoute:
         return waypoints
 
     def _create_waypoints(self):
+
         waypoints_list = []
+
+        start = self.dataframe['Date'].iloc[0]
+        end = self.dataframe['Date'].iloc[-1]
+
+        # Trim timedeltas from start and end, if position data has to be trimmed
+        start = start + self.trimstart
+        end = end - self.trimend
+        self.dataframe = self.dataframe[self.dataframe.Date.between(start, end)]
+        self.dataframe.index = range(len(self.dataframe))
 
         waypoints_list.append(self.dataframe.head(1))
         waypoints_list[0].at[0,'Lon'] = normalize_longitude(waypoints_list[0].at[0,'Lon'])
-        # waypoints_list[0].loc[0,'Lon'] = -normalize_longitude(waypoints_list[0].at[0,'Lon'])
-        timestamp = self.start
+            
+        timestamp = start
         i = 1
-        while (self.end - timestamp) > timedelta(hours = 1):
+        while (end - timestamp) > timedelta(hours = 1):
             nexttimestamp = self.dataframe.loc[i, 'Date']
 
             timedelta_nextpoint = nexttimestamp - timestamp
@@ -270,6 +243,7 @@ class CSVRoute:
                 waypoints_list.append(self.dataframe.loc[[i], :])
                 waypoints_list[-1].at[i,'Lon'] = normalize_longitude(waypoints_list[-1].at[i,'Lon'])
                 timestamp = self.dataframe['Date'].iloc[i]
+
             i += 1
 
         waypoints = pd.concat(waypoints_list)
@@ -278,8 +252,9 @@ class CSVRoute:
 
     def to_dict(self):
         return {
-            'type': 'csv',
-            'filename': os.path.basename(self.filename)
+            'filename': os.path.basename(self.filename),
+            'trimstart': self.trimstart,
+            'trimend': self.trimend
         }          
 
 def check_onsea(dataframe):

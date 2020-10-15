@@ -14,18 +14,17 @@ import pandas as pd
 
 from modules.cargo import cargoDecoder
 import modules.weather as weather
-from modules.route import GPXRoute, FTMRoute, CSVRoute
+from modules.route import FTMRoute, FileRoute
 
 matplotlib.use('Agg')
 
 ROUTESPATH = os.path.abspath('routes')
 
 class Transport:
-    def __init__(self, name, transporttype, start, end, cargo, route, stops = []):
+    def __init__(self, name, transporttype, start, cargo, route, stops = []):
         self.name = name
         self.type = transporttype
         self.start = start
-        self.end = end
         self.cargo = cargo
         self.route = route
         self.stops = stops
@@ -37,17 +36,15 @@ class Transport:
         if os.path.exists(self._weatherdatapath):
             self.weatherdata = pd.read_csv(self._weatherdatapath, parse_dates = ['Date'])
             start = self.weatherdata['Date'].iloc[0]
-            end = self.weatherdata['Date'].iloc[-1]
         else:
             self.weatherdata = self.get_weatherdata()
 
-        if self.start != start or self.end != end:
+        if self.start != start:
             self.weatherdata = self.get_weatherdata()
 
         # Write start and end of weatherdata back to transport
         self.start = self.weatherdata['Date'].iloc[0]
-        self.end = self.weatherdata['Date'].iloc[-1]
-
+    
     def plot_waypoints(self, tiles = 'cartodb_positron'):
         xy = self.weatherdata[['Lon', 'Lat']].values
         # Plot the path as red dots connected by a blue line
@@ -58,12 +55,7 @@ class Transport:
         mplleaflet.save_html(fileobj=filename, tiles = tiles)
         
     def get_weatherdata(self):
-        if isinstance(self.route, FTMRoute):
-            weatherdata = self.route.waypoints(self.start, self.stops)
-        elif isinstance(self.route, GPXRoute):
-            weatherdata = self.route.waypoints(self.start, self.end)
-        elif isinstance(self.route, CSVRoute):
-            weatherdata = self.route.waypoints(self.start)
+        weatherdata = self.route.waypoints(self.start, stops = self.stops)
 
         datetimes = weatherdata.Date.tolist()
         lat = weatherdata.Lat.values
@@ -151,9 +143,9 @@ class TransportEncoder(JSONEncoder):
                 "start": transport.start.strftime("%s %s" % (
                     self.DATE_FORMAT, self.TIME_FORMAT
                 )),
-                "end": transport.end.strftime("%s %s" % (
-                    self.DATE_FORMAT, self.TIME_FORMAT
-                )),
+                # "end": transport.end.strftime("%s %s" % (
+                #     self.DATE_FORMAT, self.TIME_FORMAT
+                # )),
                 "route": transport.route.to_dict(),
                 "stops": stops,
                 "cargo": [item.to_dict() for item in transport.cargo]           
@@ -245,28 +237,24 @@ def from_json(filename):
     # Read all parameters from the dict
     transporttype = json_dict['type']
     start = json_dict['start']
-    end = json_dict['end']
     # Create cargo instances
     cargo = [cargoDecoder(item) for item in json_dict['cargo']]
-
-    if json_dict['route']['type'].lower() == 'gpx':
+    # Create route, first check if from file, else use FTM routing
+    if 'filename' in json_dict['route']:
         routepath = os.path.join(ROUTESPATH, json_dict['route']['filename'])
-        route = GPXRoute(routepath)
-    elif json_dict['route']['type'].lower() == 'csv':
-        routepath = os.path.join(ROUTESPATH, json_dict['route']['filename'])
-        route = CSVRoute(routepath)
-    elif json_dict['route']['type'].upper() == 'FTM':
+        trimstart = json_dict['route']['trimstart']
+        trimend = json_dict['route']['trimend']
+        route = FileRoute(routepath, trimstart = trimstart, trimend = trimend)
+    else:
         route_start = json_dict['route']['start_coordinates']
         route_end = json_dict['route']['end_coordinates']
         route = FTMRoute(route_start, route_end)
-    else:
-        raise Exception('Route type is not supported, try FTM or gpx')
-        
+   
     # Create stop instances
     if 'stops' in json_dict:
         stops = [stopDecoder(stop) for stop in json_dict['stops']]
     else:
         stops = []
     # Return the transport instance
-    return Transport(name, transporttype, start, end, cargo, route, stops = stops)
+    return Transport(name, transporttype, start, cargo, route, stops = stops)
 
