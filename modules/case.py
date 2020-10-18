@@ -755,7 +755,6 @@ class Case(SolutionDirectory):
         
         for battery_file in battery_files:
             df_battery = pd.read_csv(battery_file)
-            print(df_battery['max(T)'])
             ax_average.plot(df_battery['time'] / 3600, df_battery['average(T)'], marker = marker)
             ax_max.plot(df_battery['time'] / 3600, df_battery['max(T)'], marker = marker)
             ax_min.plot(df_battery['time'] / 3600, df_battery['min(T)'], marker = marker)

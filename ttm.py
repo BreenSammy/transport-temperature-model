@@ -7,12 +7,14 @@ import modules.transport as transport
 from modules.case import Case
 
 parser = argparse.ArgumentParser(usage='%(prog)s [options]')
-
+# Options
 parser.add_argument("--transport", "-t", help="Alternative transport directory (instead of cwd)", metavar="<dir>", default=os.getcwd())
 parser.add_argument("--clone", "-c", help="Force to clone from template and overwrite case", action="store_true")
 parser.add_argument("--cpucores", type=int, help="Set the number of cpu cores used for the simulation", metavar="cpucount")
-parser.add_argument("--reconstruct", help="Reconstruct the decomposed case", action="store_true")
-parser.add_argument("--probe", help="Read temperature from freight", action="store_true")
+parser.add_argument("--reconstruct", "-r", help="Reconstruct the decomposed case", action="store_true")
+parser.add_argument("--postprocess", help="Execute postprocess utility of the simulation case", action="store_true")
+parser.add_argument("--plot", help="Plot postprocess results", action="store_true")
+parser.add_argument("--probe", help="Read temperature from a location '(x y z)'", metavar=("region", "location"), nargs=2)
 parser.add_argument("--pack", help="Pack the case as a compressed file", action="store_true")
 parser.add_argument("--arrival", help="Simulate the heattransfer after transport", action="store_true")
 
@@ -51,14 +53,23 @@ else:
 # Execute the OpenFOAM solver
 transportcase.run()
 
+if args.reconstruct:
+    transportcase.reconstruct()
 if args.pack:
     transportcase.pack()
 
 # Postprocess the simulation
-if args.reconstruct:
-    transportcase.reconstruct()
 if args.arrival:
     transportcase.simulate_arrival()
+if args.probe:
+    region = args.probe[0]
+    location = [float(i) for i in args.probe[1][1:-1].split(' ')]
+    print(location)
+    transportcase.probe(region, location=location, clear=True)
 
-transportcase.postprocess()
-transportcase.plot(probes = ['battery0_0', 'battery0_1'], tikz = True)
+if not os.listdir(os.path.join(transportpath, 'postProcessing', 'temperature')) or args.postprocess:
+    transportcase.postprocess()
+
+plots_content = os.listdir(os.path.join(transportpath, 'plots'))
+if 'plot.jpg' not in plots_content or args.plot:
+    transportcase.plot(probes = ['battery0_0', 'battery0_1'], tikz = True)
