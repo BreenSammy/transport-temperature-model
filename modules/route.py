@@ -144,10 +144,11 @@ class FTMRoute:
             json.dump(self, json_file, default=lambda o: o.__dict__, indent = 4 )
 
 class FileRoute:
-    def __init__(self, filename: str, trimstart, trimend):
+    def __init__(self, filename: str, trimstart, trimend, timezone):
         self.filename = filename
         self.trimstart = trimstart
         self.trimend = trimend
+        self.timezone = timezone
 
         if filename.endswith('.csv'):
             self.dataframe = self.dataframe_from_csv(filename)
@@ -176,15 +177,10 @@ class FileRoute:
             Returns:
                 waypoints: DataFrame with hourly dates and coordinates of route 
         """
-      
-        # filename = os.path.splitext(self.filename)[0] + '_waypoints.csv'
-        # if os.path.exists(filename):
-        #     waypoints = pd.read_csv(filename, parse_dates = ['Date'])
-        # else:
         waypoints = self._create_waypoints()
-
-        # # Save waypoints for faster access
-        # waypoints.to_csv(filename, encoding='utf-8', index=False)
+        
+        # Convert the timestamps to UTC
+        waypoints['Date'] = waypoints['Date'] - self.timezone
 
         if start != None:
             add_seconds(waypoints)
@@ -253,9 +249,54 @@ class FileRoute:
     def to_dict(self):
         return {
             'filename': os.path.basename(self.filename),
-            'trimstart': self.trimstart,
-            'trimend': self.trimend
+            'timezone': timezone_to_string(self.timezone),
+            'trimstart': duration_to_string(self.trimstart),
+            'trimend': duration_to_string(self.trimend)
         }          
+
+class Stop:
+    """Class to represent a stop during transport."""
+    def __init__(self, duration, lat, lon):
+        self.duration = duration
+        self.lat = lat
+        self.lon = lon
+
+    def coordinates(self):
+        return np.array([self.lat, self.lon])
+
+    def to_dict(self):
+        """Return dict of Stop instance, serializes duration"""
+        return {
+            'duration': duration_to_string(self.duration),
+            'lat': self.lat,
+            'lon': self.lon
+        }
+
+def stopDecoder(obj):
+    return Stop(obj['duration'], obj['lat'], obj['lon'])
+
+def duration_to_string(duration):
+    """Convert timedelta object to string in format H:M:S, e.g. 03:20:30"""
+    days = duration.days
+    seconds = duration.seconds
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    hours = hours + days*24
+    duration = '{:02}:{:02}:{:02}'.format(hours, minutes, seconds)
+    return duration
+
+def timezone_to_string(timezone):
+    """Convert a timedelta respresenting a timezone offset to a string, e.g. +09:30"""
+    seconds_timezone = timezone.total_seconds()
+    sign = np.sign(seconds_timezone)
+    if sign == -1:
+        sign = '-'
+    else:
+        sign = '+'
+    seconds_timezone = abs(seconds_timezone)
+    hours, minutes = divmod(seconds_timezone, 3600)
+    timezone = sign + '{:02}:{:02}'.format(int(hours), int(minutes))
+    return timezone
 
 def check_onsea(dataframe):
     """Check for all coordinates in dataframe, whether they are on the sea or not"""

@@ -14,7 +14,7 @@ import pandas as pd
 
 from modules.cargo import cargoDecoder
 import modules.weather as weather
-from modules.route import FTMRoute, FileRoute
+from modules.route import FTMRoute, FileRoute, stopDecoder
 
 matplotlib.use('Agg')
 
@@ -104,7 +104,7 @@ class TransportEncoder(JSONEncoder):
             # Serialize stops
             stops = []
             for stop in transport.stops:
-                stop = stop.to_dict_serial()
+                stop = stop.to_dict()
                 stops.append(stop)
 
             # Return dictionary for json file
@@ -146,8 +146,8 @@ class TransportDecoder(JSONDecoder):
             return (parse(s), end)
         elif cls.duration_regex.match(s):
             return (parse_duration(s), end)
-        # elif cls.timezone_regex.match(s):
-        #     return (parse_timezone(s), end)
+        elif cls.timezone_regex.match(s):
+            return (parse_timezone(s), end)
         else:
             return (s, end)
 
@@ -169,47 +169,13 @@ def parse_duration(duration_str):
 
 def parse_timezone(timezone_str):
     """Parse a timezone format like +04:30 and return fitting timedelta"""
-    hours = int(timezone_str[1:2])
-    minutes = int(timezone_str[4:5])
+    hours = int(timezone_str[1:3])
+    minutes = int(timezone_str[4:6])
     sign = timezone_str[0]
     if sign == '+':
         return timedelta(hours = hours, minutes = minutes)
     else:
          return timedelta(hours = -hours, minutes = -minutes)
-
-class Stop:
-    """Class to represent a stop during transport."""
-    def __init__(self, duration, lat, lon):
-        self.duration = duration
-        self.lat = lat
-        self.lon = lon
-
-    def coordinates(self):
-        return np.array([self.lat, self.lon])
-
-    def to_dict(self):
-        return {
-            'duration': self.duration,
-            'lat': self.lat,
-            'lon': self.lon
-        }
-    
-    def to_dict_serial(self):
-        """Serialize timedelta object duration"""
-        days = self.duration.days
-        seconds = self.duration.seconds
-        hours, remainder = divmod(seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        hours = hours + days*24
-        duration = '{0}:{1}:{2}'.format(hours, minutes, seconds)
-        return {
-            'duration': duration,
-            'lat': self.lat,
-            'lon': self.lon
-        }
-
-def stopDecoder(obj):
-    return Stop(obj['duration'], obj['lat'], obj['lon'])
 
 def from_json(filepath):
     """Create Transport instance from json file"""   
@@ -227,8 +193,8 @@ def from_json(filepath):
         routepath = os.path.join(path, json_dict['route']['filename'])
         trimstart = json_dict['route']['trimstart']
         trimend = json_dict['route']['trimend']
-        # timezone = json_dict['route']['timezone']
-        route = FileRoute(routepath, trimstart = trimstart, trimend = trimend)
+        timezone = json_dict['route']['timezone']
+        route = FileRoute(routepath, trimstart = trimstart, trimend = trimend, timezone = timezone)
     else:
         route_start = json_dict['route']['start_coordinates']
         route_end = json_dict['route']['end_coordinates']
