@@ -18,20 +18,25 @@ from modules.route import FTMRoute, FileRoute
 
 matplotlib.use('Agg')
 
-ROUTESPATH = os.path.abspath('routes')
-
 class Transport:
-    def __init__(self, name, transporttype, start, cargo, route, stops = []):
-        self.name = name
+    def __init__(self, path, transporttype, start, initial_temperature, cargo, route, stops = []):
+        self.path = path
         self.type = transporttype
         self.start = start
+        self.initial_temperature = initial_temperature
         self.cargo = cargo
         self.route = route
         self.stops = stops
 
-        self._folder = os.path.join('transports', self.name)
-        self._jsonpath = os.path.join(self._folder, self.name + '.json')
-        self._weatherdatapath = os.path.join(self._folder, 'weatherdata.csv')
+        self._jsonpath = os.path.join(self.path, 'transport.json')
+        self._weatherdatapath = os.path.join(self.path, 'weatherdata.csv')
+        self._postprocesspath = os.path.join(self.path, 'postProcessing') 
+        self._plotspath = os.path.join(self.path, 'plots')
+
+        if not os.path.exists(self._postprocesspath):
+            os.makedirs(self._postprocesspath)
+        if not os.path.exists(self._plotspath):
+            os.makedirs(self._plotspath)
         
         if os.path.exists(self._weatherdatapath):
             self.weatherdata = pd.read_csv(self._weatherdatapath, parse_dates = ['Date'])
@@ -42,67 +47,32 @@ class Transport:
         if self.start != start:
             self.weatherdata = self.get_weatherdata()
 
-        # Write start and end of weatherdata back to transport
+        # Write start of weatherdata back to transport
         self.start = self.weatherdata['Date'].iloc[0]
+
+        self.plot_waypoints()
     
     def plot_waypoints(self, tiles = 'cartodb_positron'):
+        """Plot waypoints on OSM map and save as interactive html"""
         xy = self.weatherdata[['Lon', 'Lat']].values
         # Plot the path as red dots connected by a blue line
         plt.plot(xy[:,0], xy[:,1], 'r.')
         plt.plot(xy[:,0], xy[:,1], 'b')
 
-        filename = os.path.join(self._folder, 'route.html')
+        filename = os.path.join(self._plotspath, 'route.html')
         mplleaflet.save_html(fileobj=filename, tiles = tiles)
         
     def get_weatherdata(self):
+        """Get weatherdata for all waypoints along the route"""
+        print('Gathering weatherdata for all waypoints')
         weatherdata = self.route.waypoints(self.start, stops = self.stops)
-
         datetimes = weatherdata.Date.tolist()
         lat = weatherdata.Lat.values
         lon = weatherdata.Lon.values
-
+        # Read temperature from NOAA server and interpolate missing values
         weatherdata['T'] = weather.waypoints_temperature(datetimes, lat, lon)
         weatherdata['T'] = weatherdata['T'].interpolate()
-
-        # sections = weatherdata.groupby(['sea'])
-
-        # for _, section in sections:
-        #     print(section)
-        #     datetimes = section.Date.tolist()
-        #     lat = section.Lat.values
-        #     lon = section.Lon.values
-        #     onsea = section['sea'].iloc[0]
-        #     if onsea:
-        #         section['T'] = weather.temperature_onsea(datetimes, lat, lon)
-        #     else:
-        #         section['T'] = weather.temperature_onland(datetimes, lat, lon)
-
-        # sections_onsea = weatherdata[weatherdata['sea'] == True].groupby((weatherdata['sea'] == False).cumsum())
-        # sections_onsea_keys = [key for key, _ in sections_onsea]
-        # sections_onland = weatherdata[weatherdata['sea'] == False].groupby((weatherdata['sea'] == True).cumsum())
-        # sections_onland_keys = [key for key, _ in sections_onland]
-
-        # for _, section in sections_onland:
-        #     print(section)
-
-        # print(sections_onsea_keys)
-        # print(sections_onsea.get_group(sections_onsea_keys[0]))
-        # print(sections_onland_keys)
-        # print(sections_onland.get_group(sections_onland_keys[0]))
-        # # print(df[1])
-        # i = 0
-        # while i < length:
-        #     df = weatherdata.loc[weatherdata['Lat'] ==  weatherdata.loc[i, 'Lat']]
-        #     datetimes = df.Date.tolist()
-        #     lat = df.Lat.values[0]
-        #     lon = df.Lon.values[0]
-        #     read_temperature = weather.temperature_range(datetimes, lat, lon)
-        #     j = i + read_temperature.size
-        #     temperature[i:j] = read_temperature
-        #     i = j
-
-        # weatherdata['T'] = temperature
-
+        
         weatherdata.to_csv(self._weatherdatapath, encoding='utf-8', index=False)
 
         return weatherdata
@@ -114,8 +84,8 @@ class Transport:
     
     def save(self):
         """Save transport as json and weatherdata as csv"""   
-        if not os.path.exists(self._folder):
-            os.makedirs(self._folder)
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
 
         self.to_json(self._jsonpath)
         self.weatherdata.to_csv(self._weatherdatapath, encoding='utf-8', index=False)
@@ -143,9 +113,7 @@ class TransportEncoder(JSONEncoder):
                 "start": transport.start.strftime("%s %s" % (
                     self.DATE_FORMAT, self.TIME_FORMAT
                 )),
-                # "end": transport.end.strftime("%s %s" % (
-                #     self.DATE_FORMAT, self.TIME_FORMAT
-                # )),
+                "temperature": transport.initial_temperature,
                 "route": transport.route.to_dict(),
                 "stops": stops,
                 "cargo": [item.to_dict() for item in transport.cargo]           
@@ -156,10 +124,12 @@ class TransportDecoder(JSONDecoder):
     JSONDecoder for Transport object. Handles deserialisation of datetime.datetime objects.
     See also: https://gist.github.com/setaou/ff98e82a9ce68f4c2b8637406b4620d1
     """
-     #This an elementary date checker, rather than  ISO date checker.
+    # This an elementary date checker, rather than  ISO date checker.
     datetime_regex = re.compile(r'(\d{4}[-/]\d{2}[-/]\d{2})')
-    #Duration checker
+    # Duration checker
     duration_regex = re.compile(r'(\d{0,9}[:/]\d{1,2}[:/]\d{1,2})')
+    # Timezone checker
+    timezone_regex = re.compile(r'(?:[+-](?:2[0-3]|[01][0-9]):[0-5][0-9])')
 
     def __init__(self, *args, **kwargs):
         json.JSONDecoder.__init__(self, *args, **kwargs)
@@ -176,6 +146,8 @@ class TransportDecoder(JSONDecoder):
             return (parse(s), end)
         elif cls.duration_regex.match(s):
             return (parse_duration(s), end)
+        # elif cls.timezone_regex.match(s):
+        #     return (parse_timezone(s), end)
         else:
             return (s, end)
 
@@ -194,6 +166,16 @@ def parse_duration(duration_str):
         if param:
             time_params[name] = int(param)
     return timedelta(**time_params)
+
+def parse_timezone(timezone_str):
+    """Parse a timezone format like +04:30 and return fitting timedelta"""
+    hours = int(timezone_str[1:2])
+    minutes = int(timezone_str[4:5])
+    sign = timezone_str[0]
+    if sign == '+':
+        return timedelta(hours = hours, minutes = minutes)
+    else:
+         return timedelta(hours = -hours, minutes = -minutes)
 
 class Stop:
     """Class to represent a stop during transport."""
@@ -229,21 +211,23 @@ class Stop:
 def stopDecoder(obj):
     return Stop(obj['duration'], obj['lat'], obj['lon'])
 
-def from_json(filename):
+def from_json(filepath):
     """Create Transport instance from json file"""   
-    with open(filename) as json_file:
+    with open(filepath) as json_file:
         json_dict = json.load(json_file, cls=TransportDecoder)
-    name = os.path.splitext(os.path.basename(filename))[0]
+    path = os.path.dirname(filepath)
     # Read all parameters from the dict
     transporttype = json_dict['type']
     start = json_dict['start']
+    initial_temperature = json_dict['temperature']
     # Create cargo instances
     cargo = [cargoDecoder(item) for item in json_dict['cargo']]
     # Create route, first check if from file, else use FTM routing
     if 'filename' in json_dict['route']:
-        routepath = os.path.join(ROUTESPATH, json_dict['route']['filename'])
+        routepath = os.path.join(path, json_dict['route']['filename'])
         trimstart = json_dict['route']['trimstart']
         trimend = json_dict['route']['trimend']
+        # timezone = json_dict['route']['timezone']
         route = FileRoute(routepath, trimstart = trimstart, trimend = trimend)
     else:
         route_start = json_dict['route']['start_coordinates']
@@ -256,5 +240,5 @@ def from_json(filename):
     else:
         stops = []
     # Return the transport instance
-    return Transport(name, transporttype, start, cargo, route, stops = stops)
+    return Transport(path, transporttype, start, initial_temperature, cargo, route, stops = stops)
 

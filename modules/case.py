@@ -3,7 +3,6 @@ import copy
 import csv   
 from datetime import datetime, timedelta
 import glob
-#import io
 import json
 from math import ceil
 import os
@@ -30,6 +29,7 @@ import modules.openfoam as openfoam
 from modules.route import direction_crossover, add_seconds
 from modules.transport import TransportDecoder
 
+# For saving plots to file
 matplotlib.use('Agg')
 
 # Specific parameter values for different types of transports
@@ -67,6 +67,9 @@ class Case(SolutionDirectory):
         self.addToClone('logs')
 
     def change_initial_temperature(self, temperature):
+        # Convert to Kelvin
+        temperature += 273.15
+        print('Setting initial temperature for air and cargo to {} Kelvin'.format(temperature))
         changeDictionaryDict_airInside = ParsedParameterFile(
             os.path.join(self.systemDir(), "airInside", "changeDictionaryDict")
             )
@@ -99,19 +102,19 @@ class Case(SolutionDirectory):
         number_blocks_x = ceil(transport['length'] / CELLSIZE)
         number_blocks_y = ceil(transport['width'] / CELLSIZE)
         number_blocks_z = ceil(transport['height'] / CELLSIZE)
-
+        # Write the geometry of the backgroundmesh to blockMeshDict
         blockMeshDict['length'] = number_blocks_x * CELLSIZE
         blockMeshDict['width'] = number_blocks_y * CELLSIZE / 2
         blockMeshDict['negWidth'] = - number_blocks_y * CELLSIZE / 2
         blockMeshDict['height'] = number_blocks_z * CELLSIZE
-
+        # Write the number of blocks per dimension
         blockMeshDict['blocks'][2] = Vector(number_blocks_y, number_blocks_x, number_blocks_z)
-
-        # changeDictionaryDict['T']['boundaryField']['carrier']['kappaLayers'] = '( {} )'.format(transport['kappaLayers'])
-        # changeDictionaryDict['T']['boundaryField']['carrier']['thicknessLayers'] = '( {} )'.format(transport['thicknessLayers'])
-
+        # Create geometry of carrier in snappyHexmeshDict
         snappyHexMeshDict['geometry']['carrier']['min'] = Vector(0.0005, -transport['width']/2, -0.0005)
         snappyHexMeshDict['geometry']['carrier']['max'] = Vector(transport['length'], transport['width']/2, transport['height'])
+        # Change the thermal resistance of the wall of the carrier
+        changeDictionaryDict['T']['boundaryField']['carrier']['kappaLayers'] = '( {} )'.format(transport['kappaLayers'])
+        changeDictionaryDict['T']['boundaryField']['carrier']['thicknessLayers'] = '( {} )'.format(transport['thicknessLayers'])
 
         blockMeshDict.writeFile()
         changeDictionaryDict.writeFile()
@@ -242,6 +245,8 @@ class Case(SolutionDirectory):
 
     def run(self):
         """Execute the simulation"""
+        self.load_weatherdata()
+        
         path_solver_logfile = os.path.join(self.name,"log.chtMultiRegionFoam")
 
         # When solver restarts from other time than 0, remove solver logfile
@@ -367,11 +372,20 @@ class Case(SolutionDirectory):
         else:
             print('Case is already reconstructed')
 
-    def cpucores(self, number):
+    def cpucores(self):
+        """Return the number of used cpu cores, i.e. number of subdomains"""
+        decomposeParDict = ParsedParameterFile(os.path.join(
+                self.systemDir(), "decomposeParDict")
+                )
+        return int(decomposeParDict['numberOfSubdomains'])
+
+    def change_number_cpucores(self, number):
         """Change the number of CPU cores that should be used for the simulation. 
         Can only be used before decomposing"""
 
-        if not self.processorDirs():
+        if number == self.cpucores():
+            print("Number of CPU cores already set to {}. Doing nothing".format(number))
+        elif not self.processorDirs():
             print("Number of CPU cores set to {}".format(number))
 
             decomposeParDict_system = ParsedParameterFile(os.path.join(
@@ -651,7 +665,7 @@ class Case(SolutionDirectory):
             logdestination = os.path.join(logfolder, logname)
             shutil.move(logfile, logdestination)  
 
-    def pack_solution(self, logs = True):
+    def pack(self, logs = True):
         """Compress case with solution time directories for better file transfer"""
 
         pack_path = os.path.join(
@@ -901,43 +915,6 @@ class Case(SolutionDirectory):
             plotpath = os.path.join(os.path.dirname(self.name), 'plots', 'arrival.jpg')
             plt.axhline(y=ambienttemperature - 273.15, xmin=0, xmax= (latesttime - transportduration) / 3600)
             plt.savefig(plotpath, dpi = 250, bbox_inches='tight')
-
-def setup(transport, initial_temperature = None, cpucores = 2, force_clone = True):
-    """
-    Function to setup OpenFOAM case for the transport. 
-    Clones templatecase into the transport directory, loads the carrier with cargo and creates mesh.
-    """
-    
-    # templatecase = Case(os.path.join('cases', 'carrier_template'))
-    templatecase = Case(os.path.join('cases', 'container', 'container_template'))
-    casepath = os.path.join('transports', transport.name, 'case')
-    if force_clone:
-        case = templatecase.cloneCase(casepath)
-    try:
-        case = Case(casepath)
-    except:
-        print("Case does not exist: Creating new one")
-        case = templatecase.cloneCase(casepath)
-
-
-    case.change_transporttype(transport.type)
-
-    airInside_polyMesh = os.path.join(case.constantDir(),'airInside', 'polyMesh')
-
-    if not os.path.exists(airInside_polyMesh):
-        if initial_temperature != None:
-            print('Setting initial temperature for air and cargo to {} Kelvin'.format(initial_temperature))
-            case.change_initial_temperature(initial_temperature)
-
-        case.cpucores(cpucores)
-        case.load_cargo(transport.cargo)
-        case.create_mesh()
-    else:
-        print('Mesh already exists')
-    
-    case.load_weatherdata()
-
-    return case
 
 def utcoffset(utc_datetime, lat, lon):
     """Get the offset to UTC time at a specified location"""
