@@ -739,6 +739,33 @@ class Case(SolutionDirectory):
             self._tikz_plot(plotpath)
         plt.clf()
 
+        #Plot speed
+        pp_speed_path = os.path.join(postprocessing_path, 'speed.csv')
+        df_speed = pd.read_csv(pp_speed_path, names = ['time', 'speed'])
+        plt.plot(df_speed['time'] / 3600, df_speed['speed'], marker = marker)
+        plt.xlabel('time in h')
+        plt.ylabel('average speed in m/s')
+        plt.grid(linestyle='--', linewidth=2, axis='y')
+
+        plotpath = os.path.join(plots_path, 'speed' + format_ext)
+        plt.savefig(plotpath, dpi = dpi, bbox_inches='tight')
+        if tikz:
+            self._tikz_plot(plotpath)
+        plt.clf()
+        # Plot heattransfercoefficient
+        pp_speed_path = os.path.join(postprocessing_path, 'heattransfercoefficient.csv')
+        df_speed = pd.read_csv(pp_speed_path, names = ['time', 'heattransfercoefficient'])
+        plt.plot(df_speed['time'] / 3600, df_speed['heattransfercoefficient'], marker = marker)
+        plt.xlabel('time in h')
+        plt.ylabel('heattransfercoefficient in m/s')
+        plt.grid(linestyle='--', linewidth=2, axis='y')
+        
+        plotpath = os.path.join(plots_path, 'heattransfercoefficient' + format_ext)
+        plt.savefig(plotpath, dpi = dpi, bbox_inches='tight')
+        if tikz:
+            self._tikz_plot(plotpath)
+        plt.clf()
+
         # Plot average temperature of cargo
         legendlabels = []
         battery_files = glob.iglob(os.path.join(postprocessing_path, 'temperature', 'battery*'))

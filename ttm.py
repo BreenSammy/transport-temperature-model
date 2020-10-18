@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import glob
 import os
 
 import modules.transport as transport
@@ -33,6 +34,9 @@ templatecasepath = os.path.join(
     )
 
 if not os.path.exists(casepath) or args.clone:
+    files = glob.glob(os.path.join(transportpath, 'postProcessing'))
+    for f in files:
+        os.remove(f)
     templatecase = Case(templatecasepath)
     transportcase = templatecase.cloneCase(casepath)
 else:
