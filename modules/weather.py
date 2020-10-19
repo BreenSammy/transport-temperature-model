@@ -84,8 +84,8 @@ class Station:
         """Downlaod a file from the ftp server and save it in the target file"""
         try:
             self._connect()
-            fh = open(target_file, 'wb+')
-            self._ftp.retrbinary('RETR ' + source_file, fh.write)
+            with open(target_file, 'wb+') as fh:
+                self._ftp.retrbinary('RETR ' + source_file, fh.write)
 
         except ftplib.all_errors as e:
             print('FTP error:', e) 
@@ -129,7 +129,11 @@ class Station:
                     break
                 
             # Remove the current station from possible stations and search again
-            index = possible_stations.loc[possible_stations['USAF'] == station['USAF'].values[0]].index.item()
+            index = possible_stations.loc[
+                (possible_stations['USAF'] == station['USAF'].values[0]) & 
+                (possible_stations['WBAN'] == station['WBAN'].values[0])
+                ].index.item()
+
             possible_stations = possible_stations.drop([index])
 
         self.USAF = station['USAF'].values[0]
@@ -157,7 +161,9 @@ class Station:
         Used when current station has no useable data.
         """
         # Drop current station from isd_history
-        index = self.isd_history.loc[self.isd_history['USAF'] == self.USAF].index.item()
+        index = self.isd_history.loc[
+            (self.isd_history['USAF'] == self.USAF) & (self.isd_history['WBAN'] == self.WBAN)].index.item()
+            
         self.isd_history = self.isd_history.drop([index])
         # Find new next station and download weather data
         self._find(self.date, self.lat_query, self.lon_query)
@@ -432,13 +438,16 @@ def waypoints_temperature(datetimes, lat, lon):
             temperatures[i] = sst
         # Else on land
         else:
-            temperature_at_station, distance = _get_temperature_at_station(datetimes[i], lat[i], lon[i])
+            temperature_at_station, _ = _get_temperature_at_station(datetimes[i], lat[i], lon[i])
+            temperatures[i] = temperature_at_station
             # If distance to weatherstation is to big, use interpolated temperature
-            if distance < 300:
-                temperatures[i] = temperature_at_station
-            else:
-                warnings.warn('{0}: distance to {1}, {2} is {3} km. \n Interpolationg with closest values'.format(datetimes[i], lat[i], lon[i], distance))
-                temperatures[i] = float('nan')
+            # if distance < 300:
+            #     temperatures[i] = temperature_at_station
+            # else:
+            #     warnings.warn('{0}: distance to {1}, {2} is {3} km. \n Interpolationg with closest values'.format(datetimes[i], lat[i], lon[i], distance))
+            #     temperatures[i] = float('nan')
+
+        print(i)
 
     return np.around(temperatures, 2)
 
@@ -461,16 +470,20 @@ def _get_temperature_at_station(input_datetime, lat, lon):
 
         df = df[df.Date.between(input_datetime, input_datetime)]
 
+        distance = station.distance
+
         # If the dataframe is empty, station has no data for datetime and is removed from isd_history
-        if df.empty:
+        if distance > 300:            
+            warnings.warn('{0}: distance to {1}, {2} is {3} km. \n Interpolationg with closest values'.format(input_datetime, lat, lon, distance))
+            temperature = float('nan')
+            retry = False
+        elif df.empty:
             # Remove the current station from possible stations and search again
             station.reload()
             retry = True
         else:
             temperature = df['T'].values[0] * T_SCALINGFACTOR  
             retry = False
-
-    distance = station.distance
 
     return temperature, distance
 
