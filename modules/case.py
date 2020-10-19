@@ -157,6 +157,12 @@ class Case(SolutionDirectory):
                 thermophysicalProperties = ParsedParameterFile(os.path.join(self.constantDir(), battery.name, 'thermophysicalProperties'))
                 thermophysicalProperties['mixture']['thermodynamics']['Cp'] = battery.thermal_capacity()
                 thermophysicalProperties['mixture']['equationOfState']['rho'] = battery.density()
+                thermophysicalProperties['mixture']['equationOfState']['rho'] = battery.density()
+                thermophysicalProperties['mixture']['transport']['kappa'] = Vector(
+                    battery.freight.thermalconductivity[0],
+                    battery.freight.thermalconductivity[1],
+                    battery.freight.thermalconductivity[2]
+                    )
                 thermophysicalProperties.writeFile()
 
                 # Write boundary conditions for battery region and airInside region

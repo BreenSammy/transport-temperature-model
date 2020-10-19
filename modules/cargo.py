@@ -25,15 +25,12 @@ DIMENSIONS_PACKAGE = {
 }
 
 FREIGHTTYPES = {'cells', 'modules', 'packs'}
-
 THERMAL_CAPACITY_PACKAGING = 1600
 THERMAL_CONDUCTIVITY_PACKAGING = 0.053
 DENSITY_PACKAGING = 132
-THERMAL_CAPACITY_BATTERY = 1243
-THERMAL_CONDUCTIVITY_BATTERY_RADIAL = 21
-THERMAL_CONDUCTIVITY_BATTERY_AXIAL = 0.48
 
 class BatteryRegion:
+    """Class to represent a battery region in OpenFOAM case"""
     def __init__(self, position, dimensions, freight):
         self.position = position
         self.dimensions = dimensions
@@ -59,7 +56,7 @@ class BatteryRegion:
         volume_packaging = volume_region - volume_battery
         return (
             ((volume_packaging * DENSITY_PACKAGING * THERMAL_CAPACITY_PACKAGING + 
-             volume_battery * self.freight.density() * THERMAL_CAPACITY_BATTERY))
+             volume_battery * self.freight.density() * self.freight.thermalcapacity))
              / (volume_region * self.density())
             )
 
@@ -79,6 +76,9 @@ class Pallet:
         rotation = Rotation.from_rotvec(np.array(self.orientation) * np.pi / 180)
         dimensions_package = DIMENSIONS_PACKAGE[self.templateSTL]
         dimensions_package = list(map(abs, rotation.apply(dimensions_package)))
+        # Also rotate the dimensions of the freight and thermal conductivity
+        self.freight.dimensions = list(map(abs, rotation.apply(self.freight.dimensions)))
+        self.freight.thermalconductivity = list(map(abs, rotation.apply(self.freight.thermalconductivity)))
 
         #Get array of center points of each freightelement in one package
         points_freight_elements = self.freight.location_elements(dimensions_package)
@@ -152,12 +152,27 @@ def cargoDecoder(obj):
         return Pallet(obj['templateSTL'], obj['position'], obj['orientation'], freight)
 
 class Freight:
-    def __init__(self, freighttype, dimensions, weight):
+    """Class to represent the shipped freight, e.g. battery cells"""
+    # Constant default values
+    THERMAL_CAPACITY = 1243
+    THERMAL_CONDUCTIVITY_AXIAL = 21
+    THERMAL_CONDUCTIVITY_RADIAL = 0.48
+    def __init__(
+        self, freighttype, dimensions, weight, 
+        thermalcapacity = THERMAL_CAPACITY, 
+        thermalconductivity = [
+            THERMAL_CONDUCTIVITY_RADIAL,
+            THERMAL_CONDUCTIVITY_RADIAL,
+            THERMAL_CONDUCTIVITY_AXIAL
+        ]
+        ):
         if freighttype not in FREIGHTTYPES:
             raise ValueError("Freight: freighttype must be one of %r." % FREIGHTTYPES)
         self.type = freighttype
         self.dimensions = dimensions
         self.weight = weight
+        self.thermalcapacity = thermalcapacity
+        self.thermalconductivity = thermalconductivity
 
     def density(self):
         volume = np.prod(self.dimensions)
@@ -185,9 +200,21 @@ class Freight:
         return {
             'type': self.type,
             'dimensions': self.dimensions,
-            'weight': self.weight 
+            'weight': self.weight,
+            'thermalcapacity': self.thermalcapacity,
+            'thermalconductivity': self.thermalconductivity
         }
 
 def freightDecoder(obj):
-    return Freight(obj['type'], obj['dimensions'], float(obj['weight']))
+    return Freight(
+        obj['type'], obj['dimensions'], float(obj['weight']), 
+        thermalcapacity = obj.get('thermalcapacity', Freight.THERMAL_CAPACITY),
+        thermalconductivity = obj.get(
+            'thermalconductivity', [
+                Freight.THERMAL_CONDUCTIVITY_RADIAL,
+                Freight.THERMAL_CONDUCTIVITY_RADIAL,
+                Freight.THERMAL_CONDUCTIVITY_AXIAL
+            ]
+            )       
+        )
 
