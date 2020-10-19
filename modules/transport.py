@@ -14,19 +14,18 @@ import pandas as pd
 
 from modules.cargo import cargoDecoder
 import modules.weather as weather
-from modules.route import FTMRoute, FileRoute, stopDecoder
+from modules.route import routeDecoder, stopDecoder
 
 matplotlib.use('Agg')
 
 class Transport:
-    def __init__(self, path, transporttype, start, initial_temperature, cargo, route, stops = []):
+    def __init__(self, path, transporttype, start, initial_temperature, cargo, route):
         self.path = path
         self.type = transporttype
         self.start = start
         self.initial_temperature = initial_temperature
         self.cargo = cargo
         self.route = route
-        self.stops = stops
 
         self._jsonpath = os.path.join(self.path, 'transport.json')
         self._weatherdatapath = os.path.join(self.path, 'weatherdata.csv')
@@ -43,8 +42,9 @@ class Transport:
             start = self.weatherdata['Date'].iloc[0]
         else:
             self.weatherdata = self.get_weatherdata()
-
-        if self.start != start:
+        # Reload weatherdata, if start time is not the same or 
+        # traveltime differs by more than 10 minutes     
+        if self.start != start or abs(self.route.traveltime() - self.traveltime()) > 600:
             self.weatherdata = self.get_weatherdata()
 
         # Write start of weatherdata back to transport
@@ -52,6 +52,10 @@ class Transport:
 
         self.plot_waypoints()
     
+    def traveltime(self):
+        traveltime = self.weatherdata['Date'].iloc[-1] - self.weatherdata['Date'].iloc[0] 
+        return traveltime.total_seconds()
+
     def plot_waypoints(self, tiles = 'cartodb_positron'):
         """Plot waypoints on OSM map and save as interactive html"""
         xy = self.weatherdata[['Lon', 'Lat']].values
@@ -65,7 +69,7 @@ class Transport:
     def get_weatherdata(self):
         """Get weatherdata for all waypoints along the route"""
         print('Gathering weatherdata for all waypoints')
-        weatherdata = self.route.waypoints(self.start, stops = self.stops)
+        weatherdata = self.route.waypoints(self.start)
         datetimes = weatherdata.Date.tolist()
         lat = weatherdata.Lat.values
         lon = weatherdata.Lon.values
@@ -103,9 +107,10 @@ class TransportEncoder(JSONEncoder):
         if isinstance(transport, Transport):
             # Serialize stops
             stops = []
-            for stop in transport.stops:
-                stop = stop.to_dict()
-                stops.append(stop)
+            if hasattr(transport.route, 'stops'):
+                for stop in transport.route.stops:
+                    stop = stop.to_dict()
+                    stops.append(stop)
 
             # Return dictionary for json file
             return {
@@ -189,22 +194,13 @@ def from_json(filepath):
     # Create cargo instances
     cargo = [cargoDecoder(item) for item in json_dict['cargo']]
     # Create route, first check if from file, else use FTM routing
-    if 'filename' in json_dict['route']:
-        routepath = os.path.join(path, json_dict['route']['filename'])
-        trimstart = json_dict['route']['trimstart']
-        trimend = json_dict['route']['trimend']
-        timezone = json_dict['route']['timezone']
-        route = FileRoute(routepath, trimstart = trimstart, trimend = trimend, timezone = timezone)
-    else:
-        route_start = json_dict['route']['start_coordinates']
-        route_end = json_dict['route']['end_coordinates']
-        route = FTMRoute(route_start, route_end)
-   
+    route = routeDecoder(json_dict['route'], path, stops = json_dict['stops'])   
     # Create stop instances
     if 'stops' in json_dict:
         stops = [stopDecoder(stop) for stop in json_dict['stops']]
     else:
         stops = []
+    # Create route, first check if from file, else use FTM routing
+    route = routeDecoder(json_dict['route'], path, stops = stops)
     # Return the transport instance
-    return Transport(path, transporttype, start, initial_temperature, cargo, route, stops = stops)
-
+    return Transport(path, transporttype, start, initial_temperature, cargo, route)

@@ -15,13 +15,14 @@ import modules.gps as gps
 from modules.weather import onsea
 
 class FTMRoute:
-    def __init__(self, start_coordinates, end_coordinates):
+    def __init__(self, start_coordinates, end_coordinates, stops = []):
         route = self._routing(start_coordinates, end_coordinates)
 
+        self.stops = stops
         self.distance = route['distance']
         self.duration = route['duration']
         self.coordinates = route['geometry']['coordinates']
-  
+    
     def start(self):
         """Get the coordinates of start of route"""
         coords_start = deepcopy(self.coordinates[0])
@@ -36,7 +37,15 @@ class FTMRoute:
         coords_end.reverse()
         return coords_end
 
-    def waypoints(self, start, stops = []):
+    def traveltime(self):
+        """Return traveltime in seconds"""
+        duration_stops = 0
+        for stop in self.stops:
+            duration_stops += stop.duration.total_seconds()
+        traveltime = self.duration + duration_stops
+        return traveltime
+
+    def waypoints(self, start):
         """Get a dataframe with date and location for hourly waypoints along route"""
 
         date = start
@@ -48,7 +57,7 @@ class FTMRoute:
         )
 
         # Add waypoints between stops
-        for stop in stops:
+        for stop in self.stops:
             waypoints_list, date, passed_time = self._add_hourly_waypoints(
                 waypoints_list, date, coords_start, stop.coordinates()
                 )
@@ -162,13 +171,27 @@ class FileRoute:
                 self.dataframe.to_csv(csvpath, encoding='utf-8', index=False)
         else:
             raise ValueError('Supported file formats for routes are gpx or csv')
+    
+        self.start = self.dataframe['Date'].iloc[0]
+        self.end = self.dataframe['Date'].iloc[-1]
+
+        # Trim timedeltas from start and end, if position data has to be trimmed
+        self.start += self.trimstart
+        self.end -= self.trimend
+
+        self.dataframe = self.dataframe[self.dataframe.Date.between(self.start, self.end)]
+        self.dataframe.index = range(len(self.dataframe))
+
+    def traveltime(self):
+        traveltime = self.dataframe['Date'].iloc[-1] - self.dataframe['Date'].iloc[0]
+        return traveltime.total_seconds()
 
     def dataframe_from_csv(self, csvpath):
         return pd.read_csv(
                 csvpath, usecols=[0, 1, 2], names=['Date', 'Lat', 'Lon'], header = 1, parse_dates = ['Date']
                 )
 
-    def waypoints(self, start = None, stops = []):
+    def waypoints(self, start = None):
         """Get dataframe with hourly waypoints along route
 
             Args:
@@ -195,21 +218,12 @@ class FileRoute:
 
         waypoints_list = []
 
-        start = self.dataframe['Date'].iloc[0]
-        end = self.dataframe['Date'].iloc[-1]
-
-        # Trim timedeltas from start and end, if position data has to be trimmed
-        start = start + self.trimstart
-        end = end - self.trimend
-        self.dataframe = self.dataframe[self.dataframe.Date.between(start, end)]
-        self.dataframe.index = range(len(self.dataframe))
-
         waypoints_list.append(self.dataframe.head(1))
         waypoints_list[0].at[0,'Lon'] = normalize_longitude(waypoints_list[0].at[0,'Lon'])
             
-        timestamp = start
+        timestamp = self.start
         i = 1
-        while (end - timestamp) > timedelta(hours = 1):
+        while (self.end - timestamp) > timedelta(hours = 1):
             nexttimestamp = self.dataframe.loc[i, 'Date']
 
             timedelta_nextpoint = nexttimestamp - timestamp
@@ -253,6 +267,18 @@ class FileRoute:
             'trimstart': duration_to_string(self.trimstart),
             'trimend': duration_to_string(self.trimend)
         }          
+
+def routeDecoder(obj, path = os.getcwd(), stops = []):
+    if 'filename' in obj:
+        routepath = os.path.join(path, obj['filename'])
+        trimstart = obj.get('trimstart', timedelta(seconds=0))
+        trimend = obj.get('trimend', timedelta(seconds=0))
+        timezone = obj.get('timezone', timedelta(seconds=0))
+        return FileRoute(routepath, trimstart = trimstart, trimend = trimend, timezone = timezone)
+    else:
+        route_start = obj['start_coordinates']
+        route_end = obj['end_coordinates']
+        return FTMRoute(route_start, route_end, stops = stops)
 
 class Stop:
     """Class to represent a stop during transport."""
