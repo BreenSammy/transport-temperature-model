@@ -1,7 +1,6 @@
 import calendar
 import copy
 from datetime import date, datetime, timedelta 
-import ftplib
 import os
 import shutil
 import time
@@ -15,7 +14,9 @@ import pandas as pd
 import requests
 from scipy import spatial
 
-WEATHERDATAPATH = os.path.abspath('weatherdata')
+WEATHERDATAPATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'weatherdata'
+    )
 
 if not os.path.exists(WEATHERDATAPATH):
             os.makedirs(WEATHERDATAPATH)
@@ -23,94 +24,67 @@ if not os.path.exists(WEATHERDATAPATH):
 #NOAA database saves temperature readings with scaling factor
 T_SCALINGFACTOR = 0.1
 
-class Station:
-    """
-    Class to represent a weather station of NOAA ISD database. 
-    Handles FTP connection to NOAA server and downloads ISD weather data.
-    ISD:  https://www.ncdc.noaa.gov/isd
-    Data: https://www.ncei.noaa.gov/pub/data/noaa/
-    """
-    def __init__(self, input_date, lat, lon):
-        self.date = input_date
-        self.lat_query = lat
-        self.lon_query = lon
-        
-        isd_history = os.path.abspath('weatherdata/isd-history.csv')
-        isd_inventory = os.path.abspath('weatherdata/isd-inventory.csv')
+def hour_rounder(t):
+    """ Rounds to nearest hour by adding a timedelta hour if minute >= 30 """
+    return (t.replace(second=0, microsecond=0, minute=0, hour=t.hour)
+               +timedelta(hours=t.minute//30))
 
-        # Download isd-history.txt (List of all weather stations), if not downloaded or older than one month
-        if not os.path.exists(isd_history): 
-            self._download('isd-history.csv', isd_history) 
-        # Check age of file with UNIX timestamp
-        elif (time.time() - os.path.getmtime(isd_history)) > 2592000: 
-            self._download('isd-history.csv', isd_history) 
-        # Same for isd-inventory.txt (Gives information about amount of measurements at station)
-        if not os.path.exists(isd_inventory): 
-            self._download('isd-inventory.csv', isd_inventory) 
-        # Check age of file with UNIX timestamp
-        elif (time.time() - os.path.getmtime(isd_inventory)) > 2592000: 
-            self._download('isd-invenotry.csv', isd_inventory) 
+class ISD:
+    """Downloads weatherdata from ISD Lite database"""
+    URL = 'https://www.ncei.noaa.gov/pub/data/noaa/isd-lite/'
+    ISD_HISTORY_URL = 'https://www.ncei.noaa.gov/pub/data/noaa/isd-history.csv'
+    ISD_INVENTORY_URL = 'https://www.ncei.noaa.gov/pub/data/noaa/isd-inventory.csv'
+    def __init__(self):
+        filedirectory = os.path.dirname(os.path.abspath(__file__))
+        isd_history_path = os.path.join(filedirectory, 'isd-history.csv')
+        isd_inventory_path = os.path.join(filedirectory, 'isd-inventory.csv')
 
-        # Save them as dataframe for easy acess
-        self.isd_history = pd.read_csv(isd_history, dtype={'USAF': str, 'WBAN': str})
-        self.isd_inventory = pd.read_csv(isd_inventory, dtype={'USAF': str, 'WBAN': str})
-        # Remove all stations without location
+        # Download isd history and inventory for station finding
+        if not os.path.exists(isd_history_path) or (time.time() - os.path.getmtime(isd_history_path)) > 2592000:  
+            self._download(self.ISD_HISTORY_URL, isd_history_path) 
+        if not os.path.exists(isd_inventory_path) or (time.time() - os.path.getmtime(isd_inventory_path)) > 2592000:
+            self._download(self.ISD_INVENTORY_URL, isd_inventory_path) 
+
+        self.isd_history = pd.read_csv(isd_history_path, dtype={'USAF': str, 'WBAN': str})
+        self.isd_inventory = pd.read_csv(isd_inventory_path, dtype={'USAF': str, 'WBAN': str})
+        # Remove stations that do not have a location
         self.isd_history = self.isd_history[self.isd_history.LAT.notnull()]
+        self.reset_possible_stations()
 
-        self._find(self.date, self.lat_query, self.lon_query)
-        self._download_weatherdata()
+    def reset_possible_stations(self):
+        """Possibile stations are used for finding closest station with weatherdata"""
+        self.possible_stations = copy.deepcopy(self.isd_history)
 
-    def _connect(self):
-        """Conncect to NOAA server with ftp connection. Retry to establish connection if it fails."""
-        retry = True
-        while (retry):
-            try:
-                self._ftp = ftplib.FTP('ftp.ncei.noaa.gov')
-                self._ftp.login()
-                self._ftp.cwd('pub/data/noaa')
-                retry = False
+    def _download(self, fileurl: str, targetpath: str):
+        if not os.path.exists(targetpath):
+            print('Downloading file from: \n' + fileurl)
+            r = requests.get(fileurl, allow_redirects=True)
+            with open(targetpath, 'wb') as outfile:
+                outfile.write(r.content)
+            print('Download finished')
 
-            except EOFError as e:
-                print(e)
-                print("Connection to NOAA server failed. Retrying to connect.")
-                retry = True
-
-            except OSError as e:
-                print(e)
-                print("Connection to NOAA server failed. Retrying to connect.")
-                retry = True
-
-    def _download(self, source_file: str, target_file: str):
-        """Downlaod a file from the ftp server and save it in the target file"""
-        try:
-            self._connect()
-            with open(target_file, 'wb+') as fh:
-                self._ftp.retrbinary('RETR ' + source_file, fh.write)
-
-        except ftplib.all_errors as e:
-            print('FTP error:', e) 
-
-            if os.path.isfile(target_file):
-                os.remove(target_file)
-
-    def _find(self, input_date: date, lat: float, lon: float):
+    def find_station(self, input_date, lat: float, lon: float):
         """Finds nearest station by lat and lon that has data for specified date"""
         # Remove all stations which have no records at the desired date
         date_int = int(input_date.strftime('%Y%m%d'))
-        possible_stations = copy.deepcopy(self.isd_history)
-        possible_stations = possible_stations[possible_stations.BEGIN < date_int]
-        possible_stations = possible_stations[possible_stations.END > date_int]
+        self.possible_stations = self.possible_stations[self.possible_stations.BEGIN < date_int]
+        self.possible_stations = self.possible_stations[self.possible_stations.END > date_int]
+
+        if self.possible_stations.empty:
+            raise ValueError('No station available for query datetime')
 
         while True:
-            coordinates = possible_stations[['LAT', 'LON']].values
+            coordinates = self.possible_stations[['LAT', 'LON']].values
 
             # Search for closest station
             tree = spatial.KDTree(coordinates)
             index_next_station = tree.query([(lat,lon)])[1][0]
 
             # Get dataframe entry of closest station
-            station = possible_stations[possible_stations.LAT == coordinates[index_next_station][0]]
-            station = possible_stations[possible_stations.LON == coordinates[index_next_station][1]]
+            station = self.possible_stations[
+                (self.possible_stations.LAT == coordinates[index_next_station][0]) & 
+                (self.possible_stations.LON == coordinates[index_next_station][1])
+                ]
 
             # Get data inventory of closest station
             inventory = self.isd_inventory.loc[
@@ -125,54 +99,67 @@ class Station:
 
             # Check if the dataset of the station has hourly data for that month
             if not inventory.empty:
-                if inventory[month].values[0]/days_in_month > 24:
+                if inventory[month].values[0]/days_in_month >= 24:
                     break
                 
             # Remove the current station from possible stations and search again
-            index = possible_stations.loc[
-                (possible_stations['USAF'] == station['USAF'].values[0]) & 
-                (possible_stations['WBAN'] == station['WBAN'].values[0])
+            index = self.possible_stations.loc[
+                (self.possible_stations['USAF'] == station['USAF'].values[0]) & 
+                (self.possible_stations['WBAN'] == station['WBAN'].values[0])
                 ].index.item()
 
-            possible_stations = possible_stations.drop([index])
+            self.possible_stations = self.possible_stations.drop([index])
 
-        self.USAF = station['USAF'].values[0]
-        self.WBAN = station['WBAN'].values[0]
-        self.lat = station['LAT'].values[0]
-        self.lon = station['LON'].values[0]
+        return station
 
-        coords_station = np.array([self.lat, self.lon])
-        coords_query = np.array([self.lat_query, self.lon_query])
-        self.distance = geopy.distance.distance(coords_station, coords_query).km
+    def temperature(self, input_date, lat: float, lon: float, output_station = False):
+        # Round to the next full hour, because database has data for full hours
+        input_date = hour_rounder(input_date)
+        # Sometimes the station has no data for the datetime, thus the loop
+        retry = True
+        while retry:
+            station = self.find_station(input_date, lat, lon)
+            # Calculate distance from query location to the station
+            coords_station = np.array([station['LAT'].iloc[0], station['LON'].iloc[0]])
+            coords_query = np.array([lat, lon])
+            distance = geopy.distance.distance(coords_station, coords_query).km
 
-    def _download_weatherdata(self):
-        """Downloads weather data for the station"""
+            if distance > 300:            
+                warnings.warn('{0}: Distance from {1}, {2} to closest weatherstation is {3} km. No data at query location available'.format(input_date, lat, lon, distance))
+                temperature = float('nan')
+                self.possible_stations = self.possible_stations.drop([station.index[0]])
+                break
 
-        self.filename = self.USAF + '-' + self.WBAN + '-' + str(self.date.year) + '.gz'
-        self.filepath = os.path.join(WEATHERDATAPATH, self.filename)
-        
-        if not os.path.exists(self.filepath):
-            ftp_filepath = 'isd-lite/' + str(self.date.year) + '/' + self.filename
-            self._download(ftp_filepath, self.filepath)
+            filename = '{0}-{1}-{2}.gz'.format(station['USAF'].iloc[0], station['WBAN'].iloc[0], input_date.year)
+            # e.g .../2019/010020-99999-2019.gz
+            weatherdata_url = self.URL + str(input_date.year) + '/' + filename
 
-    def reload(self):
-        """
-        Reload the station. Current station is removed and new nearest station is searched.
-        Used when current station has no useable data.
-        """
-        # Drop current station from isd_history
-        index = self.isd_history.loc[
-            (self.isd_history['USAF'] == self.USAF) & (self.isd_history['WBAN'] == self.WBAN)].index.item()
-            
-        self.isd_history = self.isd_history.drop([index])
-        # Find new next station and download weather data
-        self._find(self.date, self.lat_query, self.lon_query)
-        self._download_weatherdata()
+            col_names = ['Year', 'Month', 'Day', 'Hour', 'T']
+            df = pd.read_csv(
+                weatherdata_url, parse_dates={'Date': ['Year', 'Month', 'Day', 'Hour']}, 
+                compression='gzip', quotechar='"', delim_whitespace=True, usecols=[0,1,2,3,4], names=col_names
+                )
+
+            df = df[df.Date.between(input_date, input_date)]
+
+            # If the dataframe is empty, station has no data for datetime and is removed from isd_history
+            if df.empty:
+                self.possible_stations = self.possible_stations.drop([station.index[0]])
+                retry = True
+            else:
+                temperature = df['T'].values[0] * T_SCALINGFACTOR  
+                retry = False
+
+        self.reset_possible_stations()
+
+        if output_station:
+            return temperature, station
+        else:
+            return temperature
 
 class NOAAFile(object):
     """Base class for access to NOAA server"""
     def __init__(self, input_date):   
-
         self.date = input_date
 
     def _find_file(self, url, datestring, extension):
@@ -185,13 +172,9 @@ class NOAAFile(object):
         return next((s for s in available_files if datestring in s), None) 
 
     def _download(self, fileurl: str, targetpath: str):
-
-        if not os.path.exists(targetpath):
-            print('Downloading file from: \n' + fileurl)
             r = requests.get(fileurl, allow_redirects=True)
             with open(targetpath, 'wb') as outfile:
                 outfile.write(r.content)
-            print('Download finished')
 
 class ICOADSFile(NOAAFile):
     """
@@ -358,63 +341,22 @@ def temperature(input_datetime: datetime, lat: float, lon: float, use_ICOADS = F
     """Find temperature for datetime and location."""
 
     OISST = OISSTFile(input_datetime)
-
-    sst, distance = OISST.sea_surface_temperature(lat, lon)
-
+    sst, _ = OISST.sea_surface_temperature(lat, lon)
     coordinates_onsea = onsea(lat, lon)
+
+    isd = ISD()
 
     if not use_ICOADS and coordinates_onsea:
         temperature = sst
     elif use_ICOADS and coordinates_onsea:
         ICOADS = ICOADSFile(input_datetime)
-        temperature, distance = ICOADS.temperature(input_datetime, lat, lon) 
+        temperature, _ = ICOADS.temperature(input_datetime, lat, lon) 
     else:
-        temperature, distance = _get_temperature_at_station(input_datetime, lat, lon)
+        temperature = isd.temperature(input_datetime, lat, lon)
 
-    if distance > 100:
-        warnings.warn('{0}: distance to {1}, {2} is {3} km.'.format(input_datetime, lat, lon, distance))
+    clear()
 
     return temperature
-
-def temperature_range(datetimes, lat, lon):
-
-    if isinstance(datetimes, list):
-        station = Station(datetimes[0], lat, lon)
-        datetimes = [hour_rounder(entry) for entry in datetimes]
-    else:
-        station = Station(datetimes, lat, lon)
-        datetimes = hour_rounder(datetimes)
-
-    # Sometimes the station has no data for the datetime, thus the loop
-    retry = True
-    while retry:
-        col_names = ['Year', 'Month', 'Day', 'Hour', 'T']
-
-        df = pd.read_csv(
-            station.filepath, parse_dates={'Date': ['Year', 'Month', 'Day', 'Hour']}, 
-            compression='gzip', quotechar='"', delim_whitespace=True, usecols=[0,1,2,3,4], names=col_names
-            )
-
-        df = df[df.Date.between(datetimes[0], datetimes[-1])]
-
-        # If the dataframe is empty, station has no data for datetime and is removed from isd_history
-        if df.empty:
-            # Remove the current station from possible stations and search again
-            station.reload()
-            retry = True
-        else:
-            # Pick temperature for ever datetime in datetimes
-            df = df.set_index('Date')
-            df = df.loc[datetimes, :]
-            temperature = df['T'].values * T_SCALINGFACTOR
-            retry = False
-
-    distance = station.distance
-
-    if distance > 100:
-        warnings.warn('{0}: distance to {1}, {2} is {3} km.'.format(datetimes[0], lat, lon, distance))
-
-    return temperature, distance
 
 def waypoints_temperature(datetimes, lat, lon):
     """ Get temperature for a series of waypoints"""
@@ -422,6 +364,7 @@ def waypoints_temperature(datetimes, lat, lon):
     length = lat.size
     temperatures = np.zeros(length)
 
+    isd = ISD()
     OISST = OISSTFile(datetimes[0])
     day = datetimes[0].day
 
@@ -438,59 +381,17 @@ def waypoints_temperature(datetimes, lat, lon):
             temperatures[i] = sst
         # Else on land
         else:
-            temperature_at_station, _ = _get_temperature_at_station(datetimes[i], lat[i], lon[i])
-            temperatures[i] = temperature_at_station
-            # If distance to weatherstation is to big, use interpolated temperature
-            # if distance < 300:
-            #     temperatures[i] = temperature_at_station
-            # else:
-            #     warnings.warn('{0}: distance to {1}, {2} is {3} km. \n Interpolationg with closest values'.format(datetimes[i], lat[i], lon[i], distance))
-            #     temperatures[i] = float('nan')
+            temperatures[i] = isd.temperature(datetimes[i], lat[i], lon[i])
 
-        print(i)
+        if temperatures[i] != 'nan':
+            print(
+                "Found temperature data for {0} at {1}, {2}: {3}".format(
+                    datetimes[i], lat[i], lon[i], temperatures[i]
+                    ))
+
+    clear()
 
     return np.around(temperatures, 2)
-
-def _get_temperature_at_station(input_datetime, lat, lon):
-    # Round to the next full hour, because database has data for full hours
-    input_datetime = hour_rounder(input_datetime)
-
-    date = input_datetime.date()
-    station = Station(date, lat, lon)
-
-    # Sometimes the station has no data for the datetime, thus the loop
-    retry = True
-    while retry:
-        col_names = ['Year', 'Month', 'Day', 'Hour', 'T']
-
-        df = pd.read_csv(
-            station.filepath, parse_dates={'Date': ['Year', 'Month', 'Day', 'Hour']}, 
-            compression='gzip', quotechar='"', delim_whitespace=True, usecols=[0,1,2,3,4], names=col_names
-            )
-
-        df = df[df.Date.between(input_datetime, input_datetime)]
-
-        distance = station.distance
-
-        # If the dataframe is empty, station has no data for datetime and is removed from isd_history
-        if distance > 300:            
-            warnings.warn('{0}: distance to {1}, {2} is {3} km. \n Interpolationg with closest values'.format(input_datetime, lat, lon, distance))
-            temperature = float('nan')
-            retry = False
-        elif df.empty:
-            # Remove the current station from possible stations and search again
-            station.reload()
-            retry = True
-        else:
-            temperature = df['T'].values[0] * T_SCALINGFACTOR  
-            retry = False
-
-    return temperature, distance
-
-def hour_rounder(t):
-    """ Rounds to nearest hour by adding a timedelta hour if minute >= 30 """
-    return (t.replace(second=0, microsecond=0, minute=0, hour=t.hour)
-               +timedelta(hours=t.minute//30))
 
 def degrees_decimal_to_east(lon):
     """
