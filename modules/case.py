@@ -83,6 +83,12 @@ class Case(SolutionDirectory):
         changeDictionaryDict_airInside.writeFile()
         changeDictionaryDict_battery.writeFile()
 
+    def initial_temperature(self):
+        initial_temperature = ParsedParameterFile(
+            os.path.join(self.name, '0', 'airInside', 'T')
+            )['internalField'].val
+        return initial_temperature
+
     def change_transporttype(self, transporttype):
         """Change transport specific parameters"""
 
@@ -126,6 +132,7 @@ class Case(SolutionDirectory):
         # refinementLevel for cargo regions
         REFINEMENTSURFACELEVEL = [3,3]
 
+        self.cargo = cargo
         # Open files that need to be modified
         regionProperties = ParsedParameterFile(os.path.join(self.constantDir(),'regionProperties'))
         snappyHexMeshDict = ParsedParameterFile(os.path.join(self.systemDir(), "snappyHexMeshDict"))
@@ -150,33 +157,37 @@ class Case(SolutionDirectory):
                     )
 
                 # Copy the battery template folders 
-                shutil.copytree(os.path.join(self.systemDir(), "battery_template"), os.path.join(self.systemDir(), battery.name))
-                shutil.copytree(os.path.join(self.constantDir(), "battery_template"), os.path.join(self.name, "constant", battery.name))
-                shutil.copytree(os.path.join(self.name, "0.org", "battery_template"), os.path.join(self.name, "0.org", battery.name))
+                if not os.path.exists(os.path.join(self.systemDir(), battery.name)):
+                    shutil.copytree(os.path.join(self.systemDir(), "battery_template"), os.path.join(self.systemDir(), battery.name))
+                if not os.path.exists( os.path.join(self.name, "constant", battery.name)):
+                    shutil.copytree(os.path.join(self.constantDir(), "battery_template"), os.path.join(self.name, "constant", battery.name))
+                if not os.path.exists( os.path.join(self.name, "0.org", battery.name)):
+                    shutil.copytree(os.path.join(self.name, "0.org", "battery_template"), os.path.join(self.name, "0.org", battery.name))
                 # Write thermophysical properties to the region
                 thermophysicalProperties = ParsedParameterFile(os.path.join(self.constantDir(), battery.name, 'thermophysicalProperties'))
                 thermophysicalProperties['mixture']['thermodynamics']['Cp'] = battery.thermal_capacity()
                 thermophysicalProperties['mixture']['equationOfState']['rho'] = battery.density()
                 thermophysicalProperties['mixture']['equationOfState']['rho'] = battery.density()
+                thermalconductivity = battery.thermal_conductivity()
                 thermophysicalProperties['mixture']['transport']['kappa'] = Vector(
-                    battery.freight.thermalconductivity[0],
-                    battery.freight.thermalconductivity[1],
-                    battery.freight.thermalconductivity[2]
+                    thermalconductivity[0],
+                    thermalconductivity[1],
+                    thermalconductivity[2]
                     )
                 thermophysicalProperties.writeFile()
 
                 # Write boundary conditions for battery region and airInside region
                 changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), battery.name, 'changeDictionaryDict'))
-                openfoam.region_coupling_solid_anisotrop['thicknessLayers'] = '( {} )'.format(battery.packaging_thickness())
-                openfoam.region_coupling_solid_anisotrop['kappaLayers'] = '( {} )'.format(battery.thermal_conductivity_packaging)
+                # openfoam.region_coupling_solid_anisotrop['thicknessLayers'] = '( {} )'.format(battery.packaging_thickness())
+                # openfoam.region_coupling_solid_anisotrop['kappaLayers'] = '( {} )'.format(battery.thermalconductivity_packaging)
                 changeDictionaryDict['T']['boundaryField'][battery.name + '_to_airInside'] = openfoam.region_coupling_solid_anisotrop
                 changeDictionaryDict.writeFile()
 
-                changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), 'airInside', 'changeDictionaryDict'))
-                openfoam.region_coupling_fluid['thicknessLayers'] = '( {} )'.format(battery.packaging_thickness())
-                openfoam.region_coupling_fluid['kappaLayers'] = '( {} )'.format(battery.thermal_conductivity_packaging)
-                changeDictionaryDict['T']['boundaryField']['airInside_to_'+ battery.name] = openfoam.region_coupling_fluid
-                changeDictionaryDict.writeFile()
+                # changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), 'airInside', 'changeDictionaryDict'))
+                # openfoam.region_coupling_fluid['thicknessLayers'] = '( {} )'.format(battery.packaging_thickness())
+                # openfoam.region_coupling_fluid['kappaLayers'] = '( {} )'.format(battery.thermalconductivity_packaging)
+                # changeDictionaryDict['T']['boundaryField']['airInside_to_'+ battery.name] = openfoam.region_coupling_fluid
+                # changeDictionaryDict.writeFile()
 
                 #Names of the solid regions are in third entry of the list regions, adding batteries
                 regionProperties['regions'][3].append(battery.name)
@@ -207,7 +218,7 @@ class Case(SolutionDirectory):
 
         changeDictionaryDict.writeFile()
 
-    def heattransfer_coefficient(self, T_U, u, region = 'airInside'):
+    def heattransfer_coefficient(self, T_U, u, L = None, region = 'airInside'):
         """Calculate heattransfer coefficient"""
         # Value for current time is saved in folder for last time
         times = self.getParallelTimes()
@@ -215,9 +226,9 @@ class Case(SolutionDirectory):
         # If times has only one entry, that means only 0 folder exists, 
         # thus average path temperature is initial temperature
         if len(times) == 1:
-            airInside0T = ParsedParameterFile(os.path.join(self.name, '0', region, 'T'))
-            T_W = re.findall(r"[-+]?\d*\.\d+|\d+", str(airInside0T['internalField']))
-            T_W = float(T_W[0])
+            T_W = ParsedParameterFile(
+                os.path.join(self.name, '0', 'airInside', 'T')
+                )['internalField'].val
         # Else use average patch temperature
         else:
             time = times[-2]
@@ -242,11 +253,13 @@ class Case(SolutionDirectory):
         snappyHexMeshDict = ParsedParameterFile(os.path.join(self.systemDir(), "snappyHexMeshDict"))
         if u < 4:
             # Length for natural convection is z-axis value of geometry of carrier
-            L = snappyHexMeshDict['geometry']['carrier']['max'][2]
+            if L == None:
+                L = snappyHexMeshDict['geometry']['carrier']['max'][2]
             return convection.coeff_natural(L, T_W, T_U), T_W
         else:
             # Length for forced convection is x-axis value of geometry of carrier
-            L = snappyHexMeshDict['geometry']['carrier']['max'][0]
+            if L == None:
+                L = snappyHexMeshDict['geometry']['carrier']['max'][0]
             return convection.coeff_forced(L, u), T_W
 
     def run(self):
@@ -427,11 +440,6 @@ class Case(SolutionDirectory):
         case_postProcessing = os.path.join(self.name, "postProcessing")
         targetpath_temperature = os.path.join(os.path.dirname(self.name), 'postProcessing', 'temperature')
         targetpath_wallHeatFlux =  os.path.join(os.path.dirname(self.name), 'postProcessing', 'wallHeatFlux')
-        #Create new folders for postprocess results
-        if not os.path.exists(targetpath_temperature):
-            os.makedirs(targetpath_temperature)
-        if not os.path.exists(targetpath_wallHeatFlux):
-            os.makedirs(targetpath_wallHeatFlux)
 
         # Find all regions
         regions = self.regions()
@@ -444,11 +452,14 @@ class Case(SolutionDirectory):
         # Filter times so only times during transport are postprocessed
         times = [time for time in times if float(time) <= self.duration()]
         del times[-1]
+        # If times is empty stop
+        if not times:
+            return
 
         initial_temperature = ParsedParameterFile(
             os.path.join(self.name, '0', 'airInside', 'T')
             )['internalField'].val
-    
+
         for i in range(len(regions)):
             # Add zero time head with initial temperatures
             df_head = {
@@ -515,9 +526,84 @@ class Case(SolutionDirectory):
             filename_wallHeatFlux = os.path.join(targetpath_wallHeatFlux, regions[i] + '.csv')
             df_wallHeatFlux.to_csv(filename_wallHeatFlux, encoding='utf-8', index=False) 
 
-    def probe_freight(self, regionname):
-        cargo_number, region_number = re.findall(r'\d+', regionname)
+    def postprocess_arrival(self):
+        case_postProcessing = os.path.join(self.name, "postProcessing")
+        targetpath_arrival = os.path.join(os.path.dirname(self.name), 'postProcessing', 'arrival')
 
+        if not os.path.exists(targetpath_arrival):
+            os.makedirs(targetpath_arrival)
+
+        # Find all regions
+        regions = self.regions()
+        regions.remove('airInside')
+
+        # Get all timesteps and delete last one, because for latestTime no postProcess folder exists
+        times = self.getTimes()
+        # If case is not reconstructed self.getTimes() only returns 0 directory, use parallel times instead
+        if len(times) == 1:
+            times = self.getParallelTimes()
+        # Filter times so only times after transport are postprocessed
+        transport_times = [time for time in times if float(time) < self.duration()]
+        times = [time for time in times if float(time) >= self.duration()]
+        del times[-1]
+        # If times is empty stop
+        if not times:
+            return
+
+        print(times)
+
+        # Header length for different types of postprocessing resultes from OpenFOAM
+        header = {
+            'volFieldValue.dat': 3,
+            'surfaceFieldValue.dat': 4
+        }
+        
+        # Iterate over regions
+        for region in regions:
+            region_path = os.path.join(case_postProcessing, region)
+            postprocess_function_paths = [os.path.join(region_path, x) for x in os.listdir(region_path)]
+            result = pd.DataFrame(data = {'time': times})
+            # Iterate over results from different postprocess functions 
+            for path in postprocess_function_paths:
+                # Get paths to all postprocessing files
+                all_timedirectories = os.listdir(path)
+                all_arrivaltimedirectories = sorted(set(times).intersection(all_timedirectories), key = float)
+                all_paths = [os.path.join(path, x) for x in all_arrivaltimedirectories]
+                filename = os.listdir(all_paths[0])[0]
+                all_paths = [os.path.join(x, filename) for x in all_paths]
+                # Define column name for dataframe
+                colname = os.path.basename(path).split('_')[0] + '(T)'
+                
+                # Get the first temperature at arrival, hence the last of the transport
+                if times[0] == '0':
+                    arrival_temperature = self.initial_temperature()
+                else:
+                    lasttransporttime = transport_times[-1]
+                    lasttransportpath = os.path.join(path, lasttransporttime, filename)
+                    df_lasttransport = pd.read_csv(
+                        lasttransportpath, sep="\s+", header=header[filename], usecols = [0,1], names = ['time', colname]
+                        )
+                    arrival_temperature = df_lasttransport[colname].iloc[0]
+
+                dict_arrival = {
+                        'time': times[0],
+                        colname: arrival_temperature,
+                        }
+                # Read data from files and save in one dataframe
+                df_list = [pd.DataFrame( data = dict_arrival, index=[0])]
+                df_list.extend(
+                    [pd.read_csv(f, sep="\s+", header=header[filename], usecols = [0,1], names = ['time', colname]) for f in all_paths]
+                    )
+                df = pd.concat(df_list)
+                
+                # Join the dataframes together into one
+                df.index = range(len(df))
+                # Add to results and convert to Celsius
+                result = result.join(df[colname] - 273.15)
+            # Save as csv
+            result.to_csv(os.path.join(targetpath_arrival, region + '.csv'), index=False, encoding='utf-8')
+
+    def read_cargo(self):
         # Read cargo if not existent
         if not hasattr(self, 'cargo'):
             json_filenames = [f for f in os.listdir(os.path.join(self.name, os.pardir)) if f.endswith('.json')]
@@ -527,6 +613,11 @@ class Case(SolutionDirectory):
             with open(json_path) as json_file: 
                 json_dict = json.load(json_file, cls=TransportDecoder)
             self.cargo = [cargoDecoder(item) for item in json_dict['cargo']]
+
+    def probe_freight(self, regionname):
+        cargo_number, region_number = re.findall(r'\d+', regionname)
+
+        self.read_cargo()
 
         battery_region = self.cargo[int(cargo_number)].battery_regions[int(region_number)]
 
@@ -690,7 +781,14 @@ class Case(SolutionDirectory):
 
         self.packCase(pack_path, additional = additional, exclude = exclude)
 
-    def plot(self, probes = None, tikz = False, format_ext = '.jpg', dpi = 250, marker = None):
+    def plot(
+        self, 
+        probes = None, 
+        tikz = False, 
+        format_ext = '.jpg', 
+        dpi = 250, 
+        marker = None
+        ):
         """Create plots for the simulation results"""
         self.load_weatherdata()
         add_seconds(self.weatherdata)
@@ -698,6 +796,9 @@ class Case(SolutionDirectory):
         postprocessing_path = os.path.join(self.name, os.pardir, 'postProcessing')
         plots_path = os.path.join(self.name, os.pardir, 'plots')
         pp_probes_path = os.path.join(postprocessing_path, 'probes')
+        # Stop if no plot data is available
+        if not os.listdir(os.path.join(postprocessing_path, 'temperature')):
+            return
 
         if not os.path.exists(plots_path):
             os.makedirs(plots_path)
@@ -853,12 +954,17 @@ class Case(SolutionDirectory):
         regions = self.regions()
         regions.remove('airInside')
         for region in regions:
+            # Read length for heattransfer coefficient from cargo 
+            cargo_number, _ = re.findall(r'\d+', region)
+            # Dominant lenght is dimension in z-axis
+            L = self.cargo[int(cargo_number)].dimensions[2]
+
             changeDictionaryDict = ParsedParameterFile(
                 os.path.join(os.path.join(self.systemDir(), region, 'changeDictionaryDict'))
             )
 
             openfoam.external_wall['Ta'] = ambienttemperature
-            openfoam.external_wall['h'] =  self.heattransfer_coefficient(ambienttemperature, 0, region = region)
+            openfoam.external_wall['h'] =  self.heattransfer_coefficient(ambienttemperature, 0,  L = L, region = region)
 
             changeDictionaryDict['T']['boundaryField'][region + '_to_airInside'] = openfoam.external_wall
 
@@ -872,6 +978,11 @@ class Case(SolutionDirectory):
  
     def _get_max_delta(self, reftemperature):
         """Calculate the maximal temperature difference of all solid regions to a reference temperature"""
+
+        # Catch if case did no transport
+        if self.getParallelTimes() == ['0']:
+            return abs(self.initial_temperature() - reftemperature)
+
         latesttime = self.getParallelTimes()[-2]
         path_postprocessing = os.path.join(self.name, "postProcessing")
 
@@ -908,6 +1019,10 @@ class Case(SolutionDirectory):
         return np.amax(temperature)
 
     def simulate_arrival(self, ambienttemperature):
+        # Transform from Celsius to Kelvin
+        ambienttemperature += 273.15
+        
+        self.read_cargo()
 
         transportduration = self.duration()
 
@@ -927,8 +1042,8 @@ class Case(SolutionDirectory):
             print(deltaT)
             latesttime = float(self.getParallelTimes()[-1])
             controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
-            controlDict['endTime'] = latesttime + 21600
-            controlDict['writeInterval'] = 21600
+            controlDict['endTime'] = latesttime + 7200
+            controlDict['writeInterval'] = 7200
             controlDict.writeFile()
 
             self._change_dictionary_solids(ambienttemperature)
@@ -936,12 +1051,14 @@ class Case(SolutionDirectory):
             os.system(os.path.join(self.name,"Run"))
             self._move_logs()
 
-            plt.plot((latesttime - transportduration) / 3600, deltaT)
+            plt.plot((latesttime - transportduration) / 7200, deltaT)
             plot = True
 
             deltaT = self._get_max_delta(ambienttemperature)
 
         print('Finished simulation of arrival. Final difference to ambient temperature: {}'.format(deltaT))
+
+        self.postprocess_arrival()
 
         if plot:
             plotpath = os.path.join(os.path.dirname(self.name), 'plots', 'arrival.jpg')

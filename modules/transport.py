@@ -19,21 +19,31 @@ from modules.route import routeDecoder, stopDecoder
 matplotlib.use('Agg')
 
 class Transport:
-    def __init__(self, path, transporttype, start, initial_temperature, cargo, route):
+    def __init__(
+        self, path, transporttype, start, initial_temperature, 
+        arrival_temperature, cargo, route
+        ):
         self.path = path
         self.type = transporttype
         self.start = start
         self.initial_temperature = initial_temperature
+        self.arrival_temperature = arrival_temperature
         self.cargo = cargo
         self.route = route
 
         self._jsonpath = os.path.join(self.path, 'transport.json')
         self._weatherdatapath = os.path.join(self.path, 'weatherdata.csv')
         self._postprocesspath = os.path.join(self.path, 'postProcessing') 
+        self._postprocesspath_temperature = os.path.join(self._postprocesspath, 'temperature')
+        self._postprocesspath_wallHeatFlux = os.path.join(self._postprocesspath, 'wallHeatFlux')
         self._plotspath = os.path.join(self.path, 'plots')
 
         if not os.path.exists(self._postprocesspath):
             os.makedirs(self._postprocesspath)
+        if not os.path.exists(self._postprocesspath_temperature):
+            os.makedirs(self._postprocesspath_temperature)
+        if not os.path.exists(self._postprocesspath_wallHeatFlux):
+            os.makedirs(self._postprocesspath_wallHeatFlux)
         if not os.path.exists(self._plotspath):
             os.makedirs(self._plotspath)
         
@@ -118,7 +128,8 @@ class TransportEncoder(JSONEncoder):
                 "start": transport.start.strftime("%s %s" % (
                     self.DATE_FORMAT, self.TIME_FORMAT
                 )),
-                "temperature": transport.initial_temperature,
+                "initial_temperature": transport.initial_temperature,
+                "arrival_temperature": transport.arrival_temperature,
                 "route": transport.route.to_dict(),
                 "stops": stops,
                 "cargo": [item.to_dict() for item in transport.cargo]           
@@ -190,17 +201,20 @@ def from_json(filepath):
     # Read all parameters from the dict
     transporttype = json_dict['type']
     start = json_dict['start']
-    initial_temperature = json_dict['temperature']
+    initial_temperature = json_dict['initial_temperature']
+    arrival_temperature = json_dict['arrival_temperature']
     # Create cargo instances
-    cargo = [cargoDecoder(item) for item in json_dict['cargo']]
-    # Create route, first check if from file, else use FTM routing
-    route = routeDecoder(json_dict['route'], path, stops = json_dict['stops'])   
+    cargo = [cargoDecoder(item) for item in json_dict['cargo']] 
     # Create stop instances
     if 'stops' in json_dict:
         stops = [stopDecoder(stop) for stop in json_dict['stops']]
     else:
         stops = []
-    # Create route, first check if from file, else use FTM routing
+    # Create route
     route = routeDecoder(json_dict['route'], path, stops = stops)
     # Return the transport instance
-    return Transport(path, transporttype, start, initial_temperature, cargo, route)
+    return Transport(
+        path, transporttype, start, 
+        initial_temperature, arrival_temperature, 
+        cargo, route
+        )

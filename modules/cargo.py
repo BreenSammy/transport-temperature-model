@@ -13,7 +13,8 @@ NUMBER_PACKAGES = {
     'pallet2x4.stl': (2, 4),
     'pallet3x4.stl': (3, 4),
     'industrial_pallet1x1.stl': (1, 1),
-    'industrial_pallet1x4.stl': (1, 4)
+    'industrial_pallet1x4.stl': (1, 4),
+    'package.stl': (1, 1)
 }
 
 DIMENSIONS_PACKAGE = {
@@ -21,13 +22,15 @@ DIMENSIONS_PACKAGE = {
     'pallet2x4.stl': [0.6, 0.4, 0.4],
     'pallet3x4.stl': [0.6, 0.4, 0.4],
     'industrial_pallet1x1.stl': [1.2, 1, 0.4],
-    'industrial_pallet1x4.stl': [0.6, 0.5, 0.4]
+    'industrial_pallet1x4.stl': [0.6, 0.5, 0.4],
+    'package.stl': [0.425, 0.335, 0.260]
 }
 
 FREIGHTTYPES = {'cells', 'modules', 'packs'}
-THERMAL_CAPACITY_PACKAGING = 1600
+THERMAL_CAPACITY_PACKAGING = 1300
 THERMAL_CONDUCTIVITY_PACKAGING = 0.053
-DENSITY_PACKAGING = 132
+# DENSITY_PACKAGING = 132
+DENSITY_PACKAGING = 23.65
 
 class BatteryRegion:
     """Class to represent a battery region in OpenFOAM case"""
@@ -35,7 +38,7 @@ class BatteryRegion:
         self.position = position
         self.dimensions = dimensions
         self.freight = freight
-        self.thermal_conductivity_packaging = THERMAL_CONDUCTIVITY_PACKAGING
+        self.thermalconductivity_packaging = THERMAL_CONDUCTIVITY_PACKAGING
 
     def density(self):
         """Calculate the average density"""
@@ -60,6 +63,14 @@ class BatteryRegion:
              / (volume_region * self.density())
             )
 
+    def thermal_conductivity(self):
+        thermal_conductivity = [0, 0, 0]
+        for i in range(3):
+            thermal_conductivity[i] = (self.dimensions[i] + self.freight.dimensions[i]) / (
+                    self.dimensions[i]/self.thermalconductivity_packaging + self.freight.dimensions[i]/self.freight.thermalconductivity[i]
+                    )
+        return thermal_conductivity
+
 class Pallet:
     """Class to describe a pallet full of packages filled with batteries."""
     def __init__(self, templateSTL: str, position: list, orientation: list, freight):
@@ -69,6 +80,11 @@ class Pallet:
         self.orientation = orientation
         self.freight = freight
         self.battery_regions = self.get_battery_regions()
+        self.dimensions = [
+            DIMENSIONS_PACKAGE[templateSTL][0] * NUMBER_PACKAGES[templateSTL][1],
+            DIMENSIONS_PACKAGE[templateSTL][1] * NUMBER_PACKAGES[templateSTL][1],
+            DIMENSIONS_PACKAGE[templateSTL][2] * NUMBER_PACKAGES[templateSTL][0]
+        ]
 
     def get_battery_regions(self):
         """Create all battery regions of the pallet"""
