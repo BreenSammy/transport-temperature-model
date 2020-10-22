@@ -26,15 +26,16 @@ transportpath = args.transport
 
 # Read transport from json and create transport instance
 transport = transport.from_json(os.path.join(transportpath, 'transport.json'))
-
-# Setup the case for the simulation 
+# transport.save()
+# # Setup the case for the simulation 
 casepath = os.path.join(transportpath, 'case')
 templatecasepath = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'cases', 'container', 'container_template'
     )
 
 if not os.path.exists(casepath) or args.clone:
-    files = glob.glob(os.path.join(transportpath, 'postProcessing'))
+    # Delete all contents of postProcessing
+    files = glob.glob(os.path.join(transportpath, 'postProcessing','*.*'))
     for f in files:
         os.remove(f)
     templatecase = Case(templatecasepath)
@@ -64,7 +65,7 @@ if args.pack:
 
 # Postprocess the simulation
 if args.arrival:
-    transportcase.simulate_arrival()
+    transportcase.simulate_arrival(transport.arrival_temperature)
 if args.probe:
     region = args.probe[0]
     location = [float(i) for i in args.probe[1][1:-1].split(' ')]
@@ -75,5 +76,5 @@ if not os.listdir(os.path.join(transportpath, 'postProcessing', 'temperature')) 
     transportcase.postprocess()
 
 plots_content = os.listdir(os.path.join(transportpath, 'plots'))
-if 'plot.jpg' not in plots_content or args.plot:
-    transportcase.plot(probes = ['battery0_0', 'battery0_1'], tikz = True)
+if 'plot.*' not in plots_content or args.plot:
+    transportcase.plot(probes = ['battery0_0'], tikz = True)
