@@ -1,13 +1,13 @@
 import copy
+from math import floor
 import os
 import json
 
 import altair as alt
 import branca
-import geopandas as gpd
+import geopy.distance
 import folium
 from folium import plugins
-from folium.features import GeoJson, GeoJsonTooltip, GeoJsonPopup
 from matplotlib import cm
 import numpy as np
 import pandas as pd
@@ -20,77 +20,182 @@ TUMBLUELIGHT = '#64A0C8'
 TUMORANGE = '#E37222'
 TUMGREEN = '#A2AD00'
 
-def jet():
-    return [cm.jet(i) for i in range(256)]
+DOMAIN = ['ambient', 'average_air']
+RANGE = [TUMBLUE, TUMORANGE]
+
+def jet(steps = 256):
+    step = floor(256/steps)
+    return [cm.jet(i) for i in range(0, 256, step)]
+
+def filter_stops(waypoints):
+    """Method to filter stop locations from all waypoints"""
+    coordinates = waypoints[['Lat', 'Lon']].values
+    stop_list = []
+    stops = pd.DataFrame()
+
+    for i in range(len(waypoints) - 1):
+        distance = geopy.distance.distance(coordinates[i, :],coordinates[i + 1, :]).km
+        if distance <= 10: 
+            # First point of stop needs to be added
+            if stop_list == []:
+                stop_list.append(waypoints.loc[i, :])
+            stop_list.append(waypoints.loc[i+1, :])
+            # Remove point at stop from waypoints
+            waypoints = waypoints.drop([i])
+        elif stop_list != []:
+            # Remove last point at stop
+            waypoints = waypoints.drop([i])
+            df = pd.concat(stop_list)
+            # Create new stop dataframe
+            new_stop = pd.DataFrame(
+                data = {
+                    'start': df['Date'].iloc[0],
+                    'end': df['Date'].iloc[-1],
+                    'Lat': df['Lat'].values.mean(),
+                    'Lon': df['Lon'].values.mean(),
+                    'timestamps': 0,
+                    'ambient': 0,
+                    'average_air': 0
+                    },
+                dtype=object, 
+                index=[0]
+                )
+            # Add temperatures as lists
+            new_stop.at[0, 'timestamps'] = df['Date'].values
+            new_stop.at[0, 'ambient'] = df['ambient'].values
+            new_stop.at[0, 'average_air'] = df['average_air'].values
+            # Concat stops
+            stops = pd.concat([stops, new_stop])
+            stop_list = []
+
+    # Reindex dataframes
+    waypoints.index = range(len(waypoints.index))
+    stops.index = range(len(stops.index))
+
+    return waypoints, stops
 
 def create(transport):
 
     data = copy.deepcopy(transport.weatherdata)
+    data.rename(columns = {'T':'ambient'}, inplace = True) 
     temperature_air = transport.read_postprocessing('airInside')
     data['average_air'] = temperature_air['average(T)']
-    # Transform datetime objects to string
+    # Transform datetime objects to strings
     data['Date'] = data['Date'].dt.strftime('%Y-%m-%d %H:%M:%S')
-
-    data = gpd.GeoDataFrame(
-        data, geometry=gpd.points_from_xy(data.Lon, data.Lat), crs='EPSG:4326')
-    data.to_file("countries.geojson", driver='GeoJSON')
-    
-    start = data[['Lat', 'Lon']].values[0]
     coordinates = data[['Lat', 'Lon']].values
-
     data = data.round({'average_air': 3})
-    print(data)
+
+    waypoints, stops = filter_stops(data)
+
+    start_lat = data[['Lat']].values.mean()
+    start_lon = data[['Lon']].values.mean()
+
     m = folium.Map(
-        location=start,
+        location=[start_lat, start_lon],
         zoom_start=7,
-        tiles='Cartodb Positron'
+        tiles=None
         )
 
+    folium.raster_layers.TileLayer('Cartodb Positron').add_to(m)
+    folium.raster_layers.TileLayer('OpenStreetMap').add_to(m)
+  
     fg_waypoints = folium.FeatureGroup(name='Waypoints')
+    fg_stops = folium.FeatureGroup(name='Stops')
     m.add_child(fg_waypoints)
+    m.add_child(fg_stops)
 
-    colormap = branca.colormap.LinearColormap(jet(), index=None, vmin=-10, vmax=50, caption='')
+    index = [-15, -5, 5, 15, 25, 35, 45, 55]
+    colormap = branca.colormap.LinearColormap(
+        jet(steps = len(index)), 
+        index=index, 
+        vmin=index[0], 
+        vmax=index[-1], 
+        caption='Temperature inside the carrier')
 
-    # print(colormap(10))
-    # g1 = plugins.FeatureGroupSubGroup(fg, 'group1')
-    # m.add_child(g1)
+    # Create marker for start of transport and create popup with graph of transport
+    popup = folium.Popup()
+    plot_data = data.melt(id_vars=['Date'], value_vars=['ambient', 'average_air'])
+    chart = alt.Chart(plot_data).mark_line(point=True).encode(
+            alt.X('Date:T', title='time'),
+            alt.Y('value:Q', title='temperature in °C'),
+            color=alt.Color(
+                'variable', 
+                scale=alt.Scale(domain=DOMAIN, range=RANGE),
+                legend=alt.Legend(title="Legend")
+                )
+            )
 
-    # g2 = plugins.FeatureGroupSubGroup(fg, 'group2')
-    # m.add_child(g2)
+    folium.features.VegaLite(chart.to_json()).add_to(popup)
+    folium.Marker(
+        data[['Lat', 'Lon']].values[0], 
+        popup=popup, 
+        tooltip='Start'
+        ).add_to(m)
 
-    popup = GeoJsonPopup(
-        fields=['Date','T'],
-        aliases=['Time',"Ambient temperature"]
-    )
+    # Create marker for end of transport
+    popup = folium.Popup()
+    folium.Marker(
+        data[['Lat', 'Lon']].values[-1], 
+        popup=popup, 
+        tooltip='End'
+        ).add_to(m)
 
-    tooltip = GeoJsonTooltip(
-        fields=['Date','T', 'average_air'],
-        aliases=['Time',"Ambient temperature", "Air temperature"],
-        localize=True,
-        sticky=False,
-        labels=True,
-        style="""
-            background-color: #F0EFEF;
-            border: 2px solid black;
-            border-radius: 3px;
-            box-shadow: 3px;
-        """,
-        max_width=800,
-    )
+    def plot_stop(stop):
+        icon = plugins.BeautifyIcon( 
+            background_color=colormap(stop['average_air'].mean()),  
+            icon_shape='doughnut',
+            icon='circle',
+            text_color='#000', 
+            border_color='transparent'
+        )
+        stop_popup = folium.Popup()
 
-    html = """
-        <b>Time:</b> {time} <br>
-        <b>Ambient temperature:</b> {ambient} <br>
-        <b>Air temperature:</b> {air} <br>
-        """
+        plot_data = pd.DataFrame({
+            'timestamps': stop['timestamps'],
+            'ambient': stop['ambient'],
+            'average_air': stop['average_air']
+        })
+        plot_data = plot_data.melt(id_vars=['timestamps'], value_vars=['ambient', 'average_air'])
+        chart = alt.Chart(plot_data).mark_line(point=True).encode(
+            alt.X('timestamps:T', title='time'),
+            alt.Y('value:Q', title='temperature in °C'),
+            color=alt.Color(
+                'variable', 
+                scale=alt.Scale(domain=DOMAIN, range=RANGE),
+                legend=alt.Legend(title="Legend")
+                )
+            )
 
-    # iframe = branca.element.IFrame(html=html, width=500, height=300)
-    # popup = folium.Popup(iframe, max_width=500)
+        folium.features.VegaLite(chart.to_json()).add_to(stop_popup)
+
+        tooltip = """
+            <h4>Stop</h4>
+            <b>Start:</b> {start} <br>
+            <b>End:</b> {end} <br>
+            """
+        
+        folium.Marker(
+            location=[stop.Lat, stop.Lon],
+            popup = stop_popup,
+            tooltip = tooltip.format(
+                start = stop['start'],
+                end = stop['end']
+                )
+            ).add_to(fg_stops)
+
+        folium.Marker(
+            location=[stop.Lat, stop.Lon],
+            icon = icon
+            ).add_to(fg_waypoints)
 
     def plot_waypoint(waypoint):
-        temperature = waypoint['T']
+        html = """
+            <b>Time:</b> {time} <br>
+            <b>Ambient temperature:</b> {ambient} <br>
+            <b>Air temperature:</b> {air} <br>
+            """
         icon = plugins.BeautifyIcon( 
-            background_color=colormap(temperature),  
+            background_color=colormap(waypoint['average_air']),  
             icon_shape='doughnut',
             icon='circle',
             # border_width = 1,
@@ -103,52 +208,22 @@ def create(transport):
             popup = folium.Popup(
                 html.format(
                     time = waypoint['Date'],
-                    ambient = waypoint['T'],
+                    ambient = waypoint['ambient'],
                     air = waypoint['average_air']
                     ), max_width=200)
             ).add_to(fg_waypoints)
    
-    route = folium.PolyLine(coordinates, color=TUMBLUE).add_to(m)
+    folium.PolyLine(coordinates, color=TUMBLUE).add_to(m)
 
-    data.apply(plot_waypoint, axis = 1)
-    # plugins.PolyLineTextPath(
-    #     route,
-    #     'Transport route',
-    #     offset=-5
-    #     ).add_to(m)
-
-    # g = folium.GeoJson(
-    #     data,
-    #     tooltip=tooltip,
-    #     popup=popup
-    # ).add_to(fg_waypoints)
-
-    
-
-
-        # for feature in gj.data['features']:
-        # if feature['geometry']['type'] == 'Point':
-        #     folium.Marker(location=list(reversed(feature['geometry']['coordinates'])),
-        #                   icon=folium.Icon(
-        #                       icon_color='#ff033e',
-        #                       icon='certificate',
-        #                       prefix='fa')
-        #                   ).add_to(layer)
+    # Plot markers for waypoints and stops
+    waypoints.apply(plot_waypoint, axis = 1)
+    stops.apply(plot_stop, axis = 1)
 
     folium.LayerControl(collapsed=False).add_to(m)
     colormap.add_to(m)
 
     result_path = os.path.join(transport.path, 'visualization.html')
     m.save(result_path)
-
-# create(transport1)
-
-
-# chart_json = json.loads(chart.to_json())
-
-# popup = folium.Popup(max_width=650)
-# folium.features.VegaLite(chart_json, height=350, width=650).add_to(popup)
-# folium.Marker([30, -80], popup=popup).add_to(m)
 
 
 
