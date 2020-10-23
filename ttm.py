@@ -6,6 +6,7 @@ import os
 
 import modules.transport as transport
 from modules.case import Case
+import modules.visualization as visualization
 
 parser = argparse.ArgumentParser(usage='%(prog)s [options]')
 # Options
@@ -78,3 +79,5 @@ if not os.listdir(os.path.join(transportpath, 'postProcessing', 'temperature')) 
 plots_content = os.listdir(os.path.join(transportpath, 'plots'))
 if 'plot.*' not in plots_content or args.plot:
     transportcase.plot(probes = ['battery0_0'], tikz = True)
+
+visualization.create(transport)

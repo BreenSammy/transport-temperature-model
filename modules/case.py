@@ -179,7 +179,9 @@ class Case(SolutionDirectory):
                 # Write boundary conditions for battery region and airInside region
                 changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), battery.name, 'changeDictionaryDict'))
                 # openfoam.region_coupling_solid_anisotrop['thicknessLayers'] = '( {} )'.format(battery.packaging_thickness())
-                # openfoam.region_coupling_solid_anisotrop['kappaLayers'] = '( {} )'.format(battery.thermalconductivity_packaging)
+                # openfoam.region_coupling_solid_anisotrop['kappaLayers'] = '( {} )'.format(battery.thermalconductivity_packaging)    
+                openfoam.region_coupling_solid_anisotrop['thicknessLayers'] = '( {} )'.format(0.02)
+                openfoam.region_coupling_solid_anisotrop['kappaLayers'] = '( {} )'.format(0.05)
                 changeDictionaryDict['T']['boundaryField'][battery.name + '_to_airInside'] = openfoam.region_coupling_solid_anisotrop
                 changeDictionaryDict.writeFile()
 
