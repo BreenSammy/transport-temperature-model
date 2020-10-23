@@ -1,0 +1,267 @@
+{
+    "type": "container",
+    "start": "2016-04-28 18:48:49",
+    "temperature": 24,
+    "route": {
+        "filename": "container_G.csv",
+        "timezone": "+00:00",
+        "trimstart": "0:00:00",
+        "trimend": "0:00:00"
+    },
+    "stops": [],
+    "cargo": [
+        {
+            "type": "Pallet",
+            "templateSTL": "pallet1x4.stl",
+            "position": [
+                0.5399,
+                -0.54,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                90
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "pallet1x4.stl",
+            "position": [
+                1.3601,
+                -0.54,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                90
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "pallet1x4.stl",
+            "position": [
+                2.2001,
+                -0.54,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                90
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "pallet1x4.stl",
+            "position": [
+                3.0401,
+                -0.54,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                90
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "pallet1x4.stl",
+            "position": [
+                3.8801,
+                -0.54,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                90
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "pallet1x4.stl",
+            "position": [
+                4.7201,
+                -0.54,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                90
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "pallet1x4.stl",
+            "position": [
+                5.5601,
+                -0.54,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                90
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "pallet1x4.stl",
+            "position": [
+                0.8801,
+                0.5301,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "pallet1x4.stl",
+            "position": [
+                2.3201,
+                0.5301,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "pallet1x4.stl",
+            "position": [
+                3.7601,
+                0.5301,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "pallet1x4.stl",
+            "position": [
+                5.2001,
+                0.5301,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06
+            }
+        }
+    ]
+}
