@@ -115,7 +115,7 @@ def create(transport):
     # Create marker for start of transport and create popup with graph of transport
     popup = folium.Popup()
     plot_data = data.melt(id_vars=['Date'], value_vars=['ambient', 'average_air'])
-    chart = alt.Chart(plot_data).mark_line(point=True).encode(
+    chart = alt.Chart(plot_data).mark_line().encode(
             alt.X('Date:T', title='time'),
             alt.Y('value:Q', title='temperature in °C'),
             color=alt.Color(
