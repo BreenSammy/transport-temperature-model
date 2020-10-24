@@ -554,8 +554,6 @@ class Case(SolutionDirectory):
         if not times:
             return
 
-        print(times)
-
         # Header length for different types of postprocessing resultes from OpenFOAM
         header = {
             'volFieldValue.dat': 3,
@@ -1051,12 +1049,11 @@ class Case(SolutionDirectory):
         deltaT = self._get_max_delta(ambienttemperature)
         max_deltaT = 1
 
-        plot = False
-        
-        print('Initial temperature difference to ambienttemperature: {}'.format(deltaT))
+        df_list = []
+        print('Initial temperature difference to ambient temperature: {}'.format(deltaT))
         
         while deltaT > max_deltaT:
-            print(deltaT)
+            print('Temperature difference to ambient temperature: {}'.format(deltaT))
             latesttime = float(self.getParallelTimes()[-1])
             controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
             controlDict['endTime'] = latesttime + 7200
@@ -1067,20 +1064,30 @@ class Case(SolutionDirectory):
 
             os.system(os.path.join(self.name,"Run"))
             self._move_logs()
-
-            plt.plot((latesttime - transportduration) / 7200, deltaT)
-            plot = True
-
+   
             deltaT = self._get_max_delta(ambienttemperature)
 
+            df = pd.DataFrame(
+                data = {
+                    'time': latesttime,
+                    'delta': deltaT
+                }, 
+                index = [0]
+                )
+
+            df_list.append(df)
+
         print('Finished simulation of arrival. Final difference to ambient temperature: {}'.format(deltaT))
+        if df_list != []:
+            path = os.path.join(os.path.dirname(self.name), 'postProcessing', 'arrival', 'arrival.csv')
+            if os.path.exists(path):
+                df = pd.read_csv(path)
+                df_list.insert(0, df)
 
+            df = pd.concat(df_list)
+            df.to_csv(path, encoding='utf-8', index=False)
+            
         self.postprocess_arrival()
-
-        if plot:
-            plotpath = os.path.join(os.path.dirname(self.name), 'plots', 'arrival.jpg')
-            plt.axhline(y=ambienttemperature - 273.15, xmin=0, xmax= (latesttime - transportduration) / 3600)
-            plt.savefig(plotpath, dpi = 250, bbox_inches='tight')
 
 def utcoffset(utc_datetime, lat, lon):
     """Get the offset to UTC time at a specified location"""

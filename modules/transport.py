@@ -36,6 +36,7 @@ class Transport:
         self._postprocesspath = os.path.join(self.path, 'postProcessing') 
         self._postprocesspath_temperature = os.path.join(self._postprocesspath, 'temperature')
         self._postprocesspath_wallHeatFlux = os.path.join(self._postprocesspath, 'wallHeatFlux')
+        self._postprocesspath_arrival = os.path.join(self._postprocesspath, 'arrival')
         self._plotspath = os.path.join(self.path, 'plots')
 
         if not os.path.exists(self._postprocesspath):
@@ -44,6 +45,8 @@ class Transport:
             os.makedirs(self._postprocesspath_temperature)
         if not os.path.exists(self._postprocesspath_wallHeatFlux):
             os.makedirs(self._postprocesspath_wallHeatFlux)
+        if not os.path.exists(self._postprocesspath_arrival):
+            os.makedirs(self._postprocesspath_arrival)
         if not os.path.exists(self._plotspath):
             os.makedirs(self._plotspath)
         
