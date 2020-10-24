@@ -24,8 +24,6 @@ boundaryField
     {
         type            compressible::turbulentTemperatureCoupledBaffleMixed;
         Tnbr            T;
-        kappaLayers     (0.053);
-        thicknessLayers (0.01);
         kappaMethod     fluidThermo;
         value           $internalField;
     }
