@@ -991,7 +991,7 @@ class Case(SolutionDirectory):
         os.system(os.path.join(self.name,"ChangeDictionarySolid"))
         self._move_logs()
  
-    def _get_max_delta(self, reftemperature):
+    def _get_max_delta(self, reftemperature, extrem = False):
         """Calculate the maximal temperature difference of all solid regions to a reference temperature"""
 
         # Catch if case did no transport
@@ -1031,7 +1031,17 @@ class Case(SolutionDirectory):
         temperature = np.absolute(
             np.concatenate((min_temperature, max_temperature)) - reftemperature
             )
-        return np.amax(temperature)
+        if extrem:
+            # Determin which temperature is furthest from reftemperature
+            maximum = np.amax(max_temperature)
+            minimum = np.amax(min_temperature)
+            if maximum < reftemperature:
+                extremum = maximum
+            else:
+                extremum = minimum
+            return np.amax(temperature), extremum
+        else:
+            return np.amax(temperature)
 
     def simulate_arrival(self, ambienttemperature):
         # Transform from Celsius to Kelvin
@@ -1065,12 +1075,12 @@ class Case(SolutionDirectory):
             os.system(os.path.join(self.name,"Run"))
             self._move_logs()
    
-            deltaT = self._get_max_delta(ambienttemperature)
+            deltaT, temperature_extrem = self._get_max_delta(ambienttemperature, extrem=True)
 
             df = pd.DataFrame(
                 data = {
                     'time': latesttime,
-                    'delta': deltaT
+                    'temperature': temperature_extrem - 273.15
                 }, 
                 index = [0]
                 )
@@ -1080,10 +1090,6 @@ class Case(SolutionDirectory):
         print('Finished simulation of arrival. Final difference to ambient temperature: {}'.format(deltaT))
         if df_list != []:
             path = os.path.join(os.path.dirname(self.name), 'postProcessing', 'arrival', 'arrival.csv')
-            if os.path.exists(path):
-                df = pd.read_csv(path)
-                df_list.insert(0, df)
-
             df = pd.concat(df_list)
             df.to_csv(path, encoding='utf-8', index=False)
             
