@@ -82,9 +82,11 @@ if not os.listdir(transport._postprocesspath_temperature) or args.postprocess:
 
 # Plot results
 plots_content = os.listdir(transport._plotspath)
+if 'plot.jpg' not in plots_content:
+    transportcase.plot(tikz = True)
 # Plot if it is the first time or if flag is set
-if 'plot.jpg' not in plots_content or args.plot:
-    if args.plot[0] == 'all':
+if args.plot:
+    if 'all' in args.plot:
         args.plot = transportcase.cargo_regions()
 
     transportcase.plot(probes = args.plot, tikz = True)
