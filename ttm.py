@@ -64,11 +64,6 @@ else:
 # Execute the OpenFOAM solver
 transportcase.run()
 
-if args.reconstruct:
-    transportcase.reconstruct()
-if args.pack:
-    transportcase.pack()
-
 # Postprocess the simulation
 if args.arrival:
     transportcase.simulate_arrival(transport.arrival_temperature)
@@ -92,3 +87,8 @@ if args.plot:
     transportcase.plot(probes = args.plot, tikz = True)
 
 visualization.create(transport)
+
+if args.reconstruct:
+    transportcase.reconstruct()
+if args.pack:
+    transportcase.pack()
