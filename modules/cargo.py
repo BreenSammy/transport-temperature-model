@@ -116,11 +116,13 @@ class Pallet:
             # Iterate over number of packages per layer
             for j in range(number_packages[1]):
                 battery_region_position = copy.deepcopy(battery_regions_positions[j, :])
-                self.freight.elements_positions = battery_region_position + points_freight_elements
                 # Add battery region
                 battery_regions.append(
-                    BatteryRegion(battery_region_position, dimensions_package, self.freight)
+                    BatteryRegion(battery_region_position, dimensions_package, copy.deepcopy(self.freight))
                 )  
+                # Save position of freight elements in battery regions
+                battery_regions[-1].freight.elements_positions = battery_region_position + points_freight_elements
+                
             battery_regions_positions += np.array([0, 0, dimensions_package[2]])
             layercounter += 1
 

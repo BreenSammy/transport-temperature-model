@@ -15,7 +15,8 @@ parser.add_argument("--clone", "-c", help="Force to clone from template and over
 parser.add_argument("--cpucores", type=int, help="Set the number of cpu cores used for the simulation", metavar="cpucount")
 parser.add_argument("--reconstruct", "-r", help="Reconstruct the decomposed case", action="store_true")
 parser.add_argument("--postprocess", help="Execute postprocess utility of the simulation case", action="store_true")
-parser.add_argument("--plot", help="Plot postprocess results", action="store_true")
+parser.add_argument("--plot", help="Plot postprocess results", nargs="*")
+parser.add_argument("--probefreight", help="Plot postprocess results", action="store_true")
 parser.add_argument("--probe", help="Read temperature from a location '(x y z)'", metavar=("region", "location"), nargs=2)
 parser.add_argument("--pack", help="Pack the case as a compressed file", action="store_true")
 parser.add_argument("--arrival", help="Simulate the heattransfer after transport", action="store_true")
@@ -36,7 +37,7 @@ templatecasepath = os.path.join(
 
 if not os.path.exists(casepath) or args.clone:
     # Delete all contents of postProcessing
-    files = glob.glob(os.path.join(transportpath, 'postProcessing','*.*'))
+    files = glob.glob(os.path.join(transport._postprocesspath,'*.*'))
     for f in files:
         os.remove(f)
     templatecase = Case(templatecasepath)
@@ -70,14 +71,18 @@ if args.arrival:
 if args.probe:
     region = args.probe[0]
     location = [float(i) for i in args.probe[1][1:-1].split(' ')]
-    print(location)
     transportcase.probe(region, location=location, clear=True)
 
-if not os.listdir(os.path.join(transportpath, 'postProcessing', 'temperature')) or args.postprocess:
+if not os.listdir(transport._postprocesspath_temperature) or args.postprocess:
     transportcase.postprocess()
 
-plots_content = os.listdir(os.path.join(transportpath, 'plots'))
-if 'plot.*' not in plots_content or args.plot:
-    transportcase.plot(probes = ['battery0_0'], tikz = True)
+# Plot results
+plots_content = os.listdir(transport._plotspath)
+# Plot if it is the first time or if flag is set
+if 'plot.jpg' not in plots_content or args.plot:
+    if args.plot[0] == 'all':
+        args.plot = transportcase.cargo_regions()
+
+    transportcase.plot(probes = args.plot, tikz = True)
 
 visualization.create(transport)

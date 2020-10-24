@@ -618,8 +618,12 @@ class Case(SolutionDirectory):
                 json_dict = json.load(json_file, cls=TransportDecoder)
             self.cargo = [cargoDecoder(item) for item in json_dict['cargo']]
 
-    def probe_freight(self, regionname):
-        cargo_number, region_number = re.findall(r'\d+', regionname)
+    def probe_freight(self, region):
+        regions = self.cargo_regions()
+        if region not in regions:
+            raise ValueError('Region {} not exisent. Try one of {}'.format(region, regions))
+
+        cargo_number, region_number = re.findall(r'\d+', region)
 
         self.read_cargo()
 
@@ -630,7 +634,7 @@ class Case(SolutionDirectory):
         for i in range(battery_region.freight.elements_positions.shape[0]):
             self.add_probe(battery_region.freight.elements_positions[i, :])
         
-        self.probe(regionname)
+        self.probe(region)
         self.clear_probes()
         
     def add_probe(self, location):
@@ -674,6 +678,10 @@ class Case(SolutionDirectory):
         Execute OpenFOAM postProcess function for probing a location for T value.
         Region of probe must be specified. 
         """
+        regions = self.regions()
+        if region not in regions:
+            raise ValueError('Region {} not exisent. Try one of {}'.format(region, regions))
+
         if clear:
             self.clear_probes()
 
@@ -936,6 +944,12 @@ class Case(SolutionDirectory):
         duration = self.weatherdata['Date'].iloc[-1] - self.weatherdata['Date'].iloc[0]
         return duration.total_seconds() 
 
+    def cargo_regions(self):
+        """Return all cargo regions of the case"""
+        regions = self.regions()
+        regions.remove('airInside')
+        return regions
+
     def _setup_arrival(self, ambienttemperature):
         # Remove fluid regions from the case (namely airInside region)
         regionProperties = ParsedParameterFile(os.path.join(self.constantDir(),'regionProperties'))
@@ -955,8 +969,7 @@ class Case(SolutionDirectory):
         
     def _change_dictionary_solids(self, ambienttemperature):
         # Change the changeDictionaryDict for all battery regions
-        regions = self.regions()
-        regions.remove('airInside')
+        regions = self.cargo_regions()
         for region in regions:
             # Read length for heattransfer coefficient from cargo 
             cargo_number, _ = re.findall(r'\d+', region)
