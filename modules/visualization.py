@@ -24,18 +24,20 @@ DOMAIN = ['ambient', 'average_air']
 RANGE = [TUMBLUE, TUMORANGE]
 
 def jet(steps = 256):
+    """Get matplotlib colormap jet"""
     step = floor(256/steps)
     return [cm.jet(i) for i in range(0, 256, step)]
 
 def filter_stops(waypoints):
     """Method to filter stop locations from all waypoints"""
+    DISTANCETHRESHOLD = 15
     coordinates = waypoints[['Lat', 'Lon']].values
     stop_list = []
     stops = pd.DataFrame()
 
     for i in range(len(waypoints) - 1):
         distance = geopy.distance.distance(coordinates[i, :],coordinates[i + 1, :]).km
-        if distance <= 10: 
+        if distance <= DISTANCETHRESHOLD: 
             # First point of stop needs to be added
             if stop_list == []:
                 stop_list.append(waypoints.loc[i, :])
@@ -87,12 +89,23 @@ def create(transport):
 
     waypoints, stops = filter_stops(data)
 
+    # Dataframe with coordinates of waypoints and stops for plotting of the route
+    coordinates = pd.concat([
+        waypoints.loc[:, ['Date', 'Lat', 'Lon']],
+        stops.loc[:, ['start', 'Lat', 'Lon']].rename(columns = {
+            'start': 'Date'
+        })
+    ])
+    # Sort by date
+    coordinates['Date'] = pd.to_datetime(coordinates['Date'])
+    coordinates = coordinates.sort_values(by=['Date'])
+
     start_lat = data[['Lat']].values.mean()
     start_lon = data[['Lon']].values.mean()
 
     m = folium.Map(
         location=[start_lat, start_lon],
-        zoom_start=7,
+        zoom_start=4,
         tiles=None
         )
 
@@ -158,6 +171,7 @@ def create(transport):
                     height=350
                     )
         folium.features.VegaLite(chart.to_json(), width=900, height=350).add_to(popup)
+
     folium.Marker(
         data[['Lat', 'Lon']].values[-1], 
         popup=popup, 
@@ -240,7 +254,7 @@ def create(transport):
                     ), max_width=200)
             ).add_to(fg_waypoints)
    
-    folium.PolyLine(coordinates, color=TUMBLUE).add_to(m)
+    folium.PolyLine(coordinates[['Lat', 'Lon']].values, color=TUMBLUE).add_to(m)
 
     # Plot markers for waypoints and stops
     waypoints.apply(plot_waypoint, axis = 1)
