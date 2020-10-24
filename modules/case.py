@@ -66,6 +66,14 @@ class Case(SolutionDirectory):
         self.addToClone('ChangeDictionarySolid')
         self.addToClone('logs')
 
+    def get_times(self):
+        """Get all times with timedirectories, parallel or not"""
+        times = self.getTimes()
+        # If case is not reconstructed self.getTimes() only returns 0 directory, use parallel times instead
+        if len(times) == 1:
+            times = self.getParallelTimes()
+        return times
+
     def change_initial_temperature(self, temperature):
         # Convert to Kelvin
         temperature += 273.15
@@ -279,7 +287,8 @@ class Case(SolutionDirectory):
         controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
         radiationProperties =  ParsedParameterFile(os.path.join(self.constantDir(), "airInside", "radiationProperties"))
 
-        latesttime = float(self.getParallelTimes()[-1])
+        latesttime = float(self.get_times()[-1])
+        
         transport_duration = self.weatherdata['Date'].iloc[-1] - self.weatherdata['Date'].iloc[0] 
         transport_duration = transport_duration.total_seconds()
 
@@ -449,10 +458,7 @@ class Case(SolutionDirectory):
         regions = self.regions()
         
         # Get all timesteps and delete last one, because for latestTime no postProcess folder exists
-        times = self.getTimes()
-        # If case is not reconstructed self.getTimes() only returns 0 directory, use parallel times instead
-        if len(times) == 1:
-            times = self.getParallelTimes()
+        times = self.get_times()
         # Filter times so only times during transport are postprocessed
         times = [time for time in times if float(time) <= self.duration()]
         del times[-1]
@@ -697,7 +703,7 @@ class Case(SolutionDirectory):
             probespath = os.path.join(probespath, time, 'T')
 
         # Execute postProcess in reconstructed case, if processor folders are empty
-        if os.path.basename(self.latestDir())== self.getParallelTimes()[-1]:
+        if os.path.basename(self.latestDir()) == self.getParallelTimes()[-1]:
             command = 'postProcess -case {0} -time {1} -func probes -region {2} > {3}/log.probes'
             os.system(command.format(self.name, time, region, self.name))
         # Execute in decomposed case else
@@ -859,7 +865,7 @@ class Case(SolutionDirectory):
         #Plot speed
         pp_speed_path = os.path.join(postprocessing_path, 'speed.csv')
         df_speed = pd.read_csv(pp_speed_path, names = ['time', 'speed'])
-        plt.plot(df_speed['time'] / 3600, df_speed['speed'], marker = marker)
+        plt.step(df_speed['time'] / 3600, df_speed['speed'], where='post')
         plt.xlabel('time in h')
         plt.ylabel('average speed in m/s')
         plt.grid(linestyle='--', linewidth=2, axis='y')
@@ -872,7 +878,7 @@ class Case(SolutionDirectory):
         # Plot heattransfercoefficient
         pp_speed_path = os.path.join(postprocessing_path, 'heattransfercoefficient.csv')
         df_speed = pd.read_csv(pp_speed_path, names = ['time', 'heattransfercoefficient'])
-        plt.plot(df_speed['time'] / 3600, df_speed['heattransfercoefficient'], marker = marker)
+        plt.step(df_speed['time'] / 3600, df_speed['heattransfercoefficient'] , where='post')
         plt.xlabel('time in h')
         plt.ylabel('heattransfercoefficient in m/s')
         plt.grid(linestyle='--', linewidth=2, axis='y')
