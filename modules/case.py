@@ -1091,6 +1091,8 @@ class Case(SolutionDirectory):
         if df_list != []:
             path = os.path.join(os.path.dirname(self.name), 'postProcessing', 'arrival', 'arrival.csv')
             df = pd.concat(df_list)
+            # Normalize first time to 0
+            df['time'] = df['time'] - df['time'].iloc[0]
             df.to_csv(path, encoding='utf-8', index=False)
             
         self.postprocess_arrival()

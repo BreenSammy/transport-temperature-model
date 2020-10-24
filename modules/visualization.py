@@ -123,9 +123,12 @@ def create(transport):
                 scale=alt.Scale(domain=DOMAIN, range=RANGE),
                 legend=alt.Legend(title="Legend")
                 )
-            )
+            ).properties(
+                width=700,
+                height=350
+                )
 
-    folium.features.VegaLite(chart.to_json()).add_to(popup)
+    folium.features.VegaLite(chart.to_json(), width=900, height=350).add_to(popup)
     folium.Marker(
         data[['Lat', 'Lon']].values[0], 
         popup=popup, 
@@ -134,6 +137,27 @@ def create(transport):
 
     # Create marker for end of transport
     popup = folium.Popup()
+    plot_data_path = os.path.join(transport._postprocesspath_arrival, 'arrival.csv')
+    # If values for arrival are available, create popup graph
+    if os.path.exists(plot_data_path):
+        plot_data = pd.read_csv(plot_data_path)
+        plot_data['time'] = (plot_data['time']) / 3600
+        plot_data['arrival_temperature'] = transport.arrival_temperature
+        plot_data = plot_data.melt(id_vars=['time'], value_vars=['temperature', 'arrival_temperature'])
+        print(plot_data)
+        chart = alt.Chart(plot_data).mark_line().encode(
+                alt.X('time', title='time'),
+                alt.Y('value:Q', title='temperature in °C'),
+                color=alt.Color(
+                    'variable', 
+                    scale=alt.Scale(domain=['arrival_temperature', 'temperature'], range=RANGE),
+                    legend=alt.Legend(title="Legend")
+                    )
+                ).properties(
+                    width=700,
+                    height=350
+                    )
+        folium.features.VegaLite(chart.to_json(), width=900, height=350).add_to(popup)
     folium.Marker(
         data[['Lat', 'Lon']].values[-1], 
         popup=popup, 
@@ -164,9 +188,12 @@ def create(transport):
                 scale=alt.Scale(domain=DOMAIN, range=RANGE),
                 legend=alt.Legend(title="Legend")
                 )
-            )
+            ).properties(
+                width=500,
+                height=250
+                )
 
-        folium.features.VegaLite(chart.to_json()).add_to(stop_popup)
+        folium.features.VegaLite(chart.to_json(), width=680, height=250).add_to(stop_popup)
 
         tooltip = """
             <h4>Stop</h4>
