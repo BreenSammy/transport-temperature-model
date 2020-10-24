@@ -354,11 +354,13 @@ class Case(SolutionDirectory):
         print('Last timestep finished')
         self._move_logs()
 
-    def _update_radiationProperties(self, radiationProperties, timestamp, coordinates, coordinates_next):
+    def _update_radiationProperties(
+        self, radiationProperties, timestamp, coordinates, coordinates_next
+        ):
         startdate = self.weatherdata['Date'].iloc[0]
         # Get offset to UTC time
         localStandardMeridian = utcoffset(
-            timestamp, self.weatherdata['Lat'].iloc[0], self.weatherdata['Lon'].iloc[0]
+            timestamp, coordinates[0], coordinates[1]
             )
         # Transform UTC time to local time
         startdate += timedelta(hours = localStandardMeridian)
