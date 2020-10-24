@@ -18,3 +18,6 @@ cellToRegion
 __pycache__/
 api-key
 *Zone.Identifier
+isd-history.csv
+isd-inventory.csv
+visualization.html
