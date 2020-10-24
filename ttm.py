@@ -15,8 +15,12 @@ parser.add_argument("--clone", "-c", help="Force to clone from template and over
 parser.add_argument("--cpucores", type=int, help="Set the number of cpu cores used for the simulation", metavar="cpucount")
 parser.add_argument("--reconstruct", "-r", help="Reconstruct the decomposed case", action="store_true")
 parser.add_argument("--postprocess", help="Execute postprocess utility of the simulation case", action="store_true")
-parser.add_argument("--plot", help="Plot postprocess results", nargs="*")
-parser.add_argument("--probefreight", help="Plot postprocess results", action="store_true")
+parser.add_argument(
+    "--plot", 
+    help="Plot postprocess results. Use arguments to probe freight regions. Use argument all to probe all freight regions", 
+    nargs="*", 
+    metavar="freightregion"
+    )
 parser.add_argument("--probe", help="Read temperature from a location '(x y z)'", metavar=("region", "location"), nargs=2)
 parser.add_argument("--pack", help="Pack the case as a compressed file", action="store_true")
 parser.add_argument("--arrival", help="Simulate the heattransfer after transport", action="store_true")
