@@ -74,7 +74,30 @@ class BatteryRegion:
                     )
         return thermal_conductivity
 
-class Pallet:
+class Cargo:
+    def vector_to_string(self, vector):
+        """Transform a vector with three entries into a string for terminal commands"""
+        return "'(" + str(vector[0]) + ' ' + str(vector[1]) + ' ' + str(vector[2]) + ")'"
+    
+    def move_STL(self, case, target):
+        """Move the STL to the right position in the carrier."""
+
+        # Copy STL form template STL and bring it in the right orientation
+        os.system(
+            'surfaceTransformPoints -rollPitchYaw ' + self.vector_to_string(self.orientation) + " " + 
+            os.path.join(case.constantDir(), "triSurface", self.templateSTL) + " " + 
+            os.path.join(case.constantDir(), "triSurface", target) + '> {}/log.move_STL'.format(case.name) 
+            )
+
+        # Move STL to its position
+        os.system(
+            'surfaceTransformPoints -translate ' + self.vector_to_string(self.position) + " " + 
+            os.path.join(case.constantDir(), "triSurface", target) + " " + 
+            os.path.join(case.constantDir(), "triSurface", target) + '>> {}/log.move_STL'.format(case.name)
+            )
+        self.STL = target
+
+class Pallet(Cargo):
     """Class to describe a pallet full of packages filled with batteries."""
     def __init__(self, templateSTL: str, position: list, orientation: list, freight):
         self.type = 'Pallet'
@@ -133,28 +156,6 @@ class Pallet:
 
         return battery_regions
 
-    def vector_to_string(self, vector):
-        """Transform a vector with three entries into a string for terminal commands"""
-        return "'(" + str(vector[0]) + ' ' + str(vector[1]) + ' ' + str(vector[2]) + ")'"
-    
-    def move_STL(self, case, target):
-        """Move the STL to the right position in the carrier."""
-
-        # Copy STL form template STL and bring it in the right orientation
-        os.system(
-            'surfaceTransformPoints -rollPitchYaw ' + self.vector_to_string(self.orientation) + " " + 
-            os.path.join(case.constantDir(), "triSurface", self.templateSTL) + " " + 
-            os.path.join(case.constantDir(), "triSurface", target) + '> {}/log.move_STL'.format(case.name) 
-            )
-
-        # Move STL to its position
-        os.system(
-            'surfaceTransformPoints -translate ' + self.vector_to_string(self.position) + " " + 
-            os.path.join(case.constantDir(), "triSurface", target) + " " + 
-            os.path.join(case.constantDir(), "triSurface", target) + '>> {}/log.move_STL'.format(case.name)
-            )
-        self.STL = target
-
     def freight_elements(self):
         dimensions_package = DIMENSIONS_PACKAGE[self.templateSTL]
         return [floor(dimensions_package[i] / self.freight.dimensions[i]) for i in range(3)]
@@ -169,10 +170,35 @@ class Pallet:
             'freight': self.freight.to_dict()
         }
 
+class Car(Cargo):
+    def __init__(self, templateSTL, freight):
+        self.type = 'Car'
+        self.templateSTL = templateSTL
+        self.freight = freight
+        self.dimensions = DIMENSIONS_PACKAGE[templateSTL]
+        self.position = [
+            self.dimensions[0]/2 + 0.2,
+            0,
+            0.1
+        ]
+        self.orientation = [0, 0, 0]
+        self.battery_regions = [
+            BatteryRegion(np.array(self.position) + 0.05, self.dimensions, self.freight)
+        ]
+
+    def to_dict(self):
+        return {
+            'type': 'Car',
+            'templateSTL': self.templateSTL,
+            'freight': self.freight.to_dict()
+        }
+
 def cargoDecoder(obj):
     freight = freightDecoder(obj['freight'])
     if obj['type'] == 'Pallet':
         return Pallet(obj['templateSTL'], obj['position'], obj['orientation'], freight)
+    elif obj['type'] == 'Car':
+        return Car(obj['templateSTL'], freight)
 
 class Freight:
     """Class to represent the shipped freight, e.g. battery cells"""
@@ -214,7 +240,6 @@ class Freight:
     def elements_in_package(self, dimensions_package):
         """Returns list with number of individual freight elements per axis"""
         result = [floor(dimensions_package[i] / self.dimensions[i]) for i in range(len(self.dimensions))]
-        print(result)
         if np.prod(result) == 0:
             raise ValueError('Freight does not fit into packaging. Check dimensions of freight against dimensions of package.')
         else:

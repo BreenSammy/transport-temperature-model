@@ -47,8 +47,17 @@ TRANSPORTTYPES = {
         'height': 2.5505,
         'kappaLayers': 0.5,
         'thicknessLayers': 0.01
+    },
+    'car': {
+        'length': 5,
+        'width': 3, 
+        'height': 3,
+        'kappaLayers': 1,
+        'thicknessLayers': 1
     }
 }
+# Max speed for natural convection
+SPEEDTHERSHOLD = 4
 
 class Case(SolutionDirectory):
     def __init__(self, name, archive = None, paraviewLink = True):
@@ -133,6 +142,26 @@ class Case(SolutionDirectory):
         blockMeshDict.writeFile()
         changeDictionaryDict.writeFile()
         snappyHexMeshDict.writeFile()
+
+    def switch_to_car(self):
+        # Chech if case is valid
+        if len(self.cargo_regions()) > 1:
+            raise ValueError(
+        'Simulation of car transport only works with one region. Please remove all but one cargo instances from transport.json'
+        )
+        self.remove_airInside()
+        # Change the boundary condition of the battery region to a external wall
+        changeDictionaryDict =  ParsedParameterFile(os.path.join(self.systemDir(), "battery0_0", "changeDictionaryDict"))
+        # Apply a thermal resistance representing carbody
+        openfoam.external_wall['kappaLayers'] = '( {} )'.format(TRANSPORTTYPES['car']['kappaLayers'])
+        openfoam.external_wall['thicknessLayers'] = '( {} )'.format(TRANSPORTTYPES['car']['thicknessLayers'])
+        changeDictionaryDict['T']['boundaryField']['battery0_0_to_airInside'] = openfoam.external_wall
+        if 'internalField' in changeDictionaryDict['T']:
+            del changeDictionaryDict['T']['internalField']
+        changeDictionaryDict.writeFile()
+
+        os.system(os.path.join(self.name,"ChangeDictionary") + ' battery0_0')
+        self._move_logs()
     
     def load_cargo(self, cargo):
         """Loads the carrier with cargo. New regions for cargo 
@@ -228,8 +257,28 @@ class Case(SolutionDirectory):
 
         changeDictionaryDict.writeFile()
 
-    def heattransfer_coefficient(self, T_U, u, L = None, region = 'airInside'):
+    def _get_dominant_length(self, region, speed):
+        """Get the dominant length for calculation of convection"""
+        # Use dimesnions of carrier for airInside
+        if region == 'airInside':
+            snappyHexMeshDict = ParsedParameterFile(os.path.join(self.systemDir(), "snappyHexMeshDict"))
+            dimensions = snappyHexMeshDict['geometry']['carrier']['max']
+        # And dimensions of cargo for cargo regions
+        else:
+            self.read_cargo()
+            cargo_number, _ = re.findall(r'\d+', region)
+            dimensions = self.cargo[int(cargo_number)].dimensions
+        
+        # Return z-axis value for natural convection
+        if speed < SPEEDTHERSHOLD:
+            return dimensions[2]
+        # And x-axis value for forced convection
+        else:
+            return dimensions[0]
+
+    def heattransfer_coefficient(self, T_U, u, region = 'airInside'):
         """Calculate heattransfer coefficient"""
+        L = self._get_dominant_length(region, u)
         # Value for current time is saved in folder for last time
         times = self.getParallelTimes()
 
@@ -260,20 +309,16 @@ class Case(SolutionDirectory):
                     )
             T_W = df_patch_temperature['T'].iloc[-1]
 
-        snappyHexMeshDict = ParsedParameterFile(os.path.join(self.systemDir(), "snappyHexMeshDict"))
-        if u < 4:
-            # Length for natural convection is z-axis value of geometry of carrier
-            if L == None:
-                L = snappyHexMeshDict['geometry']['carrier']['max'][2]
+        if u < SPEEDTHERSHOLD:
             return convection.coeff_natural(L, T_W, T_U), T_W
         else:
-            # Length for forced convection is x-axis value of geometry of carrier
-            if L == None:
-                L = snappyHexMeshDict['geometry']['carrier']['max'][0]
             return convection.coeff_forced(L, u), T_W
 
-    def run(self):
+    def run(self, borderregion = 'airInside'):
         """Execute the simulation"""
+        if borderregion not in ['airInside', 'battery0_0']:
+            raise ValueError('Only support for borderregions airInside for carrier transport or battery0_0 for car transport')
+
         self.load_weatherdata()
         
         path_solver_logfile = os.path.join(self.name,"log.chtMultiRegionFoam")
@@ -283,9 +328,9 @@ class Case(SolutionDirectory):
             os.remove(path_solver_logfile)
 
         # Open files that need to be modified
-        changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), "airInside", "changeDictionaryDict"))
+        changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), borderregion, "changeDictionaryDict"))
         controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
-        radiationProperties =  ParsedParameterFile(os.path.join(self.constantDir(), "airInside", "radiationProperties"))
+        radiationProperties =  ParsedParameterFile(os.path.join(self.constantDir(), borderregion, "radiationProperties"))
 
         latesttime = float(self.get_times()[-1])
         
@@ -307,8 +352,14 @@ class Case(SolutionDirectory):
             # Update endTime of the simulation
             endTime_delta = self.weatherdata['Date'].values[i+1] - self.weatherdata['Date'].values[i]
             endTime_delta = endTime_delta / np.timedelta64(1, 's')
-            controlDict['writeInterval'] = np.floor(endTime_delta)
+            writeinterval = np.floor(endTime_delta)
+            controlDict['writeInterval'] = writeinterval
             controlDict['endTime'] = latesttime + endTime_delta
+            # Limit timesteps to fixed value for small writeintervals, or timesteps can be bigger than writeInterval
+            if writeinterval < 1000:
+                controlDict['adjustTimeStep'] = 'no'
+            else:
+                controlDict['adjustTimeStep'] = 'yes'
             controlDict.writeFile()
 
             # Calculate travelspeed between waypoints
@@ -322,35 +373,40 @@ class Case(SolutionDirectory):
                 radiationProperties, current_timestamp, coordinates, coordinates_next
                 )
 
+            heattransfer_coefficient, T_W = self.heattransfer_coefficient(temperature, travelspeed, region = borderregion)
+            # Write changes to changeDictionaryDict
+            if borderregion == 'airInside':
+                changeDictionaryDict['T']['boundaryField'] = {}
+                changeDictionaryDict['T']['boundaryField']['carrier'] = {
+                    'h': heattransfer_coefficient,
+                    'Ta': temperature,
+                }
+                changeDictionaryDict['T']['boundaryField']['bottom'] = {
+                    'Ta': temperature
+                }
+            elif borderregion == 'battery0_0':
+                changeDictionaryDict['T']['boundaryField'] = {}
+                changeDictionaryDict['T']['boundaryField']['battery0_0_to_airInside'] = {
+                    'h': heattransfer_coefficient,
+                    'Ta': temperature,
+                }
+            changeDictionaryDict.writeFile()
+            
             # Print to console            
             print('Timestamp: {} (UTC)'.format(string_current_timestamp))
             print('Latitude: {0} Longitude: {1}'.format(coordinates[0], coordinates[1]))
             print('Temperature: {}'.format(temperature))
             print('Travelspeed: {}'.format(travelspeed))
-
-            # Update the heattransfer coefficient 
-            heattransfer_coefficient, T_W = self.heattransfer_coefficient(temperature, travelspeed)
             print('Recalculating heattransfer coefficient:')
             print('Heattransfer coeffcient: {0} with average wall temperature: {1}'.format(heattransfer_coefficient, T_W))
 
-            # Write changes to changeDictionaryDict
-            changeDictionaryDict['T']['boundaryField'] = {}
-            changeDictionaryDict['T']['boundaryField']['carrier'] = {
-                'h': heattransfer_coefficient,
-                'Ta': temperature,
-            }
-            changeDictionaryDict['T']['boundaryField']['bottom'] = {
-                'Ta': temperature
-            }
-            changeDictionaryDict.writeFile()
-            
             #Write travelspeed and heattransfercoeffiecient to file
             self._save_data([latesttime, travelspeed], 'speed.csv')
             self._save_data([latesttime, heattransfer_coefficient], 'heattransfercoefficient.csv')
 
             # Execute solver
             self._move_logs()
-            os.system(os.path.join(self.name,"ChangeDictionary"))
+            os.system(os.path.join(self.name,"ChangeDictionary") + ' ' + borderregion)
             os.system(os.path.join(self.name,"Run"))
 
             #File management of log files
@@ -385,6 +441,7 @@ class Case(SolutionDirectory):
         east_vector = np.array([1, 0, 0])
         east_vector = coordinate_transformation(x_axis, east_vector)
 
+        radiationProperties['radiation'] = 'on'
         radiationProperties['solarLoadCoeffs']['startDay'] = startday
         radiationProperties['solarLoadCoeffs']['startTime'] = starttime
         radiationProperties['solarLoadCoeffs']['localStandardMeridian'] = localStandardMeridian
@@ -735,8 +792,6 @@ class Case(SolutionDirectory):
             probes[columns] -= 273.15
 
         csvpath = os.path.join(targetdirectory, region + '.csv')
-        # csvpath = os.path.dirname(probespath)
-        # csvpath = os.path.join(csvpath, 'probes.csv')
 
         # Delete old file
         if os.path.exists(csvpath):
@@ -953,9 +1008,9 @@ class Case(SolutionDirectory):
         regions = self.regions()
         regions.remove('airInside')
         return regions
-
-    def _setup_arrival(self, ambienttemperature):
-        # Remove fluid regions from the case (namely airInside region)
+    
+    def remove_airInside(self):
+        """Remove fluid regions from the case (namely airInside region)"""
         regionProperties = ParsedParameterFile(os.path.join(self.constantDir(),'regionProperties'))
         regionProperties['regions'][1].clear()
         regionProperties.writeFile()
@@ -969,23 +1024,21 @@ class Case(SolutionDirectory):
         controlDict['functions']['max_airInside']['enabled'] = 'no'
         controlDict.writeFile()
 
+    def _setup_arrival(self, ambienttemperature):
+        self.remove_airInside()
+
         self._change_dictionary_solids(ambienttemperature)
         
     def _change_dictionary_solids(self, ambienttemperature):
         # Change the changeDictionaryDict for all battery regions
         regions = self.cargo_regions()
         for region in regions:
-            # Read length for heattransfer coefficient from cargo 
-            cargo_number, _ = re.findall(r'\d+', region)
-            # Dominant lenght is dimension in z-axis
-            L = self.cargo[int(cargo_number)].dimensions[2]
-
             changeDictionaryDict = ParsedParameterFile(
                 os.path.join(os.path.join(self.systemDir(), region, 'changeDictionaryDict'))
             )
 
             openfoam.external_wall['Ta'] = ambienttemperature
-            openfoam.external_wall['h'] =  self.heattransfer_coefficient(ambienttemperature, 0,  L = L, region = region)
+            openfoam.external_wall['h'] =  self.heattransfer_coefficient(ambienttemperature, 0, region = region)
 
             changeDictionaryDict['T']['boundaryField'][region + '_to_airInside'] = openfoam.external_wall
 
@@ -1053,8 +1106,6 @@ class Case(SolutionDirectory):
         # Transform from Celsius to Kelvin
         ambienttemperature += 273.15
         
-        self.read_cargo()
-
         transportduration = self.duration()
 
         if transportduration > float(self.getParallelTimes()[-1]):

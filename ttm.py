@@ -62,9 +62,13 @@ else:
     print('Mesh already exists')
 
 # Execute the OpenFOAM solver
-transportcase.run()
+if transport.type == 'car':
+    transportcase.switch_to_car()
+    transportcase.run(borderregion = 'battery0_0')
+else:
+    transportcase.run()
 
-# Postprocess the simulation
+# # Postprocess the simulation
 if args.arrival:
     transportcase.simulate_arrival(transport.arrival_temperature)
 if args.probe:
