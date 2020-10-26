@@ -593,6 +593,83 @@ class Case(SolutionDirectory):
             filename_wallHeatFlux = os.path.join(targetpath_wallHeatFlux, regions[i] + '.csv')
             df_wallHeatFlux.to_csv(filename_wallHeatFlux, encoding='utf-8', index=False) 
 
+    def postprocess_new(self):
+        case_postProcessing = os.path.join(self.name, "postProcessing")
+        targetpath_arrival = os.path.join(os.path.dirname(self.name), 'postProcessing', 'arrival')
+        targetpath_temperature = os.path.join(os.path.dirname(self.name), 'postProcessing', 'temperature')
+
+        if not os.path.exists(targetpath_arrival):
+            os.makedirs(targetpath_arrival)
+
+        # Find all regions
+        regions = os.listdir(case_postProcessing)
+
+        if 'probes' in regions:
+            regions.remove('probes')
+        
+        # regions.remove('airInside')
+
+        # Get all timesteps and delete last one, because for latestTime no postProcess folder exists
+        times = self.get_times()
+        # Filter times so only times after transport are postprocessed
+        # transport_times = [time for time in times if float(time) < self.duration()]
+        # times = [time for time in times if float(time) >= self.duration()]
+        del times[-1]
+        # If times is empty stop
+        if not times:
+            return
+
+        # Header length for different types of postprocessing resultes from OpenFOAM
+        header = {
+            'volFieldValue.dat': 3,
+            'surfaceFieldValue.dat': 4
+        }
+        
+        # Iterate over regions
+        for region in regions:
+            region_path = os.path.join(case_postProcessing, region)
+            postprocess_function_paths = [os.path.join(region_path, x) for x in os.listdir(region_path)]
+            result = pd.DataFrame(data = {'time': times})
+            # Iterate over results from different postprocess functions 
+            for path in postprocess_function_paths:
+                # Get paths to all postprocessing files
+                all_timedirectories = os.listdir(path)
+                all_arrivaltimedirectories = sorted(set(times).intersection(all_timedirectories), key = float)
+                all_paths = [os.path.join(path, x) for x in all_arrivaltimedirectories]
+                filename = os.listdir(all_paths[0])[0]
+                all_paths = [os.path.join(x, filename) for x in all_paths]
+                # Define column name for dataframe
+                colname = os.path.basename(path).split('_')[0] + '(T)'
+                
+                # Get the first temperature at arrival, hence the last of the transport
+                if times[0] == '0':
+                    arrival_temperature = self.initial_temperature()
+                else:
+                    lasttransporttime = transport_times[-1]
+                    lasttransportpath = os.path.join(path, lasttransporttime, filename)
+                    df_lasttransport = pd.read_csv(
+                        lasttransportpath, sep="\s+", header=header[filename], usecols = [0,1], names = ['time', colname]
+                        )
+                    arrival_temperature = df_lasttransport[colname].iloc[0]
+
+                dict_arrival = {
+                        'time': times[0],
+                        colname: arrival_temperature,
+                        }
+                # Read data from files and save in one dataframe
+                df_list = [pd.DataFrame( data = dict_arrival, index=[0])]
+                df_list.extend(
+                    [pd.read_csv(f, sep="\s+", header=header[filename], usecols = [0,1], names = ['time', colname]) for f in all_paths]
+                    )
+                df = pd.concat(df_list)
+                
+                # Join the dataframes together into one
+                df.index = range(len(df))
+                # Add to results and convert to Celsius
+                result = result.join(df[colname] - 273.15)
+            # Save as csv
+            result.to_csv(os.path.join(targetpath_temperature, region + '.csv'), index=False, encoding='utf-8')
+
     def postprocess_arrival(self):
         case_postProcessing = os.path.join(self.name, "postProcessing")
         targetpath_arrival = os.path.join(os.path.dirname(self.name), 'postProcessing', 'arrival')
@@ -605,7 +682,7 @@ class Case(SolutionDirectory):
         regions.remove('airInside')
 
         # Get all timesteps and delete last one, because for latestTime no postProcess folder exists
-        times = self.getTimes()
+        times = self.get_times()
         # If case is not reconstructed self.getTimes() only returns 0 directory, use parallel times instead
         if len(times) == 1:
             times = self.getParallelTimes()
