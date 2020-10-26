@@ -39,7 +39,7 @@ TRANSPORTTYPES = {
         'width': 2.4390, 
         'height': 2.3855,
         'kappaLayers': 44,
-        'thicknessLayers': 0.02
+        'thicknessLayers': 0.005
     },
     'carrier': {
         'length': 13.0005,
