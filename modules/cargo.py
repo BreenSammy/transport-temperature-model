@@ -9,6 +9,7 @@ from scipy.spatial.transform import Rotation
 # Number of individual packages (regions) in the stl
 # (number of layers, packages per layer) 
 NUMBER_PACKAGES = {
+    'batterypack.stl': (1, 1),
     'pallet1x4.stl': (1, 4),
     'pallet2x4.stl': (2, 4),
     'pallet3x4.stl': (3, 4),
@@ -18,6 +19,7 @@ NUMBER_PACKAGES = {
 }
 
 DIMENSIONS_PACKAGE = {
+    'batterypack.stl': [1.2, 0.7, 0.175],
     'pallet1x4.stl': [0.6, 0.4, 0.4],
     'pallet2x4.stl': [0.6, 0.4, 0.4],
     'pallet3x4.stl': [0.6, 0.4, 0.4],
@@ -26,7 +28,7 @@ DIMENSIONS_PACKAGE = {
     'package.stl': [0.425, 0.335, 0.260]
 }
 
-FREIGHTTYPES = {'cells', 'modules', 'packs'}
+FREIGHTTYPES = {'cells', 'modules', 'pack'}
 THERMAL_CAPACITY_PACKAGING = 1300
 THERMAL_CONDUCTIVITY_PACKAGING = 0.053
 # DENSITY_PACKAGING = 132
@@ -65,9 +67,10 @@ class BatteryRegion:
 
     def thermal_conductivity(self):
         thermal_conductivity = [0, 0, 0]
+        packaging_thickness = np.array(self.dimensions) - np.array(self.freight.dimensions) * np.array(self.freight.elements_in_package(self.dimensions))
         for i in range(3):
-            thermal_conductivity[i] = (self.dimensions[i] + self.freight.dimensions[i]) / (
-                    self.dimensions[i]/self.thermalconductivity_packaging + self.freight.dimensions[i]/self.freight.thermalconductivity[i]
+            thermal_conductivity[i] = (packaging_thickness[i] + self.freight.dimensions[i]) / (
+                    packaging_thickness[i]/self.thermalconductivity_packaging + self.freight.dimensions[i]/self.freight.thermalconductivity[i]
                     )
         return thermal_conductivity
 
@@ -80,6 +83,7 @@ class Pallet:
         self.orientation = orientation
         self.freight = freight
         self.battery_regions = self.get_battery_regions()
+        # Get dimensions of entire stl
         self.dimensions = [
             DIMENSIONS_PACKAGE[templateSTL][0] * NUMBER_PACKAGES[templateSTL][1],
             DIMENSIONS_PACKAGE[templateSTL][1] * NUMBER_PACKAGES[templateSTL][1],
@@ -88,16 +92,17 @@ class Pallet:
 
     def get_battery_regions(self):
         """Create all battery regions of the pallet"""
+        freight = copy.deepcopy(self.freight)
         # Get the dimensions of individual packages on the pallet and rotate according to the orientation
         rotation = Rotation.from_rotvec(np.array(self.orientation) * np.pi / 180)
         dimensions_package = DIMENSIONS_PACKAGE[self.templateSTL]
         dimensions_package = list(map(abs, rotation.apply(dimensions_package)))
         # Also rotate the dimensions of the freight and thermal conductivity
-        self.freight.dimensions = list(map(abs, rotation.apply(self.freight.dimensions)))
-        self.freight.thermalconductivity = list(map(abs, rotation.apply(self.freight.thermalconductivity)))
+        freight.dimensions = list(map(abs, rotation.apply(freight.dimensions)))
+        freight.thermalconductivity = list(map(abs, rotation.apply(freight.thermalconductivity)))
 
         #Get array of center points of each freightelement in one package
-        points_freight_elements = self.freight.location_elements(dimensions_package)
+        points_freight_elements = freight.location_elements(dimensions_package)
 
         # Save positions of seperate packages for locationsInMesh in snappyHexMeshDict 
         number_packages = NUMBER_PACKAGES[self.templateSTL]
@@ -118,7 +123,7 @@ class Pallet:
                 battery_region_position = copy.deepcopy(battery_regions_positions[j, :])
                 # Add battery region
                 battery_regions.append(
-                    BatteryRegion(battery_region_position, dimensions_package, copy.deepcopy(self.freight))
+                    BatteryRegion(battery_region_position, dimensions_package, freight)
                 )  
                 # Save position of freight elements in battery regions
                 battery_regions[-1].freight.elements_positions = battery_region_position + points_freight_elements
@@ -209,6 +214,7 @@ class Freight:
     def elements_in_package(self, dimensions_package):
         """Returns list with number of individual freight elements per axis"""
         result = [floor(dimensions_package[i] / self.dimensions[i]) for i in range(len(self.dimensions))]
+        print(result)
         if np.prod(result) == 0:
             raise ValueError('Freight does not fit into packaging. Check dimensions of freight against dimensions of package.')
         else:
