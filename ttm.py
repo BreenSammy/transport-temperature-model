@@ -92,7 +92,7 @@ postprocessed_arrival_regions = [
     ]
 regions.remove('airInside')
 
-if sorted(postprocessed_arrival_regions) != sorted(regions) or args.postprocess:
+if transportcase.latesttime() > transportcase.duration() or args.postprocess:
     print('Running postprocess on arrival')
     transportcase.postprocess(arrival=True)
 
