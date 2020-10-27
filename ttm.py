@@ -69,15 +69,32 @@ else:
     transportcase.run()
 
 # # Postprocess the simulation
-if args.arrival:
-    transportcase.simulate_arrival(transport.arrival_temperature)
 if args.probe:
     region = args.probe[0]
     location = [float(i) for i in args.probe[1][1:-1].split(' ')]
     transportcase.probe(region, location=location, clear=True)
 
-if not os.listdir(transport._postprocesspath_temperature) or args.postprocess:
+postprocessed_regions = [
+    os.path.splitext(region)[0] for region in os.listdir(transport._postprocesspath_temperature)
+    ]
+regions = sorted(transportcase.regions())
+# Postprocess if not all regions have been postprocessed or if flag is set
+if sorted(postprocessed_regions) != regions or args.postprocess:
+    print('Running postprocess on transport')
     transportcase.postprocess()
+
+# Simulate arrival
+if args.arrival:
+    transportcase.simulate_arrival(transport.arrival_temperature)
+
+postprocessed_arrival_regions = [
+    os.path.splitext(region)[0] for region in os.listdir(transport._postprocesspath_arrival)
+    ]
+regions.remove('airInside')
+
+if sorted(postprocessed_arrival_regions) != sorted(regions) or args.postprocess:
+    print('Running postprocess on arrival')
+    transportcase.postprocess(arrival=True)
 
 # Plot results
 plots_content = os.listdir(transport._plotspath)

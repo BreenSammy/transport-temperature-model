@@ -498,108 +498,10 @@ class Case(SolutionDirectory):
                 decomposeParDict.writeFile()
         else:
             raise Exception('Case already decomposed. Clean case before changing number of subdomains.')
-        
-    def postprocess(self):
-        """
-        Creates one postprocess file for every region out of function object postProcessing files.
 
-        For every restart of solver OpenFOAM creates a new directory for postProcessing results. 
-        This method creates single files for all timesteps and saves them in the transport directory. 
-        """
-
+    def postprocess(self, arrival = False):
         case_postProcessing = os.path.join(self.name, "postProcessing")
-        targetpath_temperature = os.path.join(os.path.dirname(self.name), 'postProcessing', 'temperature')
         targetpath_wallHeatFlux =  os.path.join(os.path.dirname(self.name), 'postProcessing', 'wallHeatFlux')
-
-        # Find all regions
-        regions = self.regions()
-        
-        # Get all timesteps and delete last one, because for latestTime no postProcess folder exists
-        times = self.get_times()
-        # Filter times so only times during transport are postprocessed
-        times = [time for time in times if float(time) <= self.duration()]
-        del times[-1]
-        # If times is empty stop
-        if not times:
-            return
-
-        initial_temperature = ParsedParameterFile(
-            os.path.join(self.name, '0', 'airInside', 'T')
-            )['internalField'].val
-
-        for i in range(len(regions)):
-            # Add zero time head with initial temperatures
-            df_head = {
-                'time': 0,
-                'average(T)': initial_temperature,
-                'min(T)': initial_temperature,
-                'max(T)': initial_temperature
-            }
-            df_temperature = pd.DataFrame(data = df_head, index = [0])
-            df_wallHeatFlux = pd.DataFrame()
-
-            for j in range(len(times)):
-                # Create paths to files
-                path_average = os.path.join(
-                    case_postProcessing, regions[i], 'average_' + regions[i], times[j], 'volFieldValue.dat'
-                    )
-                path_min = os.path.join(
-                    case_postProcessing, regions[i], 'min_' + regions[i], times[j], 'volFieldValue.dat'
-                    )
-                path_max = os.path.join(
-                    case_postProcessing, regions[i], 'max_' + regions[i], times[j], 'volFieldValue.dat'
-                    )
-                path_wallHeatFlux = os.path.join(
-                    case_postProcessing, 'airInside', 'wallHeatFlux', times[j], 'wallHeatFlux.dat'
-                    )
-                # Read as pandas dataframe
-                average_temperature = pd.read_table(
-                    path_average, sep="\s+", header=3, usecols = [0,1], names = ['time', 'average(T)']
-                    )
-                min_temperature = pd.read_table(
-                    path_min, sep="\s+", header=3, usecols = [0,1], names = ['time', 'min(T)']
-                    )
-                max_temperature = pd.read_table(
-                    path_max, sep="\s+", header=3, usecols = [0,1], names = ['time', 'max(T)']
-                    )
-                wallHeatFlux = pd.read_table(
-                    path_wallHeatFlux, sep="\s+", header=1, usecols = [0,1,2,3,4], 
-                    names = ['time', 'patch', 'min', 'max', 'integral']
-                    )
-                # Join temperatures to single file
-                temperature = average_temperature.join(min_temperature['min(T)'])
-                temperature = temperature.join(max_temperature['max(T)'])  
-                # Select wallHeatFlux for the region
-                if regions[i] == 'airInside':
-                    wallHeatFlux = wallHeatFlux.loc[wallHeatFlux['patch'] == 'carrier']
-                else:
-                    wallHeatFlux = wallHeatFlux.loc[wallHeatFlux['patch'] == 'airInside_to_' + regions[i]]
-                    # Heatflux in region is positive
-                    wallHeatFlux.loc[:, ['min', 'max', 'integral']] = -1 * wallHeatFlux.loc[:, ['min', 'max', 'integral']]
-
-                wallHeatFlux = wallHeatFlux.drop(columns = ['patch'])              
-
-                df_temperature = pd.concat([df_temperature, temperature], ignore_index = True)
-                df_wallHeatFlux = pd.concat([df_wallHeatFlux, wallHeatFlux], ignore_index = True)
-
-            # Convert to Celsius
-            df_temperature['average(T)'] = df_temperature['average(T)'] - 273.15
-            df_temperature['min(T)'] = df_temperature['min(T)'] - 273.15
-            df_temperature['max(T)'] = df_temperature['max(T)'] - 273.15
-
-            filename_temperature = os.path.join(targetpath_temperature, regions[i] + '.csv')
-            df_temperature.to_csv(filename_temperature, encoding='utf-8', index=False) 
-
-            filename_wallHeatFlux = os.path.join(targetpath_wallHeatFlux, regions[i] + '.csv')
-            df_wallHeatFlux.to_csv(filename_wallHeatFlux, encoding='utf-8', index=False) 
-
-    def postprocess_new(self):
-        case_postProcessing = os.path.join(self.name, "postProcessing")
-        targetpath_arrival = os.path.join(os.path.dirname(self.name), 'postProcessing', 'arrival')
-        targetpath_temperature = os.path.join(os.path.dirname(self.name), 'postProcessing', 'temperature')
-
-        if not os.path.exists(targetpath_arrival):
-            os.makedirs(targetpath_arrival)
 
         # Find all regions
         regions = os.listdir(case_postProcessing)
@@ -607,22 +509,25 @@ class Case(SolutionDirectory):
         if 'probes' in regions:
             regions.remove('probes')
         
-        # regions.remove('airInside')
-
-        # Get all timesteps and delete last one, because for latestTime no postProcess folder exists
         times = self.get_times()
-        # Filter times so only times after transport are postprocessed
-        # transport_times = [time for time in times if float(time) < self.duration()]
-        # times = [time for time in times if float(time) >= self.duration()]
-        del times[-1]
+        # Filter times for either before or after arrival
+        if arrival:
+            lasttransporttime = times[times.index(str(int(self.duration()))) - 1]
+            times = [time for time in times if float(time) >= self.duration()]
+            regions.remove('airInside')
+            targetpath = os.path.join(os.path.dirname(self.name), 'postProcessing', 'arrival')
+        else:
+            times = [time for time in times if float(time) <= self.duration()]
+            targetpath = os.path.join(os.path.dirname(self.name), 'postProcessing', 'temperature')
         # If times is empty stop
         if not times:
-            return
+            raise ValueError('No times to postprocess')
 
         # Header length for different types of postprocessing resultes from OpenFOAM
         header = {
             'volFieldValue.dat': 3,
-            'surfaceFieldValue.dat': 4
+            'surfaceFieldValue.dat': 4,
+            'wallHeatFlux.dat': 1
         }
         
         # Iterate over regions
@@ -634,116 +539,71 @@ class Case(SolutionDirectory):
             for path in postprocess_function_paths:
                 # Get paths to all postprocessing files
                 all_timedirectories = os.listdir(path)
-                all_arrivaltimedirectories = sorted(set(times).intersection(all_timedirectories), key = float)
-                all_paths = [os.path.join(path, x) for x in all_arrivaltimedirectories]
+                # Select only timedirectories until penultimate, because postprocessing results for current time are saved in lasttime
+                all_selectedtimedirectories = sorted(
+                    set(times[0:-1]).intersection(all_timedirectories), key = float
+                    )
+                all_paths = [os.path.join(path, x) for x in all_selectedtimedirectories]
                 filename = os.listdir(all_paths[0])[0]
                 all_paths = [os.path.join(x, filename) for x in all_paths]
                 # Define column name for dataframe
                 colname = os.path.basename(path).split('_')[0] + '(T)'
                 
-                # Get the first temperature at arrival, hence the last of the transport
-                if times[0] == '0':
-                    arrival_temperature = self.initial_temperature()
-                else:
-                    lasttransporttime = transport_times[-1]
-                    lasttransportpath = os.path.join(path, lasttransporttime, filename)
-                    df_lasttransport = pd.read_csv(
-                        lasttransportpath, sep="\s+", header=header[filename], usecols = [0,1], names = ['time', colname]
+                # Handle wallHeatFLux files different
+                if os.path.basename(path) == 'wallHeatFlux':
+                    column_names = ['time', 'patch', 'min', 'max', 'integral']
+                    wallHeatFlux_list = (
+                        [pd.read_csv(
+                            f, 
+                            sep="\s+", 
+                            header=header[filename], 
+                            usecols = range(len(column_names)), 
+                            names = column_names
+                            ) for f in all_paths]
                         )
-                    arrival_temperature = df_lasttransport[colname].iloc[0]
+                    wallHeatFlux = pd.concat(wallHeatFlux_list)
+                    wallHeatFlux.index = range(len(wallHeatFlux))
+                    patches = wallHeatFlux.patch.unique()
+                    # Sort by patches 
+                    for patch in patches:
+                        df_patch = wallHeatFlux.loc[wallHeatFlux['patch'] == patch]
+                        df_patch = df_patch.drop(columns = ['patch'])
+                        # Correct sign of heatflux, positive for flux into domain
+                        if patch != 'carrier':
+                            df_patch.loc[:, ['min', 'max', 'integral']] = -1 * df_patch.loc[:, ['min', 'max', 'integral']]
+                        filename_wallHeatFlux = os.path.join(targetpath_wallHeatFlux, patch + '.csv')
+                        df_patch.to_csv(filename_wallHeatFlux, encoding='utf-8', index=False) 
+                    break 
 
-                dict_arrival = {
-                        'time': times[0],
-                        colname: arrival_temperature,
-                        }
-                # Read data from files and save in one dataframe
-                df_list = [pd.DataFrame( data = dict_arrival, index=[0])]
-                df_list.extend(
-                    [pd.read_csv(f, sep="\s+", header=header[filename], usecols = [0,1], names = ['time', colname]) for f in all_paths]
-                    )
-                df = pd.concat(df_list)
-                
-                # Join the dataframes together into one
-                df.index = range(len(df))
-                # Add to results and convert to Celsius
-                result = result.join(df[colname] - 273.15)
-            # Save as csv
-            result.to_csv(os.path.join(targetpath_temperature, region + '.csv'), index=False, encoding='utf-8')
-
-    def postprocess_arrival(self):
-        case_postProcessing = os.path.join(self.name, "postProcessing")
-        targetpath_arrival = os.path.join(os.path.dirname(self.name), 'postProcessing', 'arrival')
-
-        if not os.path.exists(targetpath_arrival):
-            os.makedirs(targetpath_arrival)
-
-        # Find all regions
-        regions = self.regions()
-        regions.remove('airInside')
-
-        # Get all timesteps and delete last one, because for latestTime no postProcess folder exists
-        times = self.get_times()
-        # If case is not reconstructed self.getTimes() only returns 0 directory, use parallel times instead
-        if len(times) == 1:
-            times = self.getParallelTimes()
-        # Filter times so only times after transport are postprocessed
-        transport_times = [time for time in times if float(time) < self.duration()]
-        times = [time for time in times if float(time) >= self.duration()]
-        del times[-1]
-        # If times is empty stop
-        if not times:
-            return
-
-        # Header length for different types of postprocessing resultes from OpenFOAM
-        header = {
-            'volFieldValue.dat': 3,
-            'surfaceFieldValue.dat': 4
-        }
-        
-        # Iterate over regions
-        for region in regions:
-            region_path = os.path.join(case_postProcessing, region)
-            postprocess_function_paths = [os.path.join(region_path, x) for x in os.listdir(region_path)]
-            result = pd.DataFrame(data = {'time': times})
-            # Iterate over results from different postprocess functions 
-            for path in postprocess_function_paths:
-                # Get paths to all postprocessing files
-                all_timedirectories = os.listdir(path)
-                all_arrivaltimedirectories = sorted(set(times).intersection(all_timedirectories), key = float)
-                all_paths = [os.path.join(path, x) for x in all_arrivaltimedirectories]
-                filename = os.listdir(all_paths[0])[0]
-                all_paths = [os.path.join(x, filename) for x in all_paths]
-                # Define column name for dataframe
-                colname = os.path.basename(path).split('_')[0] + '(T)'
-                
-                # Get the first temperature at arrival, hence the last of the transport
-                if times[0] == '0':
-                    arrival_temperature = self.initial_temperature()
                 else:
-                    lasttransporttime = transport_times[-1]
-                    lasttransportpath = os.path.join(path, lasttransporttime, filename)
-                    df_lasttransport = pd.read_csv(
-                        lasttransportpath, sep="\s+", header=header[filename], usecols = [0,1], names = ['time', colname]
-                        )
-                    arrival_temperature = df_lasttransport[colname].iloc[0]
+                    # Get the first temperature at arrival, hence the last of the transport
+                    if times[0] == '0':
+                        initial_temperature = self.initial_temperature()
+                    else:
+                        lasttransportpath = os.path.join(path, lasttransporttime, filename)
+                        df_lasttransport = pd.read_csv(
+                            lasttransportpath, sep="\s+", header=header[filename], usecols = [0,1], names = ['time', colname]
+                            )
+                        initial_temperature = df_lasttransport[colname].iloc[0]
 
-                dict_arrival = {
-                        'time': times[0],
-                        colname: arrival_temperature,
-                        }
-                # Read data from files and save in one dataframe
-                df_list = [pd.DataFrame( data = dict_arrival, index=[0])]
-                df_list.extend(
-                    [pd.read_csv(f, sep="\s+", header=header[filename], usecols = [0,1], names = ['time', colname]) for f in all_paths]
-                    )
-                df = pd.concat(df_list)
-                
-                # Join the dataframes together into one
-                df.index = range(len(df))
-                # Add to results and convert to Celsius
-                result = result.join(df[colname] - 273.15)
+                    dict_head = {
+                            'time': times[0],
+                            colname: initial_temperature,
+                            }
+                    # Read data from files and save in one dataframe
+                    df_list = [pd.DataFrame( data = dict_head, index=[0])]
+                    df_list.extend(
+                        [pd.read_csv(f, sep="\s+", header=header[filename], usecols = [0,1], names = ['time', colname]) for f in all_paths]
+                        )
+                    df = pd.concat(df_list)
+                    
+                    # Join the dataframes together into one
+                    df.index = range(len(df))
+                    # Add to results and convert to Celsius
+                    result = result.join(df[colname] - 273.15)
+
             # Save as csv
-            result.to_csv(os.path.join(targetpath_arrival, region + '.csv'), index=False, encoding='utf-8')
+            result.to_csv(os.path.join(targetpath, region + '.csv'), index=False, encoding='utf-8')
 
     def read_cargo(self):
         # Read cargo if not existent
@@ -1180,6 +1040,9 @@ class Case(SolutionDirectory):
             return np.amax(temperature)
 
     def simulate_arrival(self, ambienttemperature):
+        """Simulate heat exchange at arrival of cargo at destination"""
+        
+        print('Starting simulation of arrival')
         # Transform from Celsius to Kelvin
         ambienttemperature += 273.15
         
@@ -1188,13 +1051,14 @@ class Case(SolutionDirectory):
         if transportduration > float(self.getParallelTimes()[-1]):
             raise ValueError('Transport simulation did not finish yet. Complete the transport before simulating arrival.')
 
-        self._setup_arrival(ambienttemperature)
-
         deltaT = self._get_max_delta(ambienttemperature)
+        
         max_deltaT = 1
-
         df_list = []
         print('Initial temperature difference to ambient temperature: {}'.format(deltaT))
+        
+        if deltaT > max_deltaT:
+            self._setup_arrival(ambienttemperature)
         
         while deltaT > max_deltaT:
             print('Temperature difference to ambient temperature: {}'.format(deltaT))
@@ -1229,8 +1093,6 @@ class Case(SolutionDirectory):
             df['time'] = df['time'] - df['time'].iloc[0]
             df.to_csv(path, encoding='utf-8', index=False)
             
-        self.postprocess_arrival()
-
 def utcoffset(utc_datetime, lat, lon):
     """Get the offset to UTC time at a specified location"""
     # Surpressing error output, because tzwhere uses depreciated numpy function
