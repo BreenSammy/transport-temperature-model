@@ -96,7 +96,7 @@ if transportcase.latesttime() > transportcase.duration() or args.postprocess:
 plots_content = os.listdir(transport._plotspath)
 if 'plot.jpg' not in plots_content or args.plot:
     print('Plotting simulation results')
-    if args.plot != []:
+    if args.plot != None:
         if 'all' in args.plot:
             args.plot = transportcase.cargo_regions()
         [transportcase.probe_freight(region) for region in args.plot]
