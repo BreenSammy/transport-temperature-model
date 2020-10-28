@@ -37,19 +37,24 @@ class Transport:
         self._postprocesspath_temperature = os.path.join(self._postprocesspath, 'temperature')
         self._postprocesspath_wallHeatFlux = os.path.join(self._postprocesspath, 'wallHeatFlux')
         self._postprocesspath_arrival = os.path.join(self._postprocesspath, 'arrival')
+        self._postprocesspath_probes = os.path.join(self._postprocesspath, 'probes')
         self._plotspath = os.path.join(self.path, 'plots')
+        self._probesplotspath = os.path.join(self._plotspath, 'probes')
 
-        if not os.path.exists(self._postprocesspath):
-            os.makedirs(self._postprocesspath)
-        if not os.path.exists(self._postprocesspath_temperature):
-            os.makedirs(self._postprocesspath_temperature)
-        if not os.path.exists(self._postprocesspath_wallHeatFlux):
-            os.makedirs(self._postprocesspath_wallHeatFlux)
-        if not os.path.exists(self._postprocesspath_arrival):
-            os.makedirs(self._postprocesspath_arrival)
-        if not os.path.exists(self._plotspath):
-            os.makedirs(self._plotspath)
-        
+        postprocesspaths = [
+            self._postprocesspath,
+            self._postprocesspath_temperature,
+            self._postprocesspath_wallHeatFlux,
+            self._postprocesspath_arrival,
+            self._postprocesspath_probes,
+            self._plotspath,
+            self._probesplotspath
+            ]
+
+        for path in postprocesspaths:
+            if not os.path.exists(path):
+                os.makedirs(path)
+                        
         if os.path.exists(self._weatherdatapath):
             self.weatherdata = pd.read_csv(self._weatherdatapath, parse_dates = ['Date'])
             start = self.weatherdata['Date'].iloc[0]

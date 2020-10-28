@@ -62,29 +62,45 @@ else:
     print('Mesh already exists')
 
 # Execute the OpenFOAM solver
-transportcase.run()
+if transport.type == 'car':
+    transportcase.switch_to_car()
+    transportcase.run(borderregion = 'battery0_0')
+else:
+    transportcase.run()
 
-# Postprocess the simulation
-if args.arrival:
-    transportcase.simulate_arrival(transport.arrival_temperature)
+# # Postprocess the simulation
 if args.probe:
     region = args.probe[0]
     location = [float(i) for i in args.probe[1][1:-1].split(' ')]
     transportcase.probe(region, location=location, clear=True)
 
-if not os.listdir(transport._postprocesspath_temperature) or args.postprocess:
+postprocessed_regions = [
+    os.path.splitext(region)[0] for region in os.listdir(transport._postprocesspath_temperature)
+    ]
+    
+# Postprocess if not all regions have been postprocessed or if flag is set
+if sorted(postprocessed_regions) !=  sorted(transportcase.regions()) or args.postprocess:
+    print('Running postprocess on transport')
     transportcase.postprocess()
+
+# Simulate arrival
+if args.arrival:
+    transportcase.simulate_arrival(transport.arrival_temperature)
+
+
+if transportcase.latesttime() > transportcase.duration() or args.postprocess:
+    print('Running postprocess on arrival')
+    transportcase.postprocess(arrival=True)
 
 # Plot results
 plots_content = os.listdir(transport._plotspath)
-if 'plot.jpg' not in plots_content:
-    transportcase.plot(tikz = True)
-# Plot if it is the first time or if flag is set
-if args.plot:
-    if 'all' in args.plot:
-        args.plot = transportcase.cargo_regions()
-
-    transportcase.plot(probes = args.plot, tikz = True)
+if 'plot.jpg' not in plots_content or args.plot:
+    print('Plotting simulation results')
+    if args.plot != []:
+        if 'all' in args.plot:
+            args.plot = transportcase.cargo_regions()
+        [transportcase.probe_freight(region) for region in args.plot]
+    visualization.plot(transport)
 
 visualization.create(transport)
 

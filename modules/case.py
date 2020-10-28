@@ -47,8 +47,17 @@ TRANSPORTTYPES = {
         'height': 2.5505,
         'kappaLayers': 0.5,
         'thicknessLayers': 0.01
+    },
+    'car': {
+        'length': 5,
+        'width': 3, 
+        'height': 3,
+        'kappaLayers': 1,
+        'thicknessLayers': 1
     }
 }
+# Max speed for natural convection
+SPEEDTHERSHOLD = 4
 
 class Case(SolutionDirectory):
     def __init__(self, name, archive = None, paraviewLink = True):
@@ -70,9 +79,12 @@ class Case(SolutionDirectory):
         """Get all times with timedirectories, parallel or not"""
         times = self.getTimes()
         # If case is not reconstructed self.getTimes() only returns 0 directory, use parallel times instead
-        if len(times) == 1:
+        if len(times) < len(self.getParallelTimes()):
             times = self.getParallelTimes()
         return times
+
+    def latesttime(self):
+        return float(self.get_times()[-1])
 
     def change_initial_temperature(self, temperature):
         # Convert to Kelvin
@@ -133,6 +145,26 @@ class Case(SolutionDirectory):
         blockMeshDict.writeFile()
         changeDictionaryDict.writeFile()
         snappyHexMeshDict.writeFile()
+
+    def switch_to_car(self):
+        # Chech if case is valid
+        if len(self.cargo_regions()) > 1:
+            raise ValueError(
+        'Simulation of car transport only works with one region. Please remove all but one cargo instances from transport.json'
+        )
+        self.remove_airInside()
+        # Change the boundary condition of the battery region to a external wall
+        changeDictionaryDict =  ParsedParameterFile(os.path.join(self.systemDir(), "battery0_0", "changeDictionaryDict"))
+        # Apply a thermal resistance representing carbody
+        openfoam.external_wall['kappaLayers'] = '( {} )'.format(TRANSPORTTYPES['car']['kappaLayers'])
+        openfoam.external_wall['thicknessLayers'] = '( {} )'.format(TRANSPORTTYPES['car']['thicknessLayers'])
+        changeDictionaryDict['T']['boundaryField']['battery0_0_to_airInside'] = openfoam.external_wall
+        if 'internalField' in changeDictionaryDict['T']:
+            del changeDictionaryDict['T']['internalField']
+        changeDictionaryDict.writeFile()
+
+        os.system(os.path.join(self.name,"ChangeDictionary") + ' battery0_0')
+        self._move_logs()
     
     def load_cargo(self, cargo):
         """Loads the carrier with cargo. New regions for cargo 
@@ -228,8 +260,28 @@ class Case(SolutionDirectory):
 
         changeDictionaryDict.writeFile()
 
-    def heattransfer_coefficient(self, T_U, u, L = None, region = 'airInside'):
+    def _get_dominant_length(self, region, speed):
+        """Get the dominant length for calculation of convection"""
+        # Use dimesnions of carrier for airInside
+        if region == 'airInside':
+            snappyHexMeshDict = ParsedParameterFile(os.path.join(self.systemDir(), "snappyHexMeshDict"))
+            dimensions = snappyHexMeshDict['geometry']['carrier']['max']
+        # And dimensions of cargo for cargo regions
+        else:
+            self.read_cargo()
+            cargo_number, _ = re.findall(r'\d+', region)
+            dimensions = self.cargo[int(cargo_number)].dimensions
+        
+        # Return z-axis value for natural convection
+        if speed < SPEEDTHERSHOLD:
+            return dimensions[2]
+        # And x-axis value for forced convection
+        else:
+            return dimensions[0]
+
+    def heattransfer_coefficient(self, T_U, u, region = 'airInside'):
         """Calculate heattransfer coefficient"""
+        L = self._get_dominant_length(region, u)
         # Value for current time is saved in folder for last time
         times = self.getParallelTimes()
 
@@ -260,20 +312,16 @@ class Case(SolutionDirectory):
                     )
             T_W = df_patch_temperature['T'].iloc[-1]
 
-        snappyHexMeshDict = ParsedParameterFile(os.path.join(self.systemDir(), "snappyHexMeshDict"))
-        if u < 4:
-            # Length for natural convection is z-axis value of geometry of carrier
-            if L == None:
-                L = snappyHexMeshDict['geometry']['carrier']['max'][2]
+        if u < SPEEDTHERSHOLD:
             return convection.coeff_natural(L, T_W, T_U), T_W
         else:
-            # Length for forced convection is x-axis value of geometry of carrier
-            if L == None:
-                L = snappyHexMeshDict['geometry']['carrier']['max'][0]
             return convection.coeff_forced(L, u), T_W
 
-    def run(self):
+    def run(self, borderregion = 'airInside'):
         """Execute the simulation"""
+        if borderregion not in ['airInside', 'battery0_0']:
+            raise ValueError('Only support for borderregions airInside for carrier transport or battery0_0 for car transport')
+
         self.load_weatherdata()
         
         path_solver_logfile = os.path.join(self.name,"log.chtMultiRegionFoam")
@@ -283,9 +331,9 @@ class Case(SolutionDirectory):
             os.remove(path_solver_logfile)
 
         # Open files that need to be modified
-        changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), "airInside", "changeDictionaryDict"))
+        changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), borderregion, "changeDictionaryDict"))
         controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
-        radiationProperties =  ParsedParameterFile(os.path.join(self.constantDir(), "airInside", "radiationProperties"))
+        radiationProperties =  ParsedParameterFile(os.path.join(self.constantDir(), borderregion, "radiationProperties"))
 
         latesttime = float(self.get_times()[-1])
         
@@ -307,8 +355,14 @@ class Case(SolutionDirectory):
             # Update endTime of the simulation
             endTime_delta = self.weatherdata['Date'].values[i+1] - self.weatherdata['Date'].values[i]
             endTime_delta = endTime_delta / np.timedelta64(1, 's')
-            controlDict['writeInterval'] = np.floor(endTime_delta)
+            writeinterval = np.floor(endTime_delta)
+            controlDict['writeInterval'] = writeinterval
             controlDict['endTime'] = latesttime + endTime_delta
+            # Limit timesteps to fixed value for small writeintervals, or timesteps can be bigger than writeInterval
+            if writeinterval < 1000:
+                controlDict['adjustTimeStep'] = 'no'
+            else:
+                controlDict['adjustTimeStep'] = 'yes'
             controlDict.writeFile()
 
             # Calculate travelspeed between waypoints
@@ -322,35 +376,39 @@ class Case(SolutionDirectory):
                 radiationProperties, current_timestamp, coordinates, coordinates_next
                 )
 
+            heattransfer_coefficient, T_W = self.heattransfer_coefficient(temperature, travelspeed, region = borderregion)
+            # Write changes to changeDictionaryDict
+            if borderregion == 'airInside':
+                changeDictionaryDict['T']['boundaryField'] = {}
+                changeDictionaryDict['T']['boundaryField']['carrier'] = {
+                    'h': heattransfer_coefficient,
+                    'Ta': temperature,
+                }
+                changeDictionaryDict['T']['boundaryField']['bottom'] = {
+                    'Ta': temperature
+                }
+            elif borderregion == 'battery0_0':
+                changeDictionaryDict['T']['boundaryField'] = {}
+                changeDictionaryDict['T']['boundaryField']['battery0_0_to_airInside'] = {
+                    'h': heattransfer_coefficient,
+                    'Ta': temperature,
+                }
+            changeDictionaryDict.writeFile()
+            
             # Print to console            
             print('Timestamp: {} (UTC)'.format(string_current_timestamp))
             print('Latitude: {0} Longitude: {1}'.format(coordinates[0], coordinates[1]))
             print('Temperature: {}'.format(temperature))
             print('Travelspeed: {}'.format(travelspeed))
-
-            # Update the heattransfer coefficient 
-            heattransfer_coefficient, T_W = self.heattransfer_coefficient(temperature, travelspeed)
-            print('Recalculating heattransfer coefficient:')
             print('Heattransfer coeffcient: {0} with average wall temperature: {1}'.format(heattransfer_coefficient, T_W))
 
-            # Write changes to changeDictionaryDict
-            changeDictionaryDict['T']['boundaryField'] = {}
-            changeDictionaryDict['T']['boundaryField']['carrier'] = {
-                'h': heattransfer_coefficient,
-                'Ta': temperature,
-            }
-            changeDictionaryDict['T']['boundaryField']['bottom'] = {
-                'Ta': temperature
-            }
-            changeDictionaryDict.writeFile()
-            
             #Write travelspeed and heattransfercoeffiecient to file
             self._save_data([latesttime, travelspeed], 'speed.csv')
             self._save_data([latesttime, heattransfer_coefficient], 'heattransfercoefficient.csv')
 
             # Execute solver
             self._move_logs()
-            os.system(os.path.join(self.name,"ChangeDictionary"))
+            os.system(os.path.join(self.name,"ChangeDictionary") + ' ' + borderregion)
             os.system(os.path.join(self.name,"Run"))
 
             #File management of log files
@@ -385,6 +443,7 @@ class Case(SolutionDirectory):
         east_vector = np.array([1, 0, 0])
         east_vector = coordinate_transformation(x_axis, east_vector)
 
+        radiationProperties['radiation'] = 'on'
         radiationProperties['solarLoadCoeffs']['startDay'] = startday
         radiationProperties['solarLoadCoeffs']['startTime'] = starttime
         radiationProperties['solarLoadCoeffs']['localStandardMeridian'] = localStandardMeridian
@@ -441,129 +500,36 @@ class Case(SolutionDirectory):
                 decomposeParDict.writeFile()
         else:
             raise Exception('Case already decomposed. Clean case before changing number of subdomains.')
-        
-    def postprocess(self):
-        """
-        Creates one postprocess file for every region out of function object postProcessing files.
 
-        For every restart of solver OpenFOAM creates a new directory for postProcessing results. 
-        This method creates single files for all timesteps and saves them in the transport directory. 
-        """
-
+    def postprocess(self, arrival = False):
         case_postProcessing = os.path.join(self.name, "postProcessing")
-        targetpath_temperature = os.path.join(os.path.dirname(self.name), 'postProcessing', 'temperature')
         targetpath_wallHeatFlux =  os.path.join(os.path.dirname(self.name), 'postProcessing', 'wallHeatFlux')
 
         # Find all regions
-        regions = self.regions()
+        regions = os.listdir(case_postProcessing)
+
+        if 'probes' in regions:
+            regions.remove('probes')
         
-        # Get all timesteps and delete last one, because for latestTime no postProcess folder exists
         times = self.get_times()
-        # Filter times so only times during transport are postprocessed
-        times = [time for time in times if float(time) <= self.duration()]
-        del times[-1]
+        # Filter times for either before or after arrival
+        if arrival:
+            lasttransporttime = times[times.index(str(int(self.duration()))) - 1]
+            times = [time for time in times if float(time) >= self.duration()]
+            regions.remove('airInside')
+            targetpath = os.path.join(os.path.dirname(self.name), 'postProcessing', 'arrival')
+        else:
+            times = [time for time in times if float(time) <= self.duration()]
+            targetpath = os.path.join(os.path.dirname(self.name), 'postProcessing', 'temperature')
         # If times is empty stop
         if not times:
-            return
-
-        initial_temperature = ParsedParameterFile(
-            os.path.join(self.name, '0', 'airInside', 'T')
-            )['internalField'].val
-
-        for i in range(len(regions)):
-            # Add zero time head with initial temperatures
-            df_head = {
-                'time': 0,
-                'average(T)': initial_temperature,
-                'min(T)': initial_temperature,
-                'max(T)': initial_temperature
-            }
-            df_temperature = pd.DataFrame(data = df_head, index = [0])
-            df_wallHeatFlux = pd.DataFrame()
-
-            for j in range(len(times)):
-                # Create paths to files
-                path_average = os.path.join(
-                    case_postProcessing, regions[i], 'average_' + regions[i], times[j], 'volFieldValue.dat'
-                    )
-                path_min = os.path.join(
-                    case_postProcessing, regions[i], 'min_' + regions[i], times[j], 'volFieldValue.dat'
-                    )
-                path_max = os.path.join(
-                    case_postProcessing, regions[i], 'max_' + regions[i], times[j], 'volFieldValue.dat'
-                    )
-                path_wallHeatFlux = os.path.join(
-                    case_postProcessing, 'airInside', 'wallHeatFlux', times[j], 'wallHeatFlux.dat'
-                    )
-                # Read as pandas dataframe
-                average_temperature = pd.read_table(
-                    path_average, sep="\s+", header=3, usecols = [0,1], names = ['time', 'average(T)']
-                    )
-                min_temperature = pd.read_table(
-                    path_min, sep="\s+", header=3, usecols = [0,1], names = ['time', 'min(T)']
-                    )
-                max_temperature = pd.read_table(
-                    path_max, sep="\s+", header=3, usecols = [0,1], names = ['time', 'max(T)']
-                    )
-                wallHeatFlux = pd.read_table(
-                    path_wallHeatFlux, sep="\s+", header=1, usecols = [0,1,2,3,4], 
-                    names = ['time', 'patch', 'min', 'max', 'integral']
-                    )
-                # Join temperatures to single file
-                temperature = average_temperature.join(min_temperature['min(T)'])
-                temperature = temperature.join(max_temperature['max(T)'])  
-                # Select wallHeatFlux for the region
-                if regions[i] == 'airInside':
-                    wallHeatFlux = wallHeatFlux.loc[wallHeatFlux['patch'] == 'carrier']
-                else:
-                    wallHeatFlux = wallHeatFlux.loc[wallHeatFlux['patch'] == 'airInside_to_' + regions[i]]
-                    # Heatflux in region is positive
-                    wallHeatFlux.loc[:, ['min', 'max', 'integral']] = -1 * wallHeatFlux.loc[:, ['min', 'max', 'integral']]
-
-                wallHeatFlux = wallHeatFlux.drop(columns = ['patch'])              
-
-                df_temperature = pd.concat([df_temperature, temperature], ignore_index = True)
-                df_wallHeatFlux = pd.concat([df_wallHeatFlux, wallHeatFlux], ignore_index = True)
-
-            # Convert to Celsius
-            df_temperature['average(T)'] = df_temperature['average(T)'] - 273.15
-            df_temperature['min(T)'] = df_temperature['min(T)'] - 273.15
-            df_temperature['max(T)'] = df_temperature['max(T)'] - 273.15
-
-            filename_temperature = os.path.join(targetpath_temperature, regions[i] + '.csv')
-            df_temperature.to_csv(filename_temperature, encoding='utf-8', index=False) 
-
-            filename_wallHeatFlux = os.path.join(targetpath_wallHeatFlux, regions[i] + '.csv')
-            df_wallHeatFlux.to_csv(filename_wallHeatFlux, encoding='utf-8', index=False) 
-
-    def postprocess_arrival(self):
-        case_postProcessing = os.path.join(self.name, "postProcessing")
-        targetpath_arrival = os.path.join(os.path.dirname(self.name), 'postProcessing', 'arrival')
-
-        if not os.path.exists(targetpath_arrival):
-            os.makedirs(targetpath_arrival)
-
-        # Find all regions
-        regions = self.regions()
-        regions.remove('airInside')
-
-        # Get all timesteps and delete last one, because for latestTime no postProcess folder exists
-        times = self.getTimes()
-        # If case is not reconstructed self.getTimes() only returns 0 directory, use parallel times instead
-        if len(times) == 1:
-            times = self.getParallelTimes()
-        # Filter times so only times after transport are postprocessed
-        transport_times = [time for time in times if float(time) < self.duration()]
-        times = [time for time in times if float(time) >= self.duration()]
-        del times[-1]
-        # If times is empty stop
-        if not times:
-            return
+            raise ValueError('No times to postprocess')
 
         # Header length for different types of postprocessing resultes from OpenFOAM
         header = {
             'volFieldValue.dat': 3,
-            'surfaceFieldValue.dat': 4
+            'surfaceFieldValue.dat': 4,
+            'wallHeatFlux.dat': 1
         }
         
         # Iterate over regions
@@ -575,41 +541,71 @@ class Case(SolutionDirectory):
             for path in postprocess_function_paths:
                 # Get paths to all postprocessing files
                 all_timedirectories = os.listdir(path)
-                all_arrivaltimedirectories = sorted(set(times).intersection(all_timedirectories), key = float)
-                all_paths = [os.path.join(path, x) for x in all_arrivaltimedirectories]
+                # Select only timedirectories until penultimate, because postprocessing results for current time are saved in lasttime
+                all_selectedtimedirectories = sorted(
+                    set(times[0:-1]).intersection(all_timedirectories), key = float
+                    )
+                all_paths = [os.path.join(path, x) for x in all_selectedtimedirectories]
                 filename = os.listdir(all_paths[0])[0]
                 all_paths = [os.path.join(x, filename) for x in all_paths]
                 # Define column name for dataframe
                 colname = os.path.basename(path).split('_')[0] + '(T)'
                 
-                # Get the first temperature at arrival, hence the last of the transport
-                if times[0] == '0':
-                    arrival_temperature = self.initial_temperature()
-                else:
-                    lasttransporttime = transport_times[-1]
-                    lasttransportpath = os.path.join(path, lasttransporttime, filename)
-                    df_lasttransport = pd.read_csv(
-                        lasttransportpath, sep="\s+", header=header[filename], usecols = [0,1], names = ['time', colname]
+                # Handle wallHeatFLux files different
+                if os.path.basename(path) == 'wallHeatFlux':
+                    column_names = ['time', 'patch', 'min', 'max', 'integral']
+                    wallHeatFlux_list = (
+                        [pd.read_csv(
+                            f, 
+                            sep="\s+", 
+                            header=header[filename], 
+                            usecols = range(len(column_names)), 
+                            names = column_names
+                            ) for f in all_paths]
                         )
-                    arrival_temperature = df_lasttransport[colname].iloc[0]
+                    wallHeatFlux = pd.concat(wallHeatFlux_list)
+                    wallHeatFlux.index = range(len(wallHeatFlux))
+                    patches = wallHeatFlux.patch.unique()
+                    # Sort by patches 
+                    for patch in patches:
+                        df_patch = wallHeatFlux.loc[wallHeatFlux['patch'] == patch]
+                        df_patch = df_patch.drop(columns = ['patch'])
+                        # Correct sign of heatflux, positive for flux into domain
+                        if patch != 'carrier':
+                            df_patch.loc[:, ['min', 'max', 'integral']] = -1 * df_patch.loc[:, ['min', 'max', 'integral']]
+                        filename_wallHeatFlux = os.path.join(targetpath_wallHeatFlux, patch + '.csv')
+                        df_patch.to_csv(filename_wallHeatFlux, encoding='utf-8', index=False) 
+                    break 
 
-                dict_arrival = {
-                        'time': times[0],
-                        colname: arrival_temperature,
-                        }
-                # Read data from files and save in one dataframe
-                df_list = [pd.DataFrame( data = dict_arrival, index=[0])]
-                df_list.extend(
-                    [pd.read_csv(f, sep="\s+", header=header[filename], usecols = [0,1], names = ['time', colname]) for f in all_paths]
-                    )
-                df = pd.concat(df_list)
-                
-                # Join the dataframes together into one
-                df.index = range(len(df))
-                # Add to results and convert to Celsius
-                result = result.join(df[colname] - 273.15)
+                else:
+                    # Get the first temperature at arrival, hence the last of the transport
+                    if times[0] == '0':
+                        initial_temperature = self.initial_temperature()
+                    else:
+                        lasttransportpath = os.path.join(path, lasttransporttime, filename)
+                        df_lasttransport = pd.read_csv(
+                            lasttransportpath, sep="\s+", header=header[filename], usecols = [0,1], names = ['time', colname]
+                            )
+                        initial_temperature = df_lasttransport[colname].iloc[0]
+
+                    dict_head = {
+                            'time': times[0],
+                            colname: initial_temperature,
+                            }
+                    # Read data from files and save in one dataframe
+                    df_list = [pd.DataFrame( data = dict_head, index=[0])]
+                    df_list.extend(
+                        [pd.read_csv(f, sep="\s+", header=header[filename], usecols = [0,1], names = ['time', colname]) for f in all_paths]
+                        )
+                    df = pd.concat(df_list)
+                    
+                    # Join the dataframes together into one
+                    df.index = range(len(df))
+                    # Add to results and convert to Celsius
+                    result = result.join(df[colname] - 273.15)
+
             # Save as csv
-            result.to_csv(os.path.join(targetpath_arrival, region + '.csv'), index=False, encoding='utf-8')
+            result.to_csv(os.path.join(targetpath, region + '.csv'), index=False, encoding='utf-8')
 
     def read_cargo(self):
         # Read cargo if not existent
@@ -735,8 +731,6 @@ class Case(SolutionDirectory):
             probes[columns] -= 273.15
 
         csvpath = os.path.join(targetdirectory, region + '.csv')
-        # csvpath = os.path.dirname(probespath)
-        # csvpath = os.path.join(csvpath, 'probes.csv')
 
         # Delete old file
         if os.path.exists(csvpath):
@@ -796,144 +790,6 @@ class Case(SolutionDirectory):
             exclude = []
 
         self.packCase(pack_path, additional = additional, exclude = exclude)
-
-    def plot(
-        self, 
-        probes = None, 
-        tikz = False, 
-        format_ext = '.jpg', 
-        dpi = 250, 
-        marker = None
-        ):
-        """Create plots for the simulation results"""
-        self.load_weatherdata()
-        add_seconds(self.weatherdata)
-        
-        postprocessing_path = os.path.join(self.name, os.pardir, 'postProcessing')
-        plots_path = os.path.join(self.name, os.pardir, 'plots')
-        pp_probes_path = os.path.join(postprocessing_path, 'probes')
-        # Stop if no plot data is available
-        if not os.listdir(os.path.join(postprocessing_path, 'temperature')):
-            return
-
-        if not os.path.exists(plots_path):
-            os.makedirs(plots_path)
-
-        if probes != None:
-            plot_probes_path = os.path.join(plots_path, 'probes')
-            if not os.path.exists(plot_probes_path):
-                os.makedirs(plot_probes_path)
-            for probe in probes:
-                probefile = os.path.join(pp_probes_path, probe + '.csv')
-                # Create probe data
-                self.probe_freight(probe)
-                # Plot data
-                df_probe = pd.read_csv(probefile, sep=',', comment='#')
-                [plt.plot(df_probe['time'] / 3600, df_probe[str(i)], marker = marker) for i in range(df_probe.shape[1] - 1)]
-                # Annotate plot
-                plt.xlabel('time in h')
-                plt.ylabel('temperature in °C')
-                plt.grid(linestyle='--', linewidth=2, axis='y')
-                # Save plot
-                plotpath = os.path.join(plot_probes_path, probe + format_ext)
-                plt.savefig(plotpath, dpi = dpi)
-                if tikz:
-                    self._tikz_plot(plotpath)
-                plt.clf()
-
-        # Plot average temperature of the air inside the carrier and ambient temperature
-        pp_airInside_path = os.path.join(postprocessing_path, 'temperature', 'airInside.csv')
-        df_airInside = pd.read_csv(pp_airInside_path)
-        legendlabels = []
-        plt.plot(df_airInside['time'] / 3600, df_airInside['average(T)'], marker = marker)
-        legendlabels.append('average air temperature')
-        # Plot ambient temperature
-        plt.plot(self.weatherdata['seconds'] / 3600, self.weatherdata['T'],  marker = marker)
-        legendlabels.append('ambient temperature')
-
-        plt.xlabel('time in h')
-        plt.ylabel('temperature in °C')
-        plt.grid(linestyle='--', linewidth=2, axis='y')
-        plt.legend(legendlabels, loc='upper center', bbox_to_anchor=(0.5, -0.12), ncol = 2)
-
-        plotpath = os.path.join(plots_path, 'plot' + format_ext)
-        plt.savefig(plotpath, dpi = dpi, bbox_inches='tight')
-        if tikz:
-            self._tikz_plot(plotpath)
-        plt.clf()
-
-        #Plot speed
-        pp_speed_path = os.path.join(postprocessing_path, 'speed.csv')
-        df_speed = pd.read_csv(pp_speed_path, names = ['time', 'speed'])
-        plt.step(df_speed['time'] / 3600, df_speed['speed'], where='post')
-        plt.xlabel('time in h')
-        plt.ylabel('average speed in m/s')
-        plt.grid(linestyle='--', linewidth=2, axis='y')
-
-        plotpath = os.path.join(plots_path, 'speed' + format_ext)
-        plt.savefig(plotpath, dpi = dpi, bbox_inches='tight')
-        if tikz:
-            self._tikz_plot(plotpath)
-        plt.clf()
-        # Plot heattransfercoefficient
-        pp_speed_path = os.path.join(postprocessing_path, 'heattransfercoefficient.csv')
-        df_speed = pd.read_csv(pp_speed_path, names = ['time', 'heattransfercoefficient'])
-        plt.step(df_speed['time'] / 3600, df_speed['heattransfercoefficient'] , where='post')
-        plt.xlabel('time in h')
-        plt.ylabel('heattransfercoefficient in m/s')
-        plt.grid(linestyle='--', linewidth=2, axis='y')
-        
-        plotpath = os.path.join(plots_path, 'heattransfercoefficient' + format_ext)
-        plt.savefig(plotpath, dpi = dpi, bbox_inches='tight')
-        if tikz:
-            self._tikz_plot(plotpath)
-        plt.clf()
-
-        # Plot average temperature of cargo
-        legendlabels = []
-        battery_files = glob.iglob(os.path.join(postprocessing_path, 'temperature', 'battery*'))
-
-        fig_average = plt.figure(1)
-        fig_max = plt.figure(2)
-        fig_min = plt.figure(3)
-
-        ax_average = fig_average.add_subplot(111)
-        ax_max = fig_max.add_subplot(111)
-        ax_min = fig_min.add_subplot(111)
-
-        ax_handles = [ax_average, ax_max, ax_min]
-        
-        for battery_file in battery_files:
-            df_battery = pd.read_csv(battery_file)
-            ax_average.plot(df_battery['time'] / 3600, df_battery['average(T)'], marker = marker)
-            ax_max.plot(df_battery['time'] / 3600, df_battery['max(T)'], marker = marker)
-            ax_min.plot(df_battery['time'] / 3600, df_battery['min(T)'], marker = marker)
-            legendlabels.append(os.path.splitext(os.path.basename(battery_file))[0])
-
-        for ax_handle in ax_handles:
-            ax_handle.set_xlabel('time in h')
-            ax_handle.set_ylabel('temperature in °C')
-            ax_handle.grid(linestyle='--', linewidth=2, axis='y')    
-            ax_handle.legend(legendlabels, loc='center left', bbox_to_anchor=(1, 0.5), ncol = ceil(len(legendlabels) / 16))
-
-        plotpath_average = os.path.join(plots_path, 'batteries_average' + format_ext)
-        fig_average.savefig(plotpath_average, dpi = dpi, bbox_inches='tight')
-        plotpath_max = os.path.join(plots_path, 'batteries_max' + format_ext)
-        fig_max.savefig(plotpath_max, dpi = dpi, bbox_inches='tight')
-        plotpath_min = os.path.join(plots_path, 'batteries_min' + format_ext)
-        fig_min.savefig(plotpath_min, dpi = dpi, bbox_inches='tight')
-
-        if tikz:
-            self._tikz_plot(plotpath_average)     
-            self._tikz_plot(plotpath_max)     
-            self._tikz_plot(plotpath_min)     
-     
-    def _tikz_plot(self, plotpath):
-            filename = os.path.splitext(os.path.basename(plotpath))[0] + '.pgf'
-            plotpath = os.path.join(os.path.dirname(plotpath), 'tikz', filename)
-            if not os.path.exists(os.path.dirname(plotpath)):
-                os.makedirs(os.path.dirname(plotpath))
-            tikzplotlib.save(plotpath, externalize_tables = True)
    
     def _save_data(self, data, filename):
         postProcessing_path = os.path.join(os.path.dirname(self.name), 'postProcessing')
@@ -953,9 +809,9 @@ class Case(SolutionDirectory):
         regions = self.regions()
         regions.remove('airInside')
         return regions
-
-    def _setup_arrival(self, ambienttemperature):
-        # Remove fluid regions from the case (namely airInside region)
+    
+    def remove_airInside(self):
+        """Remove fluid regions from the case (namely airInside region)"""
         regionProperties = ParsedParameterFile(os.path.join(self.constantDir(),'regionProperties'))
         regionProperties['regions'][1].clear()
         regionProperties.writeFile()
@@ -969,23 +825,21 @@ class Case(SolutionDirectory):
         controlDict['functions']['max_airInside']['enabled'] = 'no'
         controlDict.writeFile()
 
+    def _setup_arrival(self, ambienttemperature):
+        self.remove_airInside()
+
         self._change_dictionary_solids(ambienttemperature)
         
     def _change_dictionary_solids(self, ambienttemperature):
         # Change the changeDictionaryDict for all battery regions
         regions = self.cargo_regions()
         for region in regions:
-            # Read length for heattransfer coefficient from cargo 
-            cargo_number, _ = re.findall(r'\d+', region)
-            # Dominant lenght is dimension in z-axis
-            L = self.cargo[int(cargo_number)].dimensions[2]
-
             changeDictionaryDict = ParsedParameterFile(
                 os.path.join(os.path.join(self.systemDir(), region, 'changeDictionaryDict'))
             )
 
             openfoam.external_wall['Ta'] = ambienttemperature
-            openfoam.external_wall['h'] =  self.heattransfer_coefficient(ambienttemperature, 0,  L = L, region = region)
+            openfoam.external_wall['h'] =  self.heattransfer_coefficient(ambienttemperature, 0, region = region)
 
             changeDictionaryDict['T']['boundaryField'][region + '_to_airInside'] = openfoam.external_wall
 
@@ -1050,23 +904,25 @@ class Case(SolutionDirectory):
             return np.amax(temperature)
 
     def simulate_arrival(self, ambienttemperature):
+        """Simulate heat exchange at arrival of cargo at destination"""
+        
+        print('Starting simulation of arrival')
         # Transform from Celsius to Kelvin
         ambienttemperature += 273.15
         
-        self.read_cargo()
-
         transportduration = self.duration()
 
         if transportduration > float(self.getParallelTimes()[-1]):
             raise ValueError('Transport simulation did not finish yet. Complete the transport before simulating arrival.')
 
-        self._setup_arrival(ambienttemperature)
-
         deltaT = self._get_max_delta(ambienttemperature)
+        
         max_deltaT = 1
-
         df_list = []
         print('Initial temperature difference to ambient temperature: {}'.format(deltaT))
+        
+        if deltaT > max_deltaT:
+            self._setup_arrival(ambienttemperature)
         
         while deltaT > max_deltaT:
             print('Temperature difference to ambient temperature: {}'.format(deltaT))
@@ -1101,8 +957,6 @@ class Case(SolutionDirectory):
             df['time'] = df['time'] - df['time'].iloc[0]
             df.to_csv(path, encoding='utf-8', index=False)
             
-        self.postprocess_arrival()
-
 def utcoffset(utc_datetime, lat, lon):
     """Get the offset to UTC time at a specified location"""
     # Surpressing error output, because tzwhere uses depreciated numpy function

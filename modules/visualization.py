@@ -1,5 +1,6 @@
 import copy
-from math import floor
+import glob
+from math import ceil, floor
 import os
 import json
 
@@ -8,9 +9,15 @@ import branca
 import geopy.distance
 import folium
 from folium import plugins
+import matplotlib
 from matplotlib import cm
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+from modules.route import add_seconds
+
+matplotlib.use('Agg')
 
 TUMBLUE = '#0065BD'
 TUMWHITE = '#FFFFFF'
@@ -80,8 +87,12 @@ def create(transport):
 
     data = copy.deepcopy(transport.weatherdata)
     data.rename(columns = {'T':'ambient'}, inplace = True) 
-    temperature_air = transport.read_postprocessing('airInside')
-    data['average_air'] = temperature_air['average(T)']
+    if transport.type.lower() == 'car':
+        temperature_air = transport.read_postprocessing('battery0_0')
+        data['average_air'] = temperature_air['average(T)']
+    else:
+        temperature_air = transport.read_postprocessing('airInside')
+        data['average_air'] = temperature_air['average(T)']
     # Transform datetime objects to strings
     data['Date'] = data['Date'].dt.strftime('%Y-%m-%d %H:%M:%S')
     coordinates = data[['Lat', 'Lon']].values
@@ -266,5 +277,114 @@ def create(transport):
     result_path = os.path.join(transport.path, 'visualization.html')
     m.save(result_path)
 
+def _tikz_plot(plotpath):
+    filename = os.path.splitext(os.path.basename(plotpath))[0] + '.pgf'
+    plotpath = os.path.join(os.path.dirname(plotpath), 'tikz', filename)
+    if not os.path.exists(os.path.dirname(plotpath)):
+        os.makedirs(os.path.dirname(plotpath))
+    tikzplotlib.save(plotpath, externalize_tables = True)
 
+def plot(
+    transport, 
+    tikz = False, 
+    format_ext = '.jpg', 
+    dpi = 250, 
+    marker = None
+    ):
 
+    YLABELS = {
+        'heattransfercoefficient': 'W/(m^2 K)',
+        'speed': 'm/s' 
+    }
+    
+    files =  glob.glob(transport._postprocesspath + '/**/*.csv', recursive=True)
+    temperature_battery_files = glob.glob(transport._postprocesspath_temperature + '/battery*.csv')
+    temperature_airInside_file = os.path.join(transport._postprocesspath_temperature, 'airInside.csv')
+    wallheatflux_files = glob.glob(transport._postprocesspath_wallHeatFlux + '/*.csv')
+    arrival_file = os.path.join(transport._postprocesspath_arrival, 'arrival.csv')
+    probe_files = glob.glob(transport._postprocesspath_probes + '/*.csv')
+    remaining_files = glob.glob(transport._postprocesspath + '/*.csv')
+    # Stop if no plot data is available
+    if not files:
+        raise ValueError('No plot data available')
+
+    add_seconds(transport.weatherdata)
+
+    # Plot temperature data of battery regions
+    columnnames = ['min(T)', 'max(T)', 'average(T)']
+    for columnname in columnnames:
+        fig = plt.figure(1)
+        ax = fig.add_subplot(111)
+        legendlabels = []
+        for filepath in temperature_battery_files:
+            regionname = os.path.splitext(os.path.basename(filepath))[0]
+            df = pd.read_csv(filepath, sep=',', comment='#')
+            ax.plot(df['time'] / 3600, df[columnname], marker = marker)
+            legendlabels.append(regionname)
+
+        ax.set_xlabel('time in h')
+        ax.set_ylabel('temperature in °C')
+        ax.grid(linestyle='--', linewidth=2, axis='y')    
+        ax.legend(legendlabels, loc='center left', bbox_to_anchor=(1, 0.5), ncol = ceil(len(legendlabels) / 16))
+        plotpath = os.path.join(transport._plotspath, 'batteries_' + columnname + format_ext)
+        fig.savefig(plotpath, dpi = dpi, bbox_inches='tight')
+        if tikz:
+            _tikz_plot(plotpath)
+        plt.clf()
+
+    # Plot probes
+    for filepath in probe_files:
+        df = pd.read_csv(filepath, sep=',', comment='#')
+        [plt.plot(df['time'] / 3600, df[str(i)], marker = marker) for i in range(df.shape[1] - 1)]
+        plt.xlabel('time in h')
+        plt.ylabel('temperature in °C')
+        plt.grid(linestyle='--', linewidth=2, axis='y')
+        regionname = os.path.splitext(os.path.basename(filepath))[0]
+        plotpath = os.path.join(transport._probesplotspath, regionname + format_ext)
+        plt.savefig(plotpath, dpi = dpi)
+        if tikz:
+            _tikz_plot(plotpath)
+        plt.clf()
+
+    # Plot heattransfercoefficient and step
+    for filepath in remaining_files:
+        df = pd.read_csv(filepath, names = ['time', 'y_data'])
+        plt.step(df['time'] / 3600, df['y_data'], color = TUMBLUE)
+        filename = os.path.splitext(os.path.basename(filepath))[0]
+        plt.xlabel('time in h')
+        plt.ylabel(YLABELS[filename])
+        plt.grid(linestyle='--', linewidth=2, axis='y')
+        plotpath = os.path.join(transport._plotspath, filename + format_ext)
+        plt.savefig(plotpath, dpi = dpi)
+        if tikz:
+            _tikz_plot(plotpath)
+        plt.clf()
+
+    # Plot airInside
+    if os.path.exists(temperature_airInside_file):    
+        df_airInside = pd.read_csv(temperature_airInside_file) 
+        df_airInside['ambient'] = transport.weatherdata['T']
+        plt.plot(df_airInside['time'] / 3600, df_airInside['ambient'], marker = marker, color = TUMBLUE)
+        plt.plot(df_airInside['time'] / 3600, df_airInside['average(T)'], marker = marker, color = TUMORANGE)
+        plt.xlabel('time in h')
+        plt.ylabel('temperature in °C')
+        plt.grid(linestyle='--', linewidth=2, axis='y')
+        plt.legend(['ambient temperature', 'average air temperature'], loc='upper center', bbox_to_anchor=(0.5, -0.12), ncol = 2) 
+        plotpath = os.path.join(transport._plotspath, 'plot' + format_ext)
+        plt.savefig(plotpath, dpi = dpi, bbox_inches='tight')
+        if tikz:
+            _tikz_plot(plotpath)
+        plt.clf()
+
+    # Plot airInside
+    if os.path.exists(arrival_file):    
+        df = pd.read_csv(arrival_file) 
+        plt.plot(df['time'] / 3600, df['temperature'], marker = marker, color = TUMBLUE)
+        plt.xlabel('time in h')
+        plt.ylabel('temperature in °C')
+        plt.grid(linestyle='--', linewidth=2, axis='y')
+        plotpath = os.path.join(transport._plotspath, 'arrival' + format_ext)
+        plt.savefig(plotpath, dpi = dpi, bbox_inches='tight')
+        if tikz:
+            _tikz_plot(plotpath)
+        plt.clf()
