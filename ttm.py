@@ -102,7 +102,7 @@ if 'plot.jpg' not in plots_content or args.plot:
         [transportcase.probe_freight(region) for region in args.plot]
     visualization.plot(transport)
 
-visualization.create(transport)
+visualization.transport(transport)
 
 if args.reconstruct:
     transportcase.reconstruct()

@@ -12,8 +12,6 @@ import shutil
 import sys
 
 import geopy.distance
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from PyFoam.RunDictionary.ParsedParameterFile import ParsedParameterFile
@@ -28,9 +26,6 @@ from modules.cargo import cargoDecoder
 import modules.openfoam as openfoam
 from modules.route import direction_crossover, add_seconds
 from modules.transport import TransportDecoder
-
-# For saving plots to file
-matplotlib.use('Agg')
 
 # Specific parameter values for different types of transports
 TRANSPORTTYPES = {
