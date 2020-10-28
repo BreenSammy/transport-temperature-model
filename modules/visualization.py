@@ -15,8 +15,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from modules.route import add_seconds
-
 matplotlib.use('Agg')
 
 TUMBLUE = '#0065BD'
@@ -83,7 +81,7 @@ def filter_stops(waypoints):
 
     return waypoints, stops
 
-def create(transport):
+def transport(transport):
 
     data = copy.deepcopy(transport.weatherdata)
     data.rename(columns = {'T':'ambient'}, inplace = True) 
