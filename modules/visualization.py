@@ -291,8 +291,9 @@ def plot(
     ):
 
     YLABELS = {
-        'heattransfercoefficient': 'W/(m^2 K)',
-        'speed': 'm/s' 
+        'heattransfercoefficient': 'heattransfercoefficient in W/(m^2 K)',
+        'speed': 'speed in m/s',
+        'temperature': 'temperature in °C'
     }
     
     files =  glob.glob(transport._postprocesspath + '/**/*.csv', recursive=True)
@@ -305,8 +306,6 @@ def plot(
     # Stop if no plot data is available
     if not files:
         raise ValueError('No plot data available')
-
-    add_seconds(transport.weatherdata)
 
     # Plot temperature data of battery regions
     columnnames = ['min(T)', 'max(T)', 'average(T)']
@@ -335,7 +334,7 @@ def plot(
         df = pd.read_csv(filepath, sep=',', comment='#')
         [plt.plot(df['time'] / 3600, df[str(i)], marker = marker) for i in range(df.shape[1] - 1)]
         plt.xlabel('time in h')
-        plt.ylabel('temperature in °C')
+        plt.ylabel(YLABELS['temperature'])
         plt.grid(linestyle='--', linewidth=2, axis='y')
         regionname = os.path.splitext(os.path.basename(filepath))[0]
         plotpath = os.path.join(transport._probesplotspath, regionname + format_ext)
@@ -365,7 +364,7 @@ def plot(
         plt.plot(df_airInside['time'] / 3600, df_airInside['ambient'], marker = marker, color = TUMBLUE)
         plt.plot(df_airInside['time'] / 3600, df_airInside['average(T)'], marker = marker, color = TUMORANGE)
         plt.xlabel('time in h')
-        plt.ylabel('temperature in °C')
+        plt.ylabel(YLABELS['temperature'])
         plt.grid(linestyle='--', linewidth=2, axis='y')
         plt.legend(['ambient temperature', 'average air temperature'], loc='upper center', bbox_to_anchor=(0.5, -0.12), ncol = 2) 
         plotpath = os.path.join(transport._plotspath, 'plot' + format_ext)
@@ -379,7 +378,7 @@ def plot(
         df = pd.read_csv(arrival_file) 
         plt.plot(df['time'] / 3600, df['temperature'], marker = marker, color = TUMBLUE)
         plt.xlabel('time in h')
-        plt.ylabel('temperature in °C')
+        plt.ylabel(YLABELS['temperature'])
         plt.grid(linestyle='--', linewidth=2, axis='y')
         plotpath = os.path.join(transport._plotspath, 'arrival' + format_ext)
         plt.savefig(plotpath, dpi = dpi, bbox_inches='tight')
