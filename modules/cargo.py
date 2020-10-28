@@ -186,6 +186,11 @@ class Car(Cargo):
             BatteryRegion(np.array(self.position) + 0.05, self.dimensions, self.freight)
         ]
 
+        freight_position = np.zeros((1,3))
+        for i in range(3):
+            freight_position[0,i] = self.battery_regions[0].position[i]
+        self.freight.elements_positions = freight_position
+
     def to_dict(self):
         return {
             'type': 'Car',

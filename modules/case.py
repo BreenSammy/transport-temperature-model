@@ -79,9 +79,12 @@ class Case(SolutionDirectory):
         """Get all times with timedirectories, parallel or not"""
         times = self.getTimes()
         # If case is not reconstructed self.getTimes() only returns 0 directory, use parallel times instead
-        if len(times) == 1:
+        if len(times) < len(self.getParallelTimes()):
             times = self.getParallelTimes()
         return times
+
+    def latesttime(self):
+        return float(self.get_times()[-1])
 
     def change_initial_temperature(self, temperature):
         # Convert to Kelvin
@@ -397,7 +400,6 @@ class Case(SolutionDirectory):
             print('Latitude: {0} Longitude: {1}'.format(coordinates[0], coordinates[1]))
             print('Temperature: {}'.format(temperature))
             print('Travelspeed: {}'.format(travelspeed))
-            print('Recalculating heattransfer coefficient:')
             print('Heattransfer coeffcient: {0} with average wall temperature: {1}'.format(heattransfer_coefficient, T_W))
 
             #Write travelspeed and heattransfercoeffiecient to file
@@ -788,144 +790,6 @@ class Case(SolutionDirectory):
             exclude = []
 
         self.packCase(pack_path, additional = additional, exclude = exclude)
-
-    def plot(
-        self, 
-        probes = None, 
-        tikz = False, 
-        format_ext = '.jpg', 
-        dpi = 250, 
-        marker = None
-        ):
-        """Create plots for the simulation results"""
-        self.load_weatherdata()
-        add_seconds(self.weatherdata)
-        
-        postprocessing_path = os.path.join(self.name, os.pardir, 'postProcessing')
-        plots_path = os.path.join(self.name, os.pardir, 'plots')
-        pp_probes_path = os.path.join(postprocessing_path, 'probes')
-        # Stop if no plot data is available
-        if not os.listdir(os.path.join(postprocessing_path, 'temperature')):
-            return
-
-        if not os.path.exists(plots_path):
-            os.makedirs(plots_path)
-
-        if probes != None:
-            plot_probes_path = os.path.join(plots_path, 'probes')
-            if not os.path.exists(plot_probes_path):
-                os.makedirs(plot_probes_path)
-            for probe in probes:
-                probefile = os.path.join(pp_probes_path, probe + '.csv')
-                # Create probe data
-                self.probe_freight(probe)
-                # Plot data
-                df_probe = pd.read_csv(probefile, sep=',', comment='#')
-                [plt.plot(df_probe['time'] / 3600, df_probe[str(i)], marker = marker) for i in range(df_probe.shape[1] - 1)]
-                # Annotate plot
-                plt.xlabel('time in h')
-                plt.ylabel('temperature in °C')
-                plt.grid(linestyle='--', linewidth=2, axis='y')
-                # Save plot
-                plotpath = os.path.join(plot_probes_path, probe + format_ext)
-                plt.savefig(plotpath, dpi = dpi)
-                if tikz:
-                    self._tikz_plot(plotpath)
-                plt.clf()
-
-        # Plot average temperature of the air inside the carrier and ambient temperature
-        pp_airInside_path = os.path.join(postprocessing_path, 'temperature', 'airInside.csv')
-        df_airInside = pd.read_csv(pp_airInside_path)
-        legendlabels = []
-        plt.plot(df_airInside['time'] / 3600, df_airInside['average(T)'], marker = marker)
-        legendlabels.append('average air temperature')
-        # Plot ambient temperature
-        plt.plot(self.weatherdata['seconds'] / 3600, self.weatherdata['T'],  marker = marker)
-        legendlabels.append('ambient temperature')
-
-        plt.xlabel('time in h')
-        plt.ylabel('temperature in °C')
-        plt.grid(linestyle='--', linewidth=2, axis='y')
-        plt.legend(legendlabels, loc='upper center', bbox_to_anchor=(0.5, -0.12), ncol = 2)
-
-        plotpath = os.path.join(plots_path, 'plot' + format_ext)
-        plt.savefig(plotpath, dpi = dpi, bbox_inches='tight')
-        if tikz:
-            self._tikz_plot(plotpath)
-        plt.clf()
-
-        #Plot speed
-        pp_speed_path = os.path.join(postprocessing_path, 'speed.csv')
-        df_speed = pd.read_csv(pp_speed_path, names = ['time', 'speed'])
-        plt.step(df_speed['time'] / 3600, df_speed['speed'], where='post')
-        plt.xlabel('time in h')
-        plt.ylabel('average speed in m/s')
-        plt.grid(linestyle='--', linewidth=2, axis='y')
-
-        plotpath = os.path.join(plots_path, 'speed' + format_ext)
-        plt.savefig(plotpath, dpi = dpi, bbox_inches='tight')
-        if tikz:
-            self._tikz_plot(plotpath)
-        plt.clf()
-        # Plot heattransfercoefficient
-        pp_speed_path = os.path.join(postprocessing_path, 'heattransfercoefficient.csv')
-        df_speed = pd.read_csv(pp_speed_path, names = ['time', 'heattransfercoefficient'])
-        plt.step(df_speed['time'] / 3600, df_speed['heattransfercoefficient'] , where='post')
-        plt.xlabel('time in h')
-        plt.ylabel('heattransfercoefficient in m/s')
-        plt.grid(linestyle='--', linewidth=2, axis='y')
-        
-        plotpath = os.path.join(plots_path, 'heattransfercoefficient' + format_ext)
-        plt.savefig(plotpath, dpi = dpi, bbox_inches='tight')
-        if tikz:
-            self._tikz_plot(plotpath)
-        plt.clf()
-
-        # Plot average temperature of cargo
-        legendlabels = []
-        battery_files = glob.iglob(os.path.join(postprocessing_path, 'temperature', 'battery*'))
-
-        fig_average = plt.figure(1)
-        fig_max = plt.figure(2)
-        fig_min = plt.figure(3)
-
-        ax_average = fig_average.add_subplot(111)
-        ax_max = fig_max.add_subplot(111)
-        ax_min = fig_min.add_subplot(111)
-
-        ax_handles = [ax_average, ax_max, ax_min]
-        
-        for battery_file in battery_files:
-            df_battery = pd.read_csv(battery_file)
-            ax_average.plot(df_battery['time'] / 3600, df_battery['average(T)'], marker = marker)
-            ax_max.plot(df_battery['time'] / 3600, df_battery['max(T)'], marker = marker)
-            ax_min.plot(df_battery['time'] / 3600, df_battery['min(T)'], marker = marker)
-            legendlabels.append(os.path.splitext(os.path.basename(battery_file))[0])
-
-        for ax_handle in ax_handles:
-            ax_handle.set_xlabel('time in h')
-            ax_handle.set_ylabel('temperature in °C')
-            ax_handle.grid(linestyle='--', linewidth=2, axis='y')    
-            ax_handle.legend(legendlabels, loc='center left', bbox_to_anchor=(1, 0.5), ncol = ceil(len(legendlabels) / 16))
-
-        plotpath_average = os.path.join(plots_path, 'batteries_average' + format_ext)
-        fig_average.savefig(plotpath_average, dpi = dpi, bbox_inches='tight')
-        plotpath_max = os.path.join(plots_path, 'batteries_max' + format_ext)
-        fig_max.savefig(plotpath_max, dpi = dpi, bbox_inches='tight')
-        plotpath_min = os.path.join(plots_path, 'batteries_min' + format_ext)
-        fig_min.savefig(plotpath_min, dpi = dpi, bbox_inches='tight')
-
-        if tikz:
-            self._tikz_plot(plotpath_average)     
-            self._tikz_plot(plotpath_max)     
-            self._tikz_plot(plotpath_min)     
-     
-    def _tikz_plot(self, plotpath):
-            filename = os.path.splitext(os.path.basename(plotpath))[0] + '.pgf'
-            plotpath = os.path.join(os.path.dirname(plotpath), 'tikz', filename)
-            if not os.path.exists(os.path.dirname(plotpath)):
-                os.makedirs(os.path.dirname(plotpath))
-            tikzplotlib.save(plotpath, externalize_tables = True)
    
     def _save_data(self, data, filename):
         postProcessing_path = os.path.join(os.path.dirname(self.name), 'postProcessing')

@@ -77,9 +77,9 @@ if args.probe:
 postprocessed_regions = [
     os.path.splitext(region)[0] for region in os.listdir(transport._postprocesspath_temperature)
     ]
-regions = sorted(transportcase.regions())
+    
 # Postprocess if not all regions have been postprocessed or if flag is set
-if sorted(postprocessed_regions) != regions or args.postprocess:
+if sorted(postprocessed_regions) !=  sorted(transportcase.regions()) or args.postprocess:
     print('Running postprocess on transport')
     transportcase.postprocess()
 
@@ -87,10 +87,6 @@ if sorted(postprocessed_regions) != regions or args.postprocess:
 if args.arrival:
     transportcase.simulate_arrival(transport.arrival_temperature)
 
-postprocessed_arrival_regions = [
-    os.path.splitext(region)[0] for region in os.listdir(transport._postprocesspath_arrival)
-    ]
-regions.remove('airInside')
 
 if transportcase.latesttime() > transportcase.duration() or args.postprocess:
     print('Running postprocess on arrival')
@@ -98,14 +94,13 @@ if transportcase.latesttime() > transportcase.duration() or args.postprocess:
 
 # Plot results
 plots_content = os.listdir(transport._plotspath)
-if 'plot.jpg' not in plots_content:
-    transportcase.plot(tikz = True)
-# Plot if it is the first time or if flag is set
-if args.plot:
-    if 'all' in args.plot:
-        args.plot = transportcase.cargo_regions()
-
-    transportcase.plot(probes = args.plot, tikz = True)
+if 'plot.jpg' not in plots_content or args.plot:
+    print('Plotting simulation results')
+    if args.plot != []:
+        if 'all' in args.plot:
+            args.plot = transportcase.cargo_regions()
+        [transportcase.probe_freight(region) for region in args.plot]
+    visualization.plot(transport)
 
 visualization.create(transport)
 
