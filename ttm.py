@@ -41,7 +41,8 @@ templatecasepath = os.path.join(
 
 if not os.path.exists(casepath) or args.clone:
     # Delete all contents of postProcessing
-    files = glob.glob(os.path.join(transport._postprocesspath,'*.*'))
+    files = glob.glob(transport._postprocesspath + '/**/*', recursive=True)
+    files.append(glob.glob(transport._plotspath + '/**/*', recursive=True))
     for f in files:
         os.remove(f)
     templatecase = Case(templatecasepath)
