@@ -532,6 +532,8 @@ class Case(SolutionDirectory):
             region_path = os.path.join(case_postProcessing, region)
             postprocess_function_paths = [os.path.join(region_path, x) for x in os.listdir(region_path)]
             result = pd.DataFrame(data = {'time': times})
+            if region == 'airInside':
+                print(region)
             # Iterate over results from different postprocess functions 
             for path in postprocess_function_paths:
                 # Get paths to all postprocessing files
@@ -543,6 +545,8 @@ class Case(SolutionDirectory):
                 all_paths = [os.path.join(path, x) for x in all_selectedtimedirectories]
                 filename = os.listdir(all_paths[0])[0]
                 all_paths = [os.path.join(x, filename) for x in all_paths]
+                if all_paths == []:
+                    raise ValueError('No results to postprocess available')
                 # Define column name for dataframe
                 colname = os.path.basename(path).split('_')[0] + '(T)'
                 
@@ -570,8 +574,7 @@ class Case(SolutionDirectory):
                             df_patch.loc[:, ['min', 'max', 'integral']] = -1 * df_patch.loc[:, ['min', 'max', 'integral']]
                         filename_wallHeatFlux = os.path.join(targetpath_wallHeatFlux, patch + '.csv')
                         df_patch.to_csv(filename_wallHeatFlux, encoding='utf-8', index=False) 
-                    break 
-
+                    
                 else:
                     # Get the first temperature at arrival, hence the last of the transport
                     if times[0] == '0':
