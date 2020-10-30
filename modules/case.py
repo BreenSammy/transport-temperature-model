@@ -19,7 +19,7 @@ from PyFoam.RunDictionary.SolutionDirectory import SolutionDirectory
 from PyFoam.Basics.DataStructures import Vector
 from scipy.spatial.transform import Rotation
 import tikzplotlib
-from tzwhere import tzwhere
+import timezonefinder
 
 import modules.convection as convection
 from modules.cargo import cargoDecoder
@@ -220,11 +220,13 @@ class Case(SolutionDirectory):
                 changeDictionaryDict['T']['boundaryField'][battery.name + '_to_airInside'] = openfoam.region_coupling_solid_anisotrop
                 changeDictionaryDict.writeFile()
 
-                # changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), 'airInside', 'changeDictionaryDict'))
+                changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), 'airInside', 'changeDictionaryDict'))
+                openfoam.region_coupling_fluid['thicknessLayers'] = '( {} )'.format(0.02)
                 # openfoam.region_coupling_fluid['thicknessLayers'] = '( {} )'.format(battery.packaging_thickness())
+                openfoam.region_coupling_fluid['kappaLayers'] = '( {} )'.format(0.05)
                 # openfoam.region_coupling_fluid['kappaLayers'] = '( {} )'.format(battery.thermalconductivity_packaging)
-                # changeDictionaryDict['T']['boundaryField']['airInside_to_'+ battery.name] = openfoam.region_coupling_fluid
-                # changeDictionaryDict.writeFile()
+                changeDictionaryDict['T']['boundaryField']['airInside_to_'+ battery.name] = openfoam.region_coupling_fluid
+                changeDictionaryDict.writeFile()
 
                 #Names of the solid regions are in third entry of the list regions, adding batteries
                 regionProperties['regions'][3].append(battery.name)
@@ -957,13 +959,10 @@ class Case(SolutionDirectory):
             
 def utcoffset(utc_datetime, lat, lon):
     """Get the offset to UTC time at a specified location"""
-    # Surpressing error output, because tzwhere uses depreciated numpy function
-    with open(os.devnull, "w") as devnull:
-        sys.stderr = devnull
-        # find timezone at location
-        timezone_str = tzwhere.tzwhere().tzNameAt(lat, lon)
-        sys.stderr = sys.__stderr__
-        
+    # Get timezone name
+    tf = timezonefinder.TimezoneFinder()
+    timezone_str = tf.certain_timezone_at(lat=lat, lng=lon)
+
     print('Current timezone: {}'.format(timezone_str))
     timezone = pytz.timezone(timezone_str)
     offset = timezone.utcoffset(utc_datetime).total_seconds()/3600 
