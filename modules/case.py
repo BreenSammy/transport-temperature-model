@@ -4,7 +4,7 @@ import csv
 from datetime import datetime, timedelta
 import glob
 import json
-from math import ceil
+from math import ceil, floor
 import os
 import pytz
 import re
@@ -20,6 +20,7 @@ from PyFoam.Basics.DataStructures import Vector
 from scipy.spatial.transform import Rotation
 import tikzplotlib
 import timezonefinder
+from tzwhere import tzwhere
 
 import modules.convection as convection
 from modules.cargo import cargoDecoder
@@ -426,26 +427,28 @@ class Case(SolutionDirectory):
         localStandardMeridian = utcoffset(
             timestamp, coordinates[0], coordinates[1]
             )
-        # Transform UTC time to local time
-        startdate += timedelta(hours = localStandardMeridian)
-        # Get time in decimal format
-        starttime = startdate.time()
-        starttime = starttime.hour + starttime.minute / 60 + starttime.second / 3600
-        # Get startday as the number of the day in given year
-        startday = startdate.timetuple().tm_yday
+        if localStandardMeridian != None:
+            # Transform UTC time to local time
+            startdate += timedelta(hours = localStandardMeridian)
+            # Get time in decimal format
+            starttime = startdate.time()
+            starttime = starttime.hour + starttime.minute / 60 + starttime.second / 3600
+            # Get startday as the number of the day in given year
+            startday = startdate.timetuple().tm_yday
+       
+            radiationProperties['solarLoadCoeffs']['startDay'] = startday
+            radiationProperties['solarLoadCoeffs']['startTime'] = starttime
+            radiationProperties['solarLoadCoeffs']['localStandardMeridian'] = localStandardMeridian
+
+        radiationProperties['radiation'] = 'on'
+        radiationProperties['solarLoadCoeffs']['latitude'] = coordinates[0]
+        radiationProperties['solarLoadCoeffs']['longitude'] = coordinates[1]
         # Calculate vector for east in grid coordinates
         direction = direction_crossover(coordinates, coordinates_next)
         # latitude matches y, longitude matches x
         x_axis = np.array([direction[1], direction[0], 0])
         east_vector = np.array([1, 0, 0])
         east_vector = coordinate_transformation(x_axis, east_vector)
-
-        radiationProperties['radiation'] = 'on'
-        radiationProperties['solarLoadCoeffs']['startDay'] = startday
-        radiationProperties['solarLoadCoeffs']['startTime'] = starttime
-        radiationProperties['solarLoadCoeffs']['localStandardMeridian'] = localStandardMeridian
-        radiationProperties['solarLoadCoeffs']['latitude'] = coordinates[0]
-        radiationProperties['solarLoadCoeffs']['longitude'] = coordinates[1]
         if not np.isnan(east_vector).any():
             radiationProperties['solarLoadCoeffs']['gridEast'] = Vector(east_vector[0], east_vector[1], east_vector[2])
         radiationProperties.writeFile()
@@ -962,6 +965,10 @@ def utcoffset(utc_datetime, lat, lon):
     # Get timezone name
     tf = timezonefinder.TimezoneFinder()
     timezone_str = tf.certain_timezone_at(lat=lat, lng=lon)
+    if timezone_str == None:
+        print('Current timezone: No match for location. Probably on sea. Approximating timezone.')
+        #rough approximation can be calculated: 1 hour difference corresponds to 15 degrees longitude (360 / 24).
+        return floor(lon/15)
 
     print('Current timezone: {}'.format(timezone_str))
     timezone = pytz.timezone(timezone_str)
