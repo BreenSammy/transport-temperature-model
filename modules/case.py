@@ -82,6 +82,13 @@ class Case(SolutionDirectory):
     def latesttime(self):
         return float(self.get_times()[-1])
 
+    def regions_in_latesttime(self):
+        regions_in_latesttime = os.listdir(
+            os.path.join(self.name, 'processor0', str(int(self.latesttime())))
+            )
+        regions_in_latesttime.remove('uniform')
+        return regions_in_latesttime
+
     def change_initial_temperature(self, temperature):
         # Convert to Kelvin
         temperature += 273.15
@@ -333,7 +340,17 @@ class Case(SolutionDirectory):
         controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
         radiationProperties =  ParsedParameterFile(os.path.join(self.constantDir(), borderregion, "radiationProperties"))
 
-        latesttime = float(self.get_times()[-1])
+        latesttime = self.latesttime()
+
+        # Delete times that are not complete
+        while sorted(self.regions_in_latesttime()) != sorted(self.regions()):
+            processor_directories = glob.glob(os.path.join(self.name, 'processor*'))
+            latesttime_processor_directories = [
+                os.path.join(directory, str(int(latesttime))) for directory in processor_directories
+                ]
+            for directory in latesttime_processor_directories:
+                shutil.rmtree(directory)
+            latesttime = self.latesttime()
         
         transport_duration = self.weatherdata['Date'].iloc[-1] - self.weatherdata['Date'].iloc[0] 
         transport_duration = transport_duration.total_seconds()
