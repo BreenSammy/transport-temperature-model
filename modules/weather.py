@@ -125,7 +125,10 @@ class ISD:
             distance = geopy.distance.distance(coords_station, coords_query).km
 
             if distance > 300:            
-                warnings.warn('{0}: Distance from {1}, {2} to closest weatherstation is {3} km. No data at query location available'.format(input_date, lat, lon, distance))
+                print(
+                    '{0}: Distance from {1}, {2} to closest weatherstation is {3} km. No data at query location available'.format(
+                        input_date, round(lat, 3), round(lon, 3), round(distance, 2))
+                        )
                 temperature = float('nan')
                 self.possible_stations = self.possible_stations.drop([station.index[0]])
                 break
@@ -375,18 +378,22 @@ def waypoints_temperature(datetimes, lat, lon):
             OISST = OISSTFile(datetimes[i])
 
         sst, _ =  OISST.sea_surface_temperature(lat[i], lon[i])
+        isd_temperature = isd.temperature(datetimes[i], lat[i], lon[i])
 
-        # If sst is number, location is on sea
-        if isinstance(sst, np.float32):
+        if not np.isnan(isd_temperature):
+            temperatures[i] = isd_temperature
+        elif isinstance(sst, np.float32):
             temperatures[i] = sst
-        # Else on land
-        else:
-            temperatures[i] = isd.temperature(datetimes[i], lat[i], lon[i])
 
-        if temperatures[i] != 'nan':
+        if not np.isnan(temperatures[i]):
             print(
                 "Found temperature data for {0} at {1}, {2}: {3}".format(
-                    datetimes[i], lat[i], lon[i], temperatures[i]
+                    datetimes[i], round(lat[i], 3), round(lon[i], 3), round(temperatures[i], 1)
+                    ))
+        else:
+            print(
+                "Did not find temperature data for {0} at {1}, {2}: {3}".format(
+                    datetimes[i], round(lat[i], 3), round(lon[i], 3), round(temperatures[i], 1)
                     ))
 
     clear()
