@@ -419,10 +419,10 @@ class Case(SolutionDirectory):
             
             # Print to console            
             print('Timestamp: {} (UTC)'.format(string_current_timestamp))
-            print('Latitude: {0} Longitude: {1}'.format(coordinates[0], coordinates[1]))
-            print('Temperature: {}'.format(temperature))
-            print('Travelspeed: {}'.format(travelspeed))
-            print('Heattransfer coeffcient: {0} with average wall temperature: {1}'.format(heattransfer_coefficient, T_W))
+            print('Latitude: {0} Longitude: {1}'.format(round(coordinates[0], 3), round(coordinates[1], 3)))
+            print('Temperature: {}'.format(round(temperature, 1)))
+            print('Travelspeed: {}'.format(round(travelspeed, 2)))
+            print('Heattransfer coeffcient: {0} with average wall temperature: {1}'.format(round(heattransfer_coefficient, 2), round(T_W, 1)))
 
             #Write travelspeed and heattransfercoeffiecient to file
             self._save_data([latesttime, travelspeed], 'speed.csv')
