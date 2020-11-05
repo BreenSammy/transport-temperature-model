@@ -86,7 +86,8 @@ class Case(SolutionDirectory):
         regions_in_latesttime = os.listdir(
             os.path.join(self.name, 'processor0', str(int(self.latesttime())))
             )
-        regions_in_latesttime.remove('uniform')
+        if 'uniform' in regions_in_latesttime:
+            regions_in_latesttime.remove('uniform')
         return regions_in_latesttime
 
     def change_initial_temperature(self, temperature):
@@ -111,6 +112,12 @@ class Case(SolutionDirectory):
             os.path.join(self.name, '0', 'airInside', 'T')
             )['internalField'].val
         return initial_temperature
+
+    def set_purge_write(self, number):
+        """Set purgeWrite to 2, so only two timedirecotries at a time a written to disk"""
+        controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
+        controlDict['purgeWrite'] = number
+        controlDict.writeFile()
 
     def change_transporttype(self, transporttype):
         """Change transport specific parameters"""
@@ -554,8 +561,8 @@ class Case(SolutionDirectory):
             region_path = os.path.join(case_postProcessing, region)
             postprocess_function_paths = [os.path.join(region_path, x) for x in os.listdir(region_path)]
             result = pd.DataFrame(data = {'time': times})
-            if region == 'airInside':
-                print(region)
+            # if region == 'airInside':
+            #     print(region)
             # Iterate over results from different postprocess functions 
             for path in postprocess_function_paths:
                 # Get paths to all postprocessing files
@@ -604,7 +611,9 @@ class Case(SolutionDirectory):
                     else:
                         lasttransportpath = os.path.join(path, lasttransporttime, filename)
                         df_lasttransport = pd.read_csv(
-                            lasttransportpath, sep="\s+", header=header[filename], usecols = [0,1], names = ['time', colname]
+                            lasttransportpath, sep="\s+", header=header[filename],
+                            usecols = [0,1], names = ['time', colname], 
+                            dtype={'time': str, 'colname': float}
                             )
                         initial_temperature = df_lasttransport[colname].iloc[0]
 
@@ -615,14 +624,19 @@ class Case(SolutionDirectory):
                     # Read data from files and save in one dataframe
                     df_list = [pd.DataFrame( data = dict_head, index=[0])]
                     df_list.extend(
-                        [pd.read_csv(f, sep="\s+", header=header[filename], usecols = [0,1], names = ['time', colname]) for f in all_paths]
+                        [pd.read_csv(
+                            f, sep="\s+", header=header[filename], 
+                            usecols = [0,1], names = ['time', colname], 
+                            dtype={'time': str, 'colname': float}
+                            ) for f in all_paths]
                         )
                     df = pd.concat(df_list)
-                    
                     # Join the dataframes together into one
                     df.index = range(len(df))
-                    # Add to results and convert to Celsius
-                    result = result.join(df[colname] - 273.15)
+                    # Convert to Celsius
+                    df[colname] = df[colname] - 273.15
+                    # Join with other postprocessing results
+                    result = pd.merge(result, df, how='outer')
 
             # Save as csv
             result.to_csv(os.path.join(targetpath, region + '.csv'), index=False, encoding='utf-8')

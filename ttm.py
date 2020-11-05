@@ -66,6 +66,11 @@ parser.add_argument(
     help="Reload weatherdata", 
     action="store_true"
     )
+parser.add_argument(
+    "--savetimes", "-s", 
+    help="Save timedirectories", 
+    action="store_true"
+    )
 
 args = parser.parse_args()
 
@@ -109,6 +114,12 @@ if not transportcase.processorDirs():
     transportcase.create_mesh()
 else:
     print('Mesh already exists')
+
+# Set purgeWrite in case controlDict if
+if args.savetimes == False:
+    transportcase.set_purge_write(2)
+else:
+    transportcase.set_purge_write(0)
 
 # Execute the OpenFOAM solver
 if transport.type == 'car':

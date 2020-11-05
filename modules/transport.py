@@ -112,10 +112,6 @@ class Transport:
         self.to_json(self._jsonpath)
         self.weatherdata.to_csv(self._weatherdatapath, encoding='utf-8', index=False)
     
-    # def case_regions(self):
-    #     case = Case(self.path, 'case')
-    #     return case.regions()
-
     def read_postprocessing(self, region):
         # if region not in self.case_regions():
         #     raise ValueError('Region nonexistant')
@@ -231,6 +227,7 @@ def from_json(filepath):
         stops = []
     # Create route
     route = routeDecoder(json_dict['route'], path, stops = stops)
+    
     # Return the transport instance
     return Transport(
         path, transporttype, start, 
