@@ -1,0 +1,8 @@
+#!/bin/sh
+cd "${0%/*}" || exit                                # Run from this directory
+. ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions        # Tutorial run functions
+#------------------------------------------------------------------------------
+# Script is used to run solver, if mesh and regions already exist
+#------------------------------------------------------------------------------
+
+runParallel -s airInside changeDictionary -region airInside -latestTime

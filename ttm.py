@@ -87,7 +87,7 @@ transport.save()
 # Setup the case for the simulation 
 casepath = os.path.join(transportpath, 'case')
 templatecasepath = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), 'cases', 'container', 'container_template'
+    os.path.dirname(os.path.abspath(__file__)), 'templatecase'
     )
 
 if not os.path.exists(casepath) or args.clone:

@@ -1,0 +1,41 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Version:  v2006
+    \\  /    A nd           | Website:  www.openfoam.com
+     \\/     M anipulation  |
+-------------------------------------------------------------------------------
+Description
+    Writes out surface files with interpolated field data in VTK format, e.g.
+    cutting planes, iso-surfaces and patch boundary surfaces.
+\*---------------------------------------------------------------------------*/
+
+// Sampling and I/O settings, see this file for configurations in OpenFOAM folder /etc
+#includeEtc "caseDicts/postProcessing/visualization/surfaces.cfg"
+
+fields       (T);
+
+surfaces
+(
+    yNormal
+    {
+        $cuttingPlane;
+        pointAndNormalDict
+        {
+            normalVector $y;
+        }
+    }
+);
+
+// Override settings here, e.g.
+setFormat csv;
+
+setConfig
+{
+    type    midPoint;
+}
+
+// Must be last entry
+// #includeEtc "caseDicts/postProcessing/graphs/graph.cfg"
+
+// ************************************************************************* //

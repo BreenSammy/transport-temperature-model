@@ -1,0 +1,158 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2006                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      changeDictionaryDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+boundary
+{
+}
+
+U
+{
+    internalField   uniform (0 0 0);
+
+    boundaryField
+    {
+        "carrier_.*"
+        {
+            type            noSlip;
+        }
+        carrier
+        {
+            type            noSlip;
+        }
+        bottom
+        {
+            type            noSlip;
+        }
+    }
+}
+
+T
+{
+    internalField       uniform 293.15;
+
+    boundaryField
+    {
+        carrier
+        {
+            type            externalWallHeatFluxTemperature;
+            mode            coefficient;
+            Ta              285;
+            h               2;
+            kappaMethod     fluidThermo;
+            // thicknessLayers (0.02);
+            // kappaLayers     (44);
+            qr              qr;
+            value           uniform 293.15;
+        }
+        // carrier_left
+        // {
+        //     type            externalWallHeatFluxTemperature;
+        //     mode            coefficient;
+        //     Ta              285;
+        //     h               10;
+        //     kappaMethod     fluidThermo;
+        //     qr              qr;
+        //     value           $internalField;
+        // }
+        // carrier_right
+        // {
+        //     type            externalWallHeatFluxTemperature;
+        //     mode            coefficient;
+        //     Ta              285;
+        //     h               10;
+        //     kappaMethod     fluidThermo;
+        //     qr              qr;
+        //     value           $internalField;
+        // }
+        // carrier_front
+        // {
+        //     type            externalWallHeatFluxTemperature;
+        //     mode            coefficient;
+        //     Ta              285;
+        //     h               10;
+        //     kappaMethod     fluidThermo;
+        //     qr              qr;
+        //     value           $internalField;
+        // }
+        // carrier_back
+        // {
+        //     type            externalWallHeatFluxTemperature;
+        //     mode            coefficient;
+        //     Ta              285;
+        //     h               10;
+        //     kappaMethod     fluidThermo;
+        //     qr              qr;
+        //     value           $internalField;
+        // }
+        // carrier_top
+        // {
+        //     type            externalWallHeatFluxTemperature;
+        //     mode            coefficient;
+        //     Ta              285;
+        //     h               10;
+        //     kappaMethod     fluidThermo;
+        //     qr              qr;
+        //     value           $internalField;
+        // }
+        // carrier_bottom
+        // {
+        //     type            zeroGradient;
+        // }
+        bottom
+        {
+            type               zeroGradient;
+            // type            externalWallHeatFluxTemperature;
+            // mode            coefficient;
+            // Ta              uniform 293.15;
+            // h               uniform 10e5;
+            // kappaMethod     fluidThermo;
+            // kappa           none;
+            // thicknessLayers (1 2);
+            // kappaLayers     (100 200);
+            // value           uniform 293.15;
+        }
+    }
+}
+
+p_rgh
+{
+    internalField   uniform 1e5;
+
+    boundaryField
+    {
+        "carrier_.*"
+        {
+            type            fixedFluxPressure;
+            value           uniform 1e5;
+        }
+        carrier
+        {
+            type            fixedFluxPressure;
+            value           uniform 1e5;
+        }
+        bottom
+        {
+            type            fixedFluxPressure;
+            value           uniform 1e5;
+        }
+    }
+}
+
+p
+{
+    internalField   uniform 1e5;
+}
+
+// ************************************************************************* //

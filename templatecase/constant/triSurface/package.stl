@@ -1,0 +1,86 @@
+solid ASCII
+ facet normal -1 0 0
+  outer loop
+   vertex -0.2125 0.1675 -1.02564e-17
+   vertex -0.2125 -0.1675 1.02564e-17
+   vertex -0.2125 0.1675 0.26
+  endloop
+ endfacet
+ facet normal -1 -0 0
+  outer loop
+   vertex -0.2125 0.1675 0.26
+   vertex -0.2125 -0.1675 1.02564e-17
+   vertex -0.2125 -0.1675 0.26
+  endloop
+ endfacet
+ facet normal 0 1 -1.06752e-16
+  outer loop
+   vertex 0.2125 0.1675 -1.02564e-17
+   vertex -0.2125 0.1675 -1.02564e-17
+   vertex 0.2125 0.1675 0.26
+  endloop
+ endfacet
+ facet normal 0 1 -1.06752e-16
+  outer loop
+   vertex 0.2125 0.1675 0.26
+   vertex -0.2125 0.1675 -1.02564e-17
+   vertex -0.2125 0.1675 0.26
+  endloop
+ endfacet
+ facet normal 1 -0 0
+  outer loop
+   vertex 0.2125 -0.1675 1.02564e-17
+   vertex 0.2125 0.1675 -1.02564e-17
+   vertex 0.2125 -0.1675 0.26
+  endloop
+ endfacet
+ facet normal 1 -0 0
+  outer loop
+   vertex 0.2125 -0.1675 0.26
+   vertex 0.2125 0.1675 -1.02564e-17
+   vertex 0.2125 0.1675 0.26
+  endloop
+ endfacet
+ facet normal 0 -1 1.06752e-16
+  outer loop
+   vertex -0.2125 -0.1675 1.02564e-17
+   vertex 0.2125 -0.1675 1.02564e-17
+   vertex -0.2125 -0.1675 0.26
+  endloop
+ endfacet
+ facet normal 0 -1 1.06752e-16
+  outer loop
+   vertex -0.2125 -0.1675 0.26
+   vertex 0.2125 -0.1675 1.02564e-17
+   vertex 0.2125 -0.1675 0.26
+  endloop
+ endfacet
+ facet normal 0 -0 1
+  outer loop
+   vertex 0.2125 -0.1675 0.26
+   vertex 0.2125 0.1675 0.26
+   vertex -0.2125 -0.1675 0.26
+  endloop
+ endfacet
+ facet normal 0 0 1
+  outer loop
+   vertex -0.2125 -0.1675 0.26
+   vertex 0.2125 0.1675 0.26
+   vertex -0.2125 0.1675 0.26
+  endloop
+ endfacet
+ facet normal 0 -6.12323e-17 -1
+  outer loop
+   vertex -0.2125 -0.1675 1.02564e-17
+   vertex -0.2125 0.1675 -1.02564e-17
+   vertex 0.2125 -0.1675 1.02564e-17
+  endloop
+ endfacet
+ facet normal 0 -6.12323e-17 -1
+  outer loop
+   vertex 0.2125 -0.1675 1.02564e-17
+   vertex -0.2125 0.1675 -1.02564e-17
+   vertex 0.2125 0.1675 -1.02564e-17
+  endloop
+ endfacet
+endsolid ASCII
