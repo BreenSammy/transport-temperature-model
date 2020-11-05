@@ -167,7 +167,6 @@ def transport(transport):
         plot_data['time'] = (plot_data['time']) / 3600
         plot_data['arrival_temperature'] = transport.arrival_temperature
         plot_data = plot_data.melt(id_vars=['time'], value_vars=['temperature', 'arrival_temperature'])
-        print(plot_data)
         chart = alt.Chart(plot_data).mark_line().encode(
                 alt.X('time', title='time'),
                 alt.Y('value:Q', title='temperature in °C'),
