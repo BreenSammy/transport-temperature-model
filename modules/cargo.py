@@ -32,7 +32,7 @@ FREIGHTTYPES = {'cells', 'modules', 'pack'}
 THERMAL_CAPACITY_PACKAGING = 1300
 THERMAL_CONDUCTIVITY_PACKAGING = 0.053
 # DENSITY_PACKAGING = 132
-DENSITY_PACKAGING = 23.65
+DENSITY_PACKAGING = 24
 
 class BatteryRegion:
     """Class to represent a battery region in OpenFOAM case"""
@@ -45,19 +45,19 @@ class BatteryRegion:
     def density(self):
         """Calculate the average density"""
         volume_region = np.prod(self.dimensions)
-        volume_battery = np.prod(self.freight.dimensions) * np.prod(self.freight.elements_in_package(self.dimensions))
+        volume_battery = np.prod(self.freight.dimensions) * np.prod(self.freight.get_elements_in_package(self.dimensions))
         volume_packaging = volume_region - volume_battery
         return volume_packaging / volume_region * DENSITY_PACKAGING + volume_battery / volume_region * self.freight.density()
 
     def packaging_thickness(self):
         """Calculate the thickness of the packaging"""
-        dimension_freight = np.array(self.freight.elements_in_package(self.dimensions)) * np.array(self.freight.dimensions)
+        dimension_freight = np.array(self.freight.get_elements_in_package(self.dimensions)) * np.array(self.freight.dimensions)
         return np.average(self.dimensions - dimension_freight)
 
     def thermal_capacity(self):
         """Calculate the average thermal capacity of the region"""
         volume_region = np.prod(self.dimensions)
-        volume_battery = np.prod(self.freight.dimensions) * np.prod(self.freight.elements_in_package(self.dimensions))
+        volume_battery = np.prod(self.freight.dimensions) * np.prod(self.freight.get_elements_in_package(self.dimensions))
         volume_packaging = volume_region - volume_battery
         return (
             ((volume_packaging * DENSITY_PACKAGING * THERMAL_CAPACITY_PACKAGING + 
@@ -67,7 +67,7 @@ class BatteryRegion:
 
     def thermal_conductivity(self):
         thermal_conductivity = [0, 0, 0]
-        packaging_thickness = np.array(self.dimensions) - np.array(self.freight.dimensions) * np.array(self.freight.elements_in_package(self.dimensions))
+        packaging_thickness = np.array(self.dimensions) - np.array(self.freight.dimensions) * np.array(self.freight.get_elements_in_package(self.dimensions))
         for i in range(3):
             thermal_conductivity[i] = (packaging_thickness[i] + self.freight.dimensions[i]) / (
                     packaging_thickness[i]/self.thermalconductivity_packaging + self.freight.dimensions[i]/self.freight.thermalconductivity[i]
@@ -75,6 +75,11 @@ class BatteryRegion:
         return thermal_conductivity
 
 class Cargo:
+    def __init__(self, templateSTL: str, position: list, orientation: list):
+        self.templateSTL = templateSTL
+        self.position = position
+        self.orientation = orientation
+
     def vector_to_string(self, vector):
         """Transform a vector with three entries into a string for terminal commands"""
         return "'(" + str(vector[0]) + ' ' + str(vector[1]) + ' ' + str(vector[2]) + ")'"
@@ -100,10 +105,8 @@ class Cargo:
 class Pallet(Cargo):
     """Class to describe a pallet full of packages filled with batteries."""
     def __init__(self, templateSTL: str, position: list, orientation: list, freight):
+        super(Pallet, self).__init__(templateSTL, position, orientation)
         self.type = 'Pallet'
-        self.templateSTL = templateSTL
-        self.position = position
-        self.orientation = orientation
         self.freight = freight
         self.battery_regions = self.get_battery_regions()
         # Get dimensions of entire stl
@@ -123,7 +126,9 @@ class Pallet(Cargo):
         # Also rotate the dimensions of the freight and thermal conductivity
         freight.dimensions = list(map(abs, rotation.apply(freight.dimensions)))
         freight.thermalconductivity = list(map(abs, rotation.apply(freight.thermalconductivity)))
-
+        if freight.elements_in_package != None:
+            freight.elements_in_package = list(map(abs, rotation.apply(freight.elements_in_package)))
+           
         #Get array of center points of each freightelement in one package
         points_freight_elements = freight.location_elements(dimensions_package)
 
@@ -173,15 +178,15 @@ class Pallet(Cargo):
 class Car(Cargo):
     def __init__(self, templateSTL, freight):
         self.type = 'Car'
-        self.templateSTL = templateSTL
-        self.freight = freight
         self.dimensions = DIMENSIONS_PACKAGE[templateSTL]
-        self.position = [
+        position = [
             self.dimensions[0]/2 + 0.2,
             0,
             0.1
         ]
-        self.orientation = [0, 0, 0]
+        orientation = [0, 0, 0]
+        super(Car, self).__init__(templateSTL, position, orientation)
+        self.freight = freight
         self.battery_regions = [
             BatteryRegion(np.array(self.position) + 0.05, self.dimensions, self.freight)
         ]
@@ -213,6 +218,7 @@ class Freight:
     THERMAL_CONDUCTIVITY_RADIAL = 0.48
     def __init__(
         self, freighttype, dimensions, weight, 
+        elements_in_package = None,
         thermalcapacity = THERMAL_CAPACITY, 
         thermalconductivity = [
             THERMAL_CONDUCTIVITY_RADIAL,
@@ -225,6 +231,7 @@ class Freight:
         self.type = freighttype
         self.dimensions = dimensions
         self.weight = weight
+        self.elements_in_package = elements_in_package
         self.thermalcapacity = thermalcapacity
         self.thermalconductivity = thermalconductivity
 
@@ -236,14 +243,17 @@ class Freight:
 
     def location_elements(self, dimensions_package):
         """Get array of center points of each freightelement in one package in the initial coordinate system (0, 0, 0)"""
-        elements_in_package = self.elements_in_package(dimensions_package)
-        points_x = np.linspace(-dimensions_package[0]/2, dimensions_package[0]/2, elements_in_package[0] * 3 + 2)[2::3]
-        points_y = np.linspace(-dimensions_package[1]/2, dimensions_package[1]/2, elements_in_package[1] * 3 + 2)[2::3] 
-        points_z = np.linspace(-dimensions_package[2]/2, dimensions_package[2]/2, elements_in_package[2] * 3 + 2)[2::3]
+        elements_in_package = self.get_elements_in_package(dimensions_package)
+        points_x = np.linspace(-dimensions_package[0]/2, dimensions_package[0]/2, int(elements_in_package[0]) * 3 + 2)[2::3]
+        points_y = np.linspace(-dimensions_package[1]/2, dimensions_package[1]/2, int(elements_in_package[1]) * 3 + 2)[2::3] 
+        points_z = np.linspace(-dimensions_package[2]/2, dimensions_package[2]/2, int(elements_in_package[2]) * 3 + 2)[2::3]
         return np.vstack(np.meshgrid(points_x, points_y, points_z)).reshape(3,-1).T
 
-    def elements_in_package(self, dimensions_package):
+    def get_elements_in_package(self, dimensions_package):
         """Returns list with number of individual freight elements per axis"""
+        if self.elements_in_package != None:
+            print(self.elements_in_package)
+            return self.elements_in_package
         result = [floor(dimensions_package[i] / self.dimensions[i]) for i in range(len(self.dimensions))]
         if np.prod(result) == 0:
             raise ValueError('Freight does not fit into packaging. Check dimensions of freight against dimensions of package.')
@@ -251,17 +261,21 @@ class Freight:
             return result
 
     def to_dict(self):
-        return {
+        dictionary = {
             'type': self.type,
             'dimensions': self.dimensions,
             'weight': self.weight,
             'thermalcapacity': self.thermalcapacity,
             'thermalconductivity': self.thermalconductivity
         }
+        if self.elements_in_package != None:
+            dictionary.update({'elements_in_package': self.elements_in_package})
+        return dictionary
 
 def freightDecoder(obj):
     return Freight(
         obj['type'], obj['dimensions'], float(obj['weight']), 
+        elements_in_package = obj.get('elements_in_package', None),
         thermalcapacity = obj.get('thermalcapacity', Freight.THERMAL_CAPACITY),
         thermalconductivity = obj.get(
             'thermalconductivity', [
