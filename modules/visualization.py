@@ -88,10 +88,10 @@ def transport(transport):
     data.rename(columns = {'T':'ambient'}, inplace = True) 
     if transport.type.lower() == 'car':
         temperature_air = transport.read_postprocessing('battery0_0')
-        data['average_air'] = temperature_air['average(T)']
     else:
         temperature_air = transport.read_postprocessing('airInside')
-        data['average_air'] = temperature_air['average(T)']
+    # Interpolate missing values if something went wrong during postprocessing
+    data['average_air'] = temperature_air['average(T)'].interpolate()
     # Transform datetime objects to strings
     data['Date'] = data['Date'].dt.strftime('%Y-%m-%d %H:%M:%S')
     coordinates = data[['Lat', 'Lon']].values
@@ -245,6 +245,8 @@ def transport(transport):
             <b>Ambient temperature:</b> {ambient} <br>
             <b>Air temperature:</b> {air} <br>
             """
+        # if waypoint['average_air'] = float('nan'):
+        #     waypoint['average_air'] 
         icon = plugins.BeautifyIcon( 
             background_color=colormap(waypoint['average_air']),  
             icon_shape='doughnut',
@@ -344,7 +346,7 @@ def plot(
             _tikz_plot(plotpath)
         plt.clf()
 
-    # Plot heattransfercoefficient and step
+    # Plot heattransfercoefficient and speed
     for filepath in remaining_files:
         df = pd.read_csv(filepath, names = ['time', 'y_data'])
         plt.step(df['time'] / 3600, df['y_data'], color = TUMBLUE)
@@ -374,7 +376,7 @@ def plot(
             _tikz_plot(plotpath)
         plt.clf()
 
-    # Plot airInside
+    # Plot aarrival
     if os.path.exists(arrival_file):    
         df = pd.read_csv(arrival_file) 
         plt.plot(df['time'] / 3600, df['temperature'], marker = marker, color = TUMBLUE)
