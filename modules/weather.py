@@ -77,7 +77,7 @@ class ISD:
             coordinates = self.possible_stations[['LAT', 'LON']].values
 
             # Search for closest station
-            tree = spatial.KDTree(coordinates)
+            tree = spatial.cKDTree(coordinates)
             index_next_station = tree.query([(lat,lon)])[1][0]
 
             # Get dataframe entry of closest station
