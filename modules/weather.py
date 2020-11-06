@@ -145,8 +145,8 @@ class ISD:
 
             df = df[df.Date.between(input_date, input_date)]
 
-            # If the dataframe is empty, station has no data for datetime and is removed from isd_history
-            if df.empty:
+            # If the dataframe is empty or temperature value is faulty, station has no data for datetime and is removed from isd_history
+            if df.empty or (df['T'].values[0] == -9999):
                 self.possible_stations = self.possible_stations.drop([station.index[0]])
                 retry = True
             else:
