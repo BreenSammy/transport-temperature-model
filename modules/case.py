@@ -35,21 +35,24 @@ TRANSPORTTYPES = {
         'width': 2.4390, 
         'height': 2.3855,
         'kappaLayers': 44,
-        'thicknessLayers': 0.005
+        'thicknessLayers': 0.005,
+        'absorptivity': 0.3
     },
     'carrier': {
         'length': 13.0005,
         'width': 2.4610, 
         'height': 2.5505,
         'kappaLayers': 0.5,
-        'thicknessLayers': 0.01
+        'thicknessLayers': 0.01,
+        'absorptivity': 0.1
     },
     'car': {
         'length': 5,
         'width': 3, 
         'height': 3,
         'kappaLayers': 1,
-        'thicknessLayers': 1
+        'thicknessLayers': 1,
+        'absorptivity': 0.3
     }
 }
 # Max speed for natural convection
@@ -128,8 +131,13 @@ class Case(SolutionDirectory):
         transport = TRANSPORTTYPES[transporttype]
         
         blockMeshDict = ParsedParameterFile(os.path.join(self.systemDir(), "blockMeshDict"))
-        changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), "airInside", "changeDictionaryDict"))
         snappyHexMeshDict = ParsedParameterFile(os.path.join(self.systemDir(), "snappyHexMeshDict"))
+        changeDictionaryDict = ParsedParameterFile(
+            os.path.join(self.systemDir(), "airInside", "changeDictionaryDict")
+            )
+        boundaryRadiationProperties = ParsedParameterFile(
+            os.path.join(self.constantDir(), "airInside", "boundaryRadiationProperties")
+            )
 
         # Minimal cellsize of blockMesh background mesh cells
         CELLSIZE = 0.32
@@ -152,9 +160,15 @@ class Case(SolutionDirectory):
         changeDictionaryDict['T']['boundaryField']['carrier']['kappaLayers'] = '( {} )'.format(transport['kappaLayers'])
         changeDictionaryDict['T']['boundaryField']['carrier']['thicknessLayers'] = '( {} )'.format(transport['thicknessLayers'])
 
+        boundaryRadiationProperties['carrier'][
+            'wallAbsorptionEmissionModel']['absorptivity'] = '( {0} {0} )'.format(transport['absorptivity'])
+        boundaryRadiationProperties['carrier'][
+            'wallAbsorptionEmissionModel']['emissivity'] = '( {0} {0} )'.format(transport['absorptivity'])
+
         blockMeshDict.writeFile()
         changeDictionaryDict.writeFile()
         snappyHexMeshDict.writeFile()
+        boundaryRadiationProperties.writeFile()
 
     def switch_to_car(self):
         # Chech if case is valid
