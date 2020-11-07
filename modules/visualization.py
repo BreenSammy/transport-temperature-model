@@ -92,6 +92,8 @@ def transport(transport):
         temperature_air = transport.read_postprocessing('airInside')
     # Interpolate missing values if something went wrong during postprocessing
     data['average_air'] = temperature_air['average(T)'].interpolate()
+    if np.isnan(data['average_air'].values[-1]):
+        data['average_air'].values[-1] = data['average_air'].values[-2]
     # Transform datetime objects to strings
     data['Date'] = data['Date'].dt.strftime('%Y-%m-%d %H:%M:%S')
     coordinates = data[['Lat', 'Lon']].values
