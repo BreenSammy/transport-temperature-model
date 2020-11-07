@@ -188,7 +188,7 @@ class FileRoute:
 
     def dataframe_from_csv(self, csvpath):
         return pd.read_csv(
-                csvpath, usecols=[0, 1, 2], names=['Date', 'Lat', 'Lon'], header = 1, parse_dates = ['Date']
+                csvpath, header = 0, usecols=[0, 1, 2], names=['Date', 'Lat', 'Lon'], parse_dates = ['Date']
                 )
 
     def waypoints(self, start = None):
