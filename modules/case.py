@@ -116,11 +116,20 @@ class Case(SolutionDirectory):
             )['internalField'].val
         return initial_temperature
 
-    def set_purge_write(self, number):
-        """Set purgeWrite to 2, so only two timedirecotries at a time a written to disk"""
-        controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
-        controlDict['purgeWrite'] = number
-        controlDict.writeFile()
+    def set_purge_write(self):
+        """Set purge_write to true"""
+        self.purge_write_switch = True
+
+    def purge_write(self):
+        """Delete the penultimate timestep so only two time directories are saved at any time"""
+        times = self.get_times()
+        if len(times) >= 2:
+            processor_directories = glob.glob(os.path.join(self.name, 'processor*'))
+            time_processor_directories = [
+                os.path.join(directory, str(int(times[0]))) for directory in processor_directories
+                ]
+            for directory in time_processor_directories:
+                shutil.rmtree(directory)
 
     def change_transporttype(self, transporttype):
         """Change transport specific parameters"""
@@ -241,18 +250,19 @@ class Case(SolutionDirectory):
                 thermophysicalProperties.writeFile()
 
                 # Write boundary conditions for battery region and airInside region
-                changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), battery.name, 'changeDictionaryDict'))
-                # openfoam.region_coupling_solid_anisotrop['thicknessLayers'] = '( {} )'.format(battery.packaging_thickness())
-                # openfoam.region_coupling_solid_anisotrop['kappaLayers'] = '( {} )'.format(battery.thermalconductivity_packaging)    
-                openfoam.region_coupling_solid_anisotrop['thicknessLayers'] = '( {} )'.format(0.02)
-                openfoam.region_coupling_solid_anisotrop['kappaLayers'] = '( {} )'.format(0.05)
-                changeDictionaryDict['T']['boundaryField'][battery.name + '_to_airInside'] = openfoam.region_coupling_solid_anisotrop
-                changeDictionaryDict.writeFile()
+                temperaturefile = ParsedParameterFile(os.path.join(self.name, "0.org", battery.name, 'T'))
+                THICKNESS_CARTON = 0.01
+                KAPPA_CARTON = 0.04556  
+                openfoam.region_coupling_solid_anisotrop['thicknessLayers'] = '( {} )'.format(THICKNESS_CARTON)
+                openfoam.region_coupling_solid_anisotrop['kappaLayers'] = '( {} )'.format(KAPPA_CARTON)
+                # changeDictionaryDict['T']['boundaryField'][battery.name + '_to_.*'] = openfoam.region_coupling_solid_anisotrop
+                temperaturefile['boundaryField']['".*"'] = openfoam.region_coupling_solid_anisotrop
+                temperaturefile.writeFile()
 
                 changeDictionaryDict = ParsedParameterFile(os.path.join(self.systemDir(), 'airInside', 'changeDictionaryDict'))
-                openfoam.region_coupling_fluid['thicknessLayers'] = '( {} )'.format(0.02)
+                openfoam.region_coupling_fluid['thicknessLayers'] = '( {} )'.format(THICKNESS_CARTON)
                 # openfoam.region_coupling_fluid['thicknessLayers'] = '( {} )'.format(battery.packaging_thickness())
-                openfoam.region_coupling_fluid['kappaLayers'] = '( {} )'.format(0.05)
+                openfoam.region_coupling_fluid['kappaLayers'] = '( {} )'.format(KAPPA_CARTON)
                 # openfoam.region_coupling_fluid['kappaLayers'] = '( {} )'.format(battery.thermalconductivity_packaging)
                 changeDictionaryDict['T']['boundaryField']['airInside_to_'+ battery.name] = openfoam.region_coupling_fluid
                 changeDictionaryDict.writeFile()
@@ -446,6 +456,10 @@ class Case(SolutionDirectory):
             self._move_logs()
             os.system(os.path.join(self.name,"ChangeDictionary") + ' ' + borderregion)
             os.system(os.path.join(self.name,"Run"))
+
+            # Purge write
+            if self.purge_write_switch == True:
+                self.purge_write() 
 
             #File management of log files
             target = os.path.join(self.name,"log.chtMultiRegionFoam" + '_' + string_current_timestamp)

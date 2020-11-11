@@ -26,6 +26,8 @@ boundaryField
         Tnbr            T;
         kappaMethod     directionalSolidThermo;
         alphaAni        Anialpha;
+        kappaLayers     (0.07);
+        thicknessLayers (0.01);
         value           $internalField;
     }
 }

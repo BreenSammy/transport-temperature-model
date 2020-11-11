@@ -115,11 +115,9 @@ if not transportcase.processorDirs():
 else:
     print('Mesh already exists')
 
-# Set purgeWrite in case controlDict if
+# Set purge write switch if timedirectories should not be saved 
 if args.savetimes == False:
-    transportcase.set_purge_write(2)
-else:
-    transportcase.set_purge_write(0)
+    transportcase.set_purge_write()
 
 # Execute the OpenFOAM solver
 if transport.type == 'car':
@@ -147,8 +145,7 @@ if sorted(postprocessed_regions) !=  sorted(transportcase.regions()) or args.pos
 if args.arrival:
     transportcase.simulate_arrival(transport.arrival_temperature)
 
-
-if transportcase.latesttime() > transportcase.duration():
+if (transportcase.latesttime() - transportcase.duration()) > 1000:
     print('Running postprocess on arrival')
     transportcase.postprocess(arrival=True)
 
