@@ -76,9 +76,10 @@ class Case(SolutionDirectory):
 
     def get_times(self):
         """Get all times with timedirectories, parallel or not"""
+        # Get reconstructed times
         times = self.getTimes()
-        # If case is not reconstructed self.getTimes() only returns 0 directory, use parallel times instead
-        if len(times) < len(self.getParallelTimes()):
+        # Use parallel times if latest parallel time is later than latest reconstructed time
+        if times[-1] < self.getParallelTimes()[-1]:
             times = self.getParallelTimes()
         return times
 
@@ -92,6 +93,12 @@ class Case(SolutionDirectory):
         if 'uniform' in regions_in_latesttime:
             regions_in_latesttime.remove('uniform')
         return regions_in_latesttime
+
+    def duration(self):
+        """Return the duration of the transport in seconds"""
+        self.load_weatherdata()
+        duration = self.weatherdata['Date'].iloc[-1] - self.weatherdata['Date'].iloc[0]
+        return duration.total_seconds() 
 
     def change_initial_temperature(self, temperature):
         # Convert to Kelvin
@@ -588,17 +595,21 @@ class Case(SolutionDirectory):
         for region in regions:
             region_path = os.path.join(case_postProcessing, region)
             postprocess_function_paths = [os.path.join(region_path, x) for x in os.listdir(region_path)]
-            result = pd.DataFrame(data = {'time': times})
-            # if region == 'airInside':
-            #     print(region)
+            result = pd.DataFrame()
+            # result = pd.DataFrame(data = {'time': times})
+            # if region = 
             # Iterate over results from different postprocess functions 
             for path in postprocess_function_paths:
                 # Get paths to all postprocessing files
                 all_timedirectories = os.listdir(path)
-                # Select only timedirectories until penultimate, because postprocessing results for current time are saved in lasttime
-                all_selectedtimedirectories = sorted(
-                    set(times[0:-1]).intersection(all_timedirectories), key = float
-                    )
+                if not self.purge_write_switch or arrival:
+                    # Select only timedirectories until penultimate, because postprocessing results for current time are saved in lasttime
+                    all_selectedtimedirectories = sorted(
+                        set(times[0:-1]).intersection(all_timedirectories), key = float
+                        )
+                else:
+                    all_selectedtimedirectories = sorted(set(all_timedirectories[0:-1]), key = float)
+
                 all_paths = [os.path.join(path, x) for x in all_selectedtimedirectories]
                 filename = os.listdir(all_paths[0])[0]
                 all_paths = [os.path.join(x, filename) for x in all_paths]
@@ -634,9 +645,7 @@ class Case(SolutionDirectory):
                     
                 else:
                     # Get the first temperature at arrival, hence the last of the transport
-                    if times[0] == '0':
-                        initial_temperature = self.initial_temperature()
-                    else:
+                    if arrival:
                         lasttransportpath = os.path.join(path, lasttransporttime, filename)
                         df_lasttransport = pd.read_csv(
                             lasttransportpath, sep="\s+", header=header[filename],
@@ -644,11 +653,18 @@ class Case(SolutionDirectory):
                             dtype={'time': str, 'colname': float}
                             )
                         initial_temperature = df_lasttransport[colname].iloc[0]
-
-                    dict_head = {
+                        dict_head = {
                             'time': times[0],
                             colname: initial_temperature,
                             }
+                    else:
+                        initial_temperature = self.initial_temperature()
+                        dict_head = {
+                            'time': '0',
+                            colname: initial_temperature,
+                            }
+
+                   
                     # Read data from files and save in one dataframe
                     df_list = [pd.DataFrame( data = dict_head, index=[0])]
                     df_list.extend(
@@ -663,6 +679,8 @@ class Case(SolutionDirectory):
                     df.index = range(len(df))
                     # Convert to Celsius
                     df[colname] = df[colname] - 273.15
+                    if result.empty:
+                        result['time'] = df['time']
                     # Join with other postprocessing results
                     result = pd.merge(result, df, how='outer')
 
@@ -860,12 +878,6 @@ class Case(SolutionDirectory):
             writer = csv.writer(f)
             writer.writerow(data)
         
-    def duration(self):
-        """Return the duration of the transport in seconds"""
-        self.load_weatherdata()
-        duration = self.weatherdata['Date'].iloc[-1] - self.weatherdata['Date'].iloc[0]
-        return duration.total_seconds() 
-
     def cargo_regions(self):
         """Return all cargo regions of the case"""
         regions = self.regions()
