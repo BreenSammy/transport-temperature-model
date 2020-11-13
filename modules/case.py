@@ -65,6 +65,8 @@ class Case(SolutionDirectory):
         if not os.path.exists(os.path.join(self.name,'logs')):
             os.makedirs(os.path.join(self.name,'logs'))
 
+        self.purge_write_switch = False
+
         #Add scripts and log folder to control simulation to cloneCase
         self.addToClone('Allrun.pre')
         self.addToClone('Run')
