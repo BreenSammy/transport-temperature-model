@@ -14,7 +14,7 @@ import pandas as pd
 
 from modules.cargo import cargoDecoder
 import modules.weather as weather
-from modules.route import routeDecoder, stopDecoder
+from modules.route import routeDecoder, stopDecoder, add_seconds
 
 matplotlib.use('Agg')
 
@@ -95,6 +95,7 @@ class Transport:
         weatherdata['T'] = weather.waypoints_temperature(datetimes, lat, lon)
         weatherdata['T'] = weatherdata['T'].interpolate()
         
+        add_seconds(weatherdata)
         weatherdata.to_csv(self._weatherdatapath, encoding='utf-8', index=False)
 
         return weatherdata
