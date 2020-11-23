@@ -365,7 +365,8 @@ def waypoints_temperature(datetimes, lat, lon):
     """ Get temperature for a series of waypoints"""
     
     length = lat.size
-    temperatures = np.zeros(length)
+    temperatures = np.empty(length)
+    temperatures[:] = np.nan
 
     isd = ISD()
     OISST = OISSTFile(datetimes[0])

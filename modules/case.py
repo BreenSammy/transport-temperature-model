@@ -36,7 +36,15 @@ TRANSPORTTYPES = {
         'height': 2.3855,
         'kappaLayers': 44,
         'thicknessLayers': 0.005,
-        'absorptivity': 0.3
+        'absorptivity': 0.44
+    },
+    'container40': {        
+        'length': 12.19205,
+        'width': 2.4390, 
+        'height': 2.3855,
+        'kappaLayers': 44,
+        'thicknessLayers': 0.005,
+        'absorptivity': 0.65
     },
     'carrier': {
         'length': 13.0005,
@@ -57,6 +65,36 @@ TRANSPORTTYPES = {
 }
 # Max speed for natural convection
 SPEEDTHERSHOLD = 4
+
+SOLARINTENSITY = {
+    '1': 1230,
+    '2': 1215,
+    '3': 1186,
+    '4': 1136,
+    '5': 1104,
+    '6': 1088,
+    '7': 1085,
+    '8': 1107,
+    '9': 1151,
+    '10': 1192,
+    '11': 1221,
+    '12': 1233
+}
+
+EXTINCTIONCOEFFICENT = {
+    '1': 0.142,
+    '2': 0.144,
+    '3': 0.156,
+    '4': 0.180,
+    '5': 0.196,
+    '6': 0.205,
+    '7': 0.207,
+    '8': 0.201,
+    '9': 0.177,
+    '10': 0.160,
+    '11': 0.149,
+    '12': 0.142
+}
 
 class Case(SolutionDirectory):
     def __init__(self, name, archive = None, paraviewLink = True):
@@ -261,7 +299,7 @@ class Case(SolutionDirectory):
                 # Write boundary conditions for battery region and airInside region
                 temperaturefile = ParsedParameterFile(os.path.join(self.name, "0.org", battery.name, 'T'))
                 THICKNESS_CARTON = 0.01
-                KAPPA_CARTON = 0.04556  
+                KAPPA_CARTON = 0.05 
                 openfoam.region_coupling_solid_anisotrop['thicknessLayers'] = '( {} )'.format(THICKNESS_CARTON)
                 openfoam.region_coupling_solid_anisotrop['kappaLayers'] = '( {} )'.format(KAPPA_CARTON)
                 # changeDictionaryDict['T']['boundaryField'][battery.name + '_to_.*'] = openfoam.region_coupling_solid_anisotrop
@@ -382,7 +420,7 @@ class Case(SolutionDirectory):
 
         latesttime = self.latesttime()
 
-        # Delete times that are not complete
+        # Delete times that are not complete, needed if simulation stops before finished and is then restarted
         while sorted(self.regions_in_latesttime()) != sorted(self.regions()):
             processor_directories = glob.glob(os.path.join(self.name, 'processor*'))
             latesttime_processor_directories = [
@@ -391,7 +429,7 @@ class Case(SolutionDirectory):
             for directory in latesttime_processor_directories:
                 shutil.rmtree(directory)
             latesttime = self.latesttime()
-        
+
         transport_duration = self.weatherdata['Date'].iloc[-1] - self.weatherdata['Date'].iloc[0] 
         transport_duration = transport_duration.total_seconds()
 
@@ -504,11 +542,14 @@ class Case(SolutionDirectory):
         radiationProperties['radiation'] = 'on'
         radiationProperties['solarLoadCoeffs']['latitude'] = coordinates[0]
         radiationProperties['solarLoadCoeffs']['longitude'] = coordinates[1]
+        radiationProperties['solarLoadCoeffs']['A'] = SOLARINTENSITY[str(timestamp.month)]
+        radiationProperties['solarLoadCoeffs']['B'] = EXTINCTIONCOEFFICENT[str(timestamp.month)]
         # Calculate vector for east in grid coordinates
         direction = direction_crossover(coordinates, coordinates_next)
         # latitude matches y, longitude matches x
         x_axis = np.array([direction[1], direction[0], 0])
-        east_vector = np.array([1, 0, 0])
+        east_vector = np.array([1, 1, 0])
+        east_vector = east_vector / np.linalg.norm(east_vector)
         east_vector = coordinate_transformation(x_axis, east_vector)
         if not np.isnan(east_vector).any():
             radiationProperties['solarLoadCoeffs']['gridEast'] = Vector(east_vector[0], east_vector[1], east_vector[2])
@@ -755,11 +796,52 @@ class Case(SolutionDirectory):
         with open(probefunction, 'w') as f:
             f.writelines(probefunction_lines)
 
+    def _execute_probe_postprocess(self, time, region):
+        # Execute postProcess in reconstructed case, if processor folders are empty
+        if os.path.basename(self.latestDir()) == self.getParallelTimes()[-1]:
+            command = 'postProcess -case {0} -time {1} -func probes -region {2} > {3}/log.probes'
+            os.system(command.format(self.name, time, region, self.name))
+        # Execute in decomposed case else
+        elif len(self.getTimes()) < len(self.getParallelTimes()):
+            number_processors = len(self.processorDirs())
+            command = 'mpirun -np {0} postProcess -parallel -case {1} -time {2} -func probes -region {3} > {4}/log.probes'
+            os.system(command.format(number_processors, self.name, time, region, self.name))
+        else:
+            raise OSError('Can not execute OpenFOAM postProcess utility. Check case for time directories')
+
+    def probe_from_file(self, filepath):
+        """
+        Use coordinates specified in a .csv file to probe case for T values
+
+        Example file:
+        region,x,y,z
+        airInside,3,1,2
+        battery0_0,3,2,2
+        """
+        print('Probeing case from file')
+        probe_locations = pd.read_csv(filepath)
+        grouped_probe_locations = probe_locations.groupby(probe_locations.region)
+        times = self.get_times()
+        time = str(times[0]) + ':' + str(times[-1])
+
+        for groupkey in grouped_probe_locations.groups:
+            region = groupkey
+            probespath = os.path.join(self.name, 'postProcessing', 'probes', region, '0', 'T')
+            df = grouped_probe_locations.get_group(groupkey) 
+            locations = df.loc[:,['x','y','z']].values
+            [self.add_probe(locations[i,:]) for i in range(locations.shape[0])]
+            self._execute_probe_postprocess(time, region)
+            self._probes_to_csv(probespath, region)
+            self._move_logs()
+            self.clear_probes()
+
     def probe(self, region, location = None, time = None, clear = False):
         """
         Execute OpenFOAM postProcess function for probing a location for T value.
         Region of probe must be specified. 
         """
+
+        print('Probeing case')
         regions = self.regions()
         if region not in regions:
             raise ValueError('Region {} not exisent. Try one of {}'.format(region, regions))
@@ -780,17 +862,7 @@ class Case(SolutionDirectory):
             time = str(time)
             probespath = os.path.join(probespath, time, 'T')
 
-        # Execute postProcess in reconstructed case, if processor folders are empty
-        if os.path.basename(self.latestDir()) == self.getParallelTimes()[-1]:
-            command = 'postProcess -case {0} -time {1} -func probes -region {2} > {3}/log.probes'
-            os.system(command.format(self.name, time, region, self.name))
-        # Execute in decomposed case else
-        elif len(self.getTimes()) < len(self.getParallelTimes()):
-            number_processors = len(self.processorDirs())
-            command = 'mpirun -np {0} postProcess -parallel -case {1} -time {2} -func probes -region {3} > {4}/log.probes'
-            os.system(command.format(number_processors, self.name, time, region, self.name))
-        else:
-            raise OSError('Can not execute OpenFOAM postProcess utility. Check case for time directories')
+        self._execute_probe_postprocess(time, region)
         
         self._probes_to_csv(probespath, region)
         self._move_logs()
@@ -856,6 +928,7 @@ class Case(SolutionDirectory):
 
     def pack(self, logs = True):
         """Compress case with solution time directories for better file transfer"""
+        print("Compressing case files")
 
         pack_path = os.path.join(
             os.path.dirname(self.name),

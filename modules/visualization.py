@@ -34,6 +34,28 @@ def jet(steps = 256):
     step = floor(256/steps)
     return [cm.jet(i) for i in range(0, 256, step)]
 
+def create_stop_dataframe(stop_list):
+    df = pd.concat(stop_list)
+    # Create new stop dataframe
+    stop = pd.DataFrame(
+        data = {
+            'start': df['Date'].iloc[0],
+            'end': df['Date'].iloc[-1],
+            'Lat': df['Lat'].values.mean(),
+            'Lon': df['Lon'].values.mean(),
+            'timestamps': 0,
+            'ambient': 0,
+            'average_air': 0
+            },
+        dtype=object, 
+        index=[0]
+        )
+    # Add temperatures as lists
+    stop.at[0, 'timestamps'] = df['Date'].values
+    stop.at[0, 'ambient'] = df['ambient'].values
+    stop.at[0, 'average_air'] = df['average_air'].values
+    return stop
+
 def filter_stops(waypoints):
     """Method to filter stop locations from all waypoints"""
     DISTANCETHRESHOLD = 15
@@ -55,27 +77,17 @@ def filter_stops(waypoints):
             waypoints = waypoints.drop([i])
             df = pd.concat(stop_list)
             # Create new stop dataframe
-            new_stop = pd.DataFrame(
-                data = {
-                    'start': df['Date'].iloc[0],
-                    'end': df['Date'].iloc[-1],
-                    'Lat': df['Lat'].values.mean(),
-                    'Lon': df['Lon'].values.mean(),
-                    'timestamps': 0,
-                    'ambient': 0,
-                    'average_air': 0
-                    },
-                dtype=object, 
-                index=[0]
-                )
-            # Add temperatures as lists
-            new_stop.at[0, 'timestamps'] = df['Date'].values
-            new_stop.at[0, 'ambient'] = df['ambient'].values
-            new_stop.at[0, 'average_air'] = df['average_air'].values
+            new_stop = create_stop_dataframe(stop_list)
             # Concat stops
             stops = pd.concat([stops, new_stop])
             stop_list = []
 
+    if stop_list != []:
+        new_stop = create_stop_dataframe(stop_list)
+        # Concat stops
+        stops = pd.concat([stops, new_stop])
+        stop_list = []
+    
     # Reindex dataframes
     waypoints.index = range(len(waypoints.index))
     stops.index = range(len(stops.index))

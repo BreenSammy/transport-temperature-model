@@ -61,7 +61,8 @@ class Transport:
         else:
             self.weatherdata = self.get_weatherdata()
         # Reload weatherdata, if start time is not the same or 
-        # traveltime differs by more than 10 minutes     
+        # traveltime differs by more than 10 minutes 
+        print(self.start == start)    
         if self.start != start or abs(self.route.traveltime() - self.traveltime()) > 0.05*self.traveltime():
             self.weatherdata = self.get_weatherdata()
 

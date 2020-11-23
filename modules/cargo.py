@@ -15,6 +15,7 @@ NUMBER_PACKAGES = {
     'pallet3x4.stl': (3, 4),
     'industrial_pallet1x1.stl': (1, 1),
     'industrial_pallet1x4.stl': (1, 4),
+    'industrial_pallet2x4.stl': (2, 4),
     'package.stl': (1, 1)
 }
 
@@ -25,6 +26,7 @@ DIMENSIONS_PACKAGE = {
     'pallet3x4.stl': [0.6, 0.4, 0.4],
     'industrial_pallet1x1.stl': [1.2, 1, 0.4],
     'industrial_pallet1x4.stl': [0.6, 0.5, 0.4],
+    'industrial_pallet2x4.stl': [0.6, 0.5, 0.4],
     'package.stl': [0.425, 0.335, 0.260]
 }
 
@@ -255,6 +257,7 @@ class Freight:
             print(self.elements_in_package)
             return self.elements_in_package
         result = [floor(dimensions_package[i] / self.dimensions[i]) for i in range(len(self.dimensions))]
+        print(result)
         if np.prod(result) == 0:
             raise ValueError('Freight does not fit into packaging. Check dimensions of freight against dimensions of package.')
         else:

@@ -50,7 +50,7 @@ parser.add_argument(
     "--probe", 
     help="Read temperature from a location '(x y z)'", 
     metavar=("region", "location"), 
-    nargs=2)
+    nargs='+')
 parser.add_argument(
     "--pack", 
     help="Pack the case as a compressed file", 
@@ -83,7 +83,7 @@ transport = transport.from_json(os.path.join(transportpath, 'transport.json'))
 if args.weather:
     transport.weatherdata = transport.get_weatherdata()
 
-transport.save()
+# transport.save()
 # Setup the case for the simulation 
 casepath = os.path.join(transportpath, 'case')
 templatecasepath = os.path.join(
@@ -128,9 +128,13 @@ else:
 
 # # Postprocess the simulation
 if args.probe:
-    region = args.probe[0]
-    location = [float(i) for i in args.probe[1][1:-1].split(' ')]
-    transportcase.probe(region, location=location, clear=True)
+    if args.probe[0] == 'file':
+        filepath = os.path.join(transportpath, 'probe_locations.csv')
+        transportcase.probe_from_file(filepath)
+    else:
+        region = args.probe[0]
+        location = [float(i) for i in args.probe[1][1:-1].split(' ')]
+        transportcase.probe(region, location=location, clear=False)
 
 postprocessed_regions = [
     os.path.splitext(region)[0] for region in os.listdir(transport._postprocesspath_temperature)
