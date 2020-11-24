@@ -1,18 +1,13 @@
 {
     "type": "car",
-    "start": "2019-08-01 18:48:49",
+    "start": "2019-08-21 10:00:00",
     "initial_temperature": 20,
     "arrival_temperature": 20,
     "route": {
-        "type": "FTM",
-        "start_coordinates": [
-            51.4025447,
-            12.4532071
-        ],
-        "end_coordinates": [
-            49.4734531,
-            0.13553234
-        ]
+        "filename": "route.csv",
+        "timezone": "+00:00",
+        "trimstart": "0:00:00",
+        "trimend": "0:00:00"
     },
     "stops": [],
     "cargo": [
