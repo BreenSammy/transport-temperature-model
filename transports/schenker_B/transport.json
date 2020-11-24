@@ -1,7 +1,8 @@
 {
     "type": "container",
     "start": "2016-01-21 09:26:40",
-    "temperature": 24,
+    "initial_temperature": 24,
+    "arrival_temperature": 24,
     "route": {
         "filename": "container_B.csv",
         "timezone": "+00:00",

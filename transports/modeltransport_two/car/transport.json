@@ -1,0 +1,39 @@
+{
+    "type": "car",
+    "start": "2019-08-01 18:48:49",
+    "initial_temperature": 20,
+    "arrival_temperature": 20,
+    "route": {
+        "type": "FTM",
+        "start_coordinates": [
+            50.7844465,
+            12.4922921
+        ],
+        "end_coordinates": [
+            48.265588,
+            11.671388
+        ]
+    },
+    "stops": [],
+    "cargo": [
+        {
+            "type": "Car",
+            "templateSTL": "batterypack.stl",
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.2,
+                    0.7,
+                    0.175
+                ],
+                "weight": 223,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        }
+    ]
+}

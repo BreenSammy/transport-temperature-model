@@ -1,0 +1,664 @@
+{
+    "type": "container40",
+    "start": "2005-09-26 19:48:00",
+    "initial_temperature": 15,
+    "arrival_temperature": 17,
+    "route": {
+        "type": "FTM",
+        "start_coordinates": [
+            45.3271037,
+            -122.7640678
+        ],
+        "end_coordinates": [
+            45.3271037,
+            -122.7640678
+        ]
+    },
+    "stops": [
+        {
+            "duration": "57:00:13",
+            "lat": 45.3271037,
+            "lon": -122.7640678
+        }
+    ],
+    "cargo": [
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                0.801,
+                -0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                0.801,
+                0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                2.201,
+                -0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                2.201,
+                0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                3.601,
+                -0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                3.601,
+                0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                5.001,
+                -0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                5.001,
+                0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                6.401,
+                -0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                6.401,
+                0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                7.801,
+                -0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                7.801,
+                0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                9.201,
+                -0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                9.201,
+                0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                0.801,
+                -0.5805,
+                1.088
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                0.801,
+                0.5805,
+                1.088
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                2.201,
+                -0.5805,
+                1.088
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                2.201,
+                0.5805,
+                1.088
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                3.601,
+                -0.5805,
+                1.088
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                3.601,
+                0.5805,
+                1.088
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                5.001,
+                -0.5805,
+                1.088
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                5.001,
+                0.5805,
+                1.088
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.6, 
+                    0.5, 
+                    0.4
+                ],
+                "weight": 15.0,
+                "thermalcapacity": 1000,
+              "thermalconductivity": [
+                    0.20,
+                    0.20,
+                    0.20
+                ]
+            }
+        }
+    ]
+}
