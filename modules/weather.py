@@ -1,6 +1,7 @@
 import calendar
 import copy
 from datetime import date, datetime, timedelta 
+import ftplib
 import os
 import shutil
 import time
@@ -112,7 +113,7 @@ class ISD:
 
         return station
 
-    def temperature(self, input_date, lat: float, lon: float, output_station = False):
+    def temperature(self, input_date, lat: float, lon: float, output_station = False, ftp = False):
         # Round to the next full hour, because database has data for full hours
         input_date = hour_rounder(input_date)
         # Sometimes the station has no data for the datetime, thus the loop
@@ -132,16 +133,22 @@ class ISD:
                 temperature = float('nan')
                 self.possible_stations = self.possible_stations.drop([station.index[0]])
                 break
-
-            filename = '{0}-{1}-{2}.gz'.format(station['USAF'].iloc[0], station['WBAN'].iloc[0], input_date.year)
-            # e.g .../2019/010020-99999-2019.gz
-            weatherdata_url = self.URL + str(input_date.year) + '/' + filename
-
+            
             col_names = ['Year', 'Month', 'Day', 'Hour', 'T']
+            filename = '{0}-{1}-{2}.gz'.format(station['USAF'].iloc[0], station['WBAN'].iloc[0], input_date.year)
+
+            # Download files with ftp connection
+            if ftp:
+                filepath = self._download_weatherdata_ftp(filename, input_date.year)
+            # Else use https url
+            else:
+                # e.g .../2019/010020-99999-2019.gz
+                filepath = self.URL + str(input_date.year) + '/' + filename
+
             df = pd.read_csv(
-                weatherdata_url, parse_dates={'Date': ['Year', 'Month', 'Day', 'Hour']}, 
-                compression='gzip', quotechar='"', delim_whitespace=True, usecols=[0,1,2,3,4], names=col_names
-                )
+                    filepath, parse_dates={'Date': ['Year', 'Month', 'Day', 'Hour']}, 
+                    compression='gzip', quotechar='"', delim_whitespace=True, usecols=[0,1,2,3,4], names=col_names
+                    )
 
             df = df[df.Date.between(input_date, input_date)]
 
@@ -159,6 +166,53 @@ class ISD:
             return temperature, station
         else:
             return temperature
+
+    def _connect_ftp(self):
+        """Conncect to NOAA server with ftp connection. Retry to establish connection if it fails."""
+        retry = True
+        while (retry):
+            try:
+                ftp = ftplib.FTP('ftp.ncei.noaa.gov')
+                ftp.login()
+                ftp.cwd('pub/data/noaa')
+                retry = False
+
+            except EOFError as e:
+                print(e)
+                print("Connection to NOAA server failed. Retrying to connect.")
+                retry = True
+
+            except OSError as e:
+                print(e)
+                print("Connection to NOAA server failed. Retrying to connect.")
+                retry = True
+
+        return ftp
+
+
+    def _download_ftp(self, source_file: str, target_file: str):
+        """Downlaod a file from the ftp server and save it in the target file"""
+        try:
+            ftp = self._connect_ftp()
+            with open(target_file, 'wb+') as fh:
+                ftp.retrbinary('RETR ' + source_file, fh.write)
+
+        except ftplib.all_errors as e:
+            print('FTP error:', e) 
+
+            if os.path.isfile(target_file):
+                os.remove(target_file)
+
+    def _download_weatherdata_ftp(self, filename, year):
+        """Downloads weather data for the station"""
+
+        filepath = os.path.join(WEATHERDATAPATH, filename)
+        
+        if not os.path.exists(filepath):
+            ftp_filepath = 'isd-lite/' + str(year) + '/' + filename
+            self._download_ftp(ftp_filepath, filepath)
+
+        return filepath
 
 class NOAAFile(object):
     """Base class for access to NOAA server"""
@@ -379,7 +433,7 @@ def waypoints_temperature(datetimes, lat, lon):
             OISST = OISSTFile(datetimes[i])
 
         sst, _ =  OISST.sea_surface_temperature(lat[i], lon[i])
-        isd_temperature = isd.temperature(datetimes[i], lat[i], lon[i])
+        isd_temperature = isd.temperature(datetimes[i], lat[i], lon[i], ftp = True)
 
         if not np.isnan(isd_temperature):
             temperatures[i] = isd_temperature
