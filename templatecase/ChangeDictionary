@@ -2,7 +2,9 @@
 cd "${0%/*}" || exit                                # Run from this directory
 . ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions        # Tutorial run functions
 #------------------------------------------------------------------------------
-# Script is used to run solver, if mesh and regions already exist
+# Script to update region
 #------------------------------------------------------------------------------
 
-runParallel -s airInside changeDictionary -region airInside -latestTime
+region=${1:-airInside}
+
+runParallel -s $region changeDictionary -region $region -latestTime
