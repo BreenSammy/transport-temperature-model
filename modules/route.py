@@ -114,7 +114,11 @@ class FTMRoute:
             route = json.loads(contents)
         except:
             raise Exception('No connection to FTM routing service: Connect to LRZ VPN and try again')
-
+        
+        # np.savetxt("route.csv",  
+        #    route['routes'][0]['geometry']['coordinates'],
+        #    delimiter =", ",  
+        #    fmt ='% s')
         return route['routes'][0]
 
     def _add_hourly_waypoints(self, waypoints_list, date, start_coordinates, end_coordinates):

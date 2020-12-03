@@ -36,7 +36,7 @@ TRANSPORTTYPES = {
         'height': 2.3855,
         'kappaLayers': 44,
         'thicknessLayers': 0.005,
-        'absorptivity': 0.44
+        'absorptivity': 0.65
     },
     'container40': {        
         'length': 12.19205,
@@ -370,15 +370,19 @@ class Case(SolutionDirectory):
 
         # If times has only one entry, that means only 0 folder exists, 
         # thus average path temperature is initial temperature
-        if len(times) == 1:
+        if times[-1] == '0':
             T_W = ParsedParameterFile(
                 os.path.join(self.name, '0', 'airInside', 'T')
                 )['internalField'].val
         # Else use average patch temperature
         else:
-            time = times[-2]
+            wallTemperature_path = os.path.join(
+                self.name,'postProcessing',region,'wallTemperature_' + region
+                )
+            timedirectories = sorted(os.listdir(wallTemperature_path), key = float)
+            time = timedirectories[-1]
             path_averageTemperature = os.path.join(
-                self.name,'postProcessing',region,'wallTemperature_' + region, str(time),'surfaceFieldValue.dat'
+                wallTemperature_path, str(time),'surfaceFieldValue.dat'
                 )    
             df_patch_temperature = pd.read_table(
                 path_averageTemperature, sep="\s+", header=4, usecols = [0,1], names = ['time', 'T']
@@ -396,9 +400,19 @@ class Case(SolutionDirectory):
             T_W = df_patch_temperature['T'].iloc[-1]
 
         if u < SPEEDTHERSHOLD:
-            return convection.coeff_natural(L, T_W, T_U), T_W
+            heattransfercoefficient = convection.coeff_natural(L, T_W, T_U)      
         else:
-            return convection.coeff_forced(L, u), T_W
+            heattransfercoefficient = convection.coeff_forced(L, u)
+
+        # When heattranfercoefficient is too low, simulation gets unphysical (e.g. temperatures over 100 °C)
+        if heattransfercoefficient < 0.2:
+            heattransfercoefficient_path = os.path.join(
+                os.path.dirname(self.name), 'postProcessing', 'heattransfercoefficient.csv'
+                )
+            df = pd.read_csv(heattransfercoefficient_path, names = ['time', 'heattransfercoefficient'])
+            heattransfercoefficient = df.iloc[-1]['heattransfercoefficient']
+
+        return heattransfercoefficient, T_W
 
     def run(self, borderregion = 'airInside'):
         """Execute the simulation"""

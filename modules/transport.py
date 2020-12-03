@@ -61,8 +61,7 @@ class Transport:
         else:
             self.weatherdata = self.get_weatherdata()
         # Reload weatherdata, if start time is not the same or 
-        # traveltime differs by more than 10 minutes 
-        print(self.start == start)    
+        # traveltime differs by more than 10 minutes   
         if self.start != start or abs(self.route.traveltime() - self.traveltime()) > 0.05*self.traveltime():
             self.weatherdata = self.get_weatherdata()
 
@@ -89,6 +88,7 @@ class Transport:
         """Get weatherdata for all waypoints along the route"""
         print('Gathering weatherdata for all waypoints')
         weatherdata = self.route.waypoints(self.start)
+        
         datetimes = weatherdata.Date.tolist()
         lat = weatherdata.Lat.values
         lon = weatherdata.Lon.values
@@ -115,9 +115,6 @@ class Transport:
         self.weatherdata.to_csv(self._weatherdatapath, encoding='utf-8', index=False)
     
     def read_postprocessing(self, region):
-        # if region not in self.case_regions():
-        #     raise ValueError('Region nonexistant')
-
         path = os.path.join(self._postprocesspath_temperature, region + '.csv')
         return pd.read_csv(path)
 

@@ -189,7 +189,6 @@ class ISD:
 
         return ftp
 
-
     def _download_ftp(self, source_file: str, target_file: str):
         """Downlaod a file from the ftp server and save it in the target file"""
         try:

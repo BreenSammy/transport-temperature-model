@@ -61,7 +61,9 @@ def filter_stops(waypoints):
     DISTANCETHRESHOLD = 15
     coordinates = waypoints[['Lat', 'Lon']].values
     stop_list = []
-    stops = pd.DataFrame()
+    stops = pd.DataFrame(columns=[
+        'start', 'end', 'Lat', 'Lon', 'timestamps', 'ambient', 'average_air'
+        ])
 
     for i in range(len(waypoints) - 1):
         distance = geopy.distance.distance(coordinates[i, :],coordinates[i + 1, :]).km
@@ -102,17 +104,18 @@ def transport(transport):
         temperature_air = transport.read_postprocessing('battery0_0')
     else:
         temperature_air = transport.read_postprocessing('airInside')
+    # Merge weatherdata with air temperature
+    temperature_air.rename(
+        columns={'time':'seconds', 'average(T)': 'average_air'}, inplace=True
+        )
+    data = pd.merge(data, temperature_air, how='outer')
     # Interpolate missing values if something went wrong during postprocessing
-    data['average_air'] = temperature_air['average(T)'].interpolate()
-    if np.isnan(data['average_air'].values[-1]):
-        data['average_air'].values[-1] = data['average_air'].values[-2]
-    # Transform datetime objects to strings
+    data['average_air'] = data['average_air'].interpolate()
+
     data['Date'] = data['Date'].dt.strftime('%Y-%m-%d %H:%M:%S')
     coordinates = data[['Lat', 'Lon']].values
     data = data.round({'average_air': 3})
-
     waypoints, stops = filter_stops(data)
-
     # Dataframe with coordinates of waypoints and stops for plotting of the route
     coordinates = pd.concat([
         waypoints.loc[:, ['Date', 'Lat', 'Lon']],

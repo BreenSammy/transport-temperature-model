@@ -168,4 +168,4 @@ visualization.transport(transport)
 if args.reconstruct:
     transportcase.reconstruct()
 if args.pack:
-    transportcase.pack()
+    transportcase.pack(logs = False)
