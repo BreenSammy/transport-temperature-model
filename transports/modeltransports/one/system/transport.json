@@ -1,6 +1,6 @@
 {
-    "type": "container",
-    "start": "2019-08-21 10:00:00",
+    "type": "carrier",
+    "start": "2019-09-18 10:00:00",
     "initial_temperature": 20,
     "arrival_temperature": 20,
     "route": {
@@ -904,6 +904,932 @@
             "templateSTL": "batterypack.stl",
             "position": [
                 5.251,
+                0.54,
+                1.101
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                6.7501,
+                -0.54,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                6.7501,
+                -0.54,
+                0.463
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                6.7501,
+                -0.54,
+                0.782
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                6.7501,
+                -0.54,
+                1.101
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                6.7501,
+                0.54,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                6.7501,
+                0.54,
+                0.463
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },       
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                6.7501,
+                0.54,
+                0.782
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },        
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                6.7501,
+                0.54,
+                1.101
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                8.251,
+                -0.54,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                8.251,
+                -0.54,
+                0.463
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },        
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                8.251,
+                -0.54,
+                0.782
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },        
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                8.251,
+                -0.54,
+                1.101
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                8.251,
+                0.54,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                8.251,
+                0.54,
+                0.463
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },        
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                8.251,
+                0.54,
+                0.782
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },        
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                8.251,
+                0.54,
+                1.101
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                9.7501,
+                -0.54,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                9.7501,
+                -0.54,
+                0.463
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },        
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                9.7501,
+                -0.54,
+                0.782
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },        
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                9.7501,
+                -0.54,
+                1.101
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                9.7501,
+                0.54,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                9.7501,
+                0.54,
+                0.463
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },        
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                9.7501,
+                0.54,
+                0.782
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },        
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                9.7501,
+                0.54,
+                1.101
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                11.251,
+                -0.54,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                11.251,
+                -0.54,
+                0.463
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },        
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                11.251,
+                -0.54,
+                0.782
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },        
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                11.251,
+                -0.54,
+                1.101
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                11.251,
+                0.54,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                11.251,
+                0.54,
+                0.463
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },        
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                11.251,
+                0.54,
+                0.782
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.200,
+                    0.700,
+                    0.175
+                ],
+                "weight": 233,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        },        
+        {
+            "type": "Pallet",
+            "templateSTL": "batterypack.stl",
+            "position": [
+                11.251,
                 0.54,
                 1.101
             ],

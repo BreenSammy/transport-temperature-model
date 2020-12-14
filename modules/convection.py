@@ -11,6 +11,7 @@ def coeff_natural(L: float, T_W: float, T_U: float):
     Ra = Gr * Pr
 
     Nu_0 = 1.0
+    # Interpolated between tabulated values
     f_Pr = 0.765 + 0.03 * (Pr - 0.7) / 0.3
     Nu = Nu_0 + 0.668 * f_Pr * Ra**0.25
 

@@ -475,7 +475,7 @@ def onsea(lat, lon):
     If no value is available that means coordinates are on land.
     Uses file from day before yesterday to definetly get file.
     """
-    day_before_yesterday = date.today() - timedelta(days = 2) 
+    day_before_yesterday = date.today() - timedelta(days = 10) 
     sst, _ = OISSTFile(day_before_yesterday).sea_surface_temperature(lat, lon)
 
     if isinstance(sst, np.float32):

@@ -27,6 +27,8 @@ from modules.cargo import cargoDecoder
 import modules.openfoam as openfoam
 from modules.route import direction_crossover, add_seconds
 from modules.transport import TransportDecoder
+from modules.weather import onsea
+
 
 # Specific parameter values for different types of transports
 TRANSPORTTYPES = {
@@ -244,6 +246,16 @@ class Case(SolutionDirectory):
         changeDictionaryDict.writeFile()
 
         os.system(os.path.join(self.name,"ChangeDictionary") + ' battery0_0')
+
+        self.load_weatherdata()
+        if 'onsea' not in self.weatherdata.columns:
+            lats = self.weatherdata['Lat'].values
+            lons = self.weatherdata['Lon'].values 
+            self.weatherdata['onsea'] = [onsea(lats[i], lons[i]) for i in range(len(lats))] 
+            self.weatherdata.to_csv(
+                os.path.join(os.path.dirname(self.name), 'weatherdata.csv'), encoding='utf-8', index=False
+                )
+            
         self._move_logs()
     
     def load_cargo(self, cargo):
@@ -477,6 +489,10 @@ class Case(SolutionDirectory):
             coordinates_next = self.weatherdata[['Lat', 'Lon']].values[i+1]
             distance = geopy.distance.distance(coordinates, coordinates_next).m
             travelspeed = distance / endTime_delta
+            # Set travelspeed to 0 for cartransports on sea, because car is inside ship
+            if borderregion == 'battery0_0':
+                if self.weatherdata['onsea'].values[i] == True:
+                    travelspeed = 0
 
             # #Upadate positon
             self._update_radiationProperties(
@@ -958,7 +974,8 @@ class Case(SolutionDirectory):
         else:
             exclude = []
 
-        self.packCase(pack_path, additional = additional, exclude = exclude)
+        # self.packCase(pack_path, additional = additional, exclude = exclude)
+        self.packCase(pack_path, additional = additional)
    
     def _save_data(self, data, filename):
         postProcessing_path = os.path.join(os.path.dirname(self.name), 'postProcessing')
