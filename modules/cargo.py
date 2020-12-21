@@ -16,7 +16,8 @@ NUMBER_PACKAGES = {
     'industrial_pallet1x1.stl': (1, 1),
     'industrial_pallet1x4.stl': (1, 4),
     'industrial_pallet2x4.stl': (2, 4),
-    'package.stl': (1, 1)
+    'package.stl': (1, 1),
+    'Modul.stl': (1, 1)
 }
 
 DIMENSIONS_PACKAGE = {
@@ -27,7 +28,8 @@ DIMENSIONS_PACKAGE = {
     'industrial_pallet1x1.stl': [1.2, 1, 0.4],
     'industrial_pallet1x4.stl': [0.6, 0.5, 0.4],
     'industrial_pallet2x4.stl': [0.6, 0.5, 0.4],
-    'package.stl': [0.425, 0.335, 0.260]
+    'package.stl': [0.425, 0.335, 0.260],
+    'Modul.stl': [0.355, 0.240, 0.160]
 }
 
 FREIGHTTYPES = {'cells', 'modules', 'pack'}

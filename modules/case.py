@@ -1098,6 +1098,7 @@ class Case(SolutionDirectory):
         deltaT = self._get_max_delta(ambienttemperature)
         
         max_deltaT = 1
+        timestep = 3600
         df_list = []
         print('Initial temperature difference to ambient temperature: {}'.format(deltaT))
         
@@ -1108,8 +1109,8 @@ class Case(SolutionDirectory):
             print('Temperature difference to ambient temperature: {}'.format(deltaT))
             latesttime = float(self.getParallelTimes()[-1])
             controlDict = ParsedParameterFile(os.path.join(self.systemDir(), "controlDict"))
-            controlDict['endTime'] = latesttime + 7200
-            controlDict['writeInterval'] = 7200
+            controlDict['endTime'] = latesttime + timestep
+            controlDict['writeInterval'] = timestep
             controlDict.writeFile()
 
             self._change_dictionary_solids(ambienttemperature)

@@ -52,6 +52,11 @@ parser.add_argument(
     metavar=("region", "location"), 
     nargs='+')
 parser.add_argument(
+    "--probefreight", 
+    help="Read temperature from one freight region for each freight element", 
+    metavar="region"
+    )
+parser.add_argument(
     "--pack", 
     help="Pack the case as a compressed file", 
     action="store_true"
@@ -126,7 +131,11 @@ if transport.type == 'car':
 else:
     transportcase.run()
 
-# # Postprocess the simulation
+# Simulate arrival
+if args.arrival:
+    transportcase.simulate_arrival(transport.arrival_temperature)
+
+# Postprocess the simulation
 if args.probe:
     if args.probe[0] == 'file':
         filepath = os.path.join(transportpath, 'probe_locations.csv')
@@ -136,6 +145,10 @@ if args.probe:
         location = [float(i) for i in args.probe[1][1:-1].split(' ')]
         transportcase.probe(region, location=location, clear=False)
 
+if args.probefreight:
+    # print(args.probefreight)
+    transportcase.probe_freight(args.probefreight)
+
 postprocessed_regions = [
     os.path.splitext(region)[0] for region in os.listdir(transport._postprocesspath_temperature)
     ]
@@ -144,10 +157,6 @@ postprocessed_regions = [
 if sorted(postprocessed_regions) !=  sorted(transportcase.regions()) or args.postprocess:
     print('Running postprocess on transport')
     transportcase.postprocess()
-
-# Simulate arrival
-if args.arrival:
-    transportcase.simulate_arrival(transport.arrival_temperature)
 
 if (transportcase.latesttime() - transportcase.duration()) > 1000:
     print('Running postprocess on arrival')
