@@ -10,6 +10,7 @@ from scipy.spatial.transform import Rotation
 # (number of layers, packages per layer) 
 NUMBER_PACKAGES = {
     'batterypack.stl': (1, 1),
+    'pallet1x1.stl': (1, 1),
     'pallet1x4.stl': (1, 4),
     'pallet2x4.stl': (2, 4),
     'pallet3x4.stl': (3, 4),
@@ -22,6 +23,7 @@ NUMBER_PACKAGES = {
 
 DIMENSIONS_PACKAGE = {
     'batterypack.stl': [1.2, 0.7, 0.175],
+    'pallet1x4.stl': [1.2, 0.8, 0.4],
     'pallet1x4.stl': [0.6, 0.4, 0.4],
     'pallet2x4.stl': [0.6, 0.4, 0.4],
     'pallet3x4.stl': [0.6, 0.4, 0.4],
