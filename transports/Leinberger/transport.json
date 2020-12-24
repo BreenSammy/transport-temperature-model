@@ -1,7 +1,7 @@
 {
     "type": "container40",
     "start": "2005-09-26 19:48:00",
-    "initial_temperature": 15,
+    "initial_temperature": 12,
     "arrival_temperature": 17,
     "route": {
         "type": "FTM",

@@ -1,6 +1,6 @@
 {
     "type": "carrier",
-    "start": "2019-07-01 10:00:00",
+    "start": "2019-08-01 10:00:00",
     "initial_temperature": 20,
     "arrival_temperature": 20,
     "route": {
@@ -18,7 +18,7 @@
     "cargo": [
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 0.5399,
                 -0.54,
@@ -41,7 +41,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 1.3601,
                 -0.54,
@@ -64,7 +64,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 2.2001,
                 -0.54,
@@ -87,7 +87,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 3.0401,
                 -0.54,
@@ -110,7 +110,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 3.8801,
                 -0.54,
@@ -133,7 +133,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 4.7201,
                 -0.54,
@@ -156,7 +156,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 5.5601,
                 -0.54,
@@ -179,7 +179,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 0.8801,
                 0.5301,
@@ -202,7 +202,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 2.3201,
                 0.5301,
@@ -225,7 +225,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 3.7601,
                 0.5301,
@@ -248,7 +248,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 5.2001,
                 0.5301,
@@ -271,7 +271,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 6.401,
                 -0.54,
@@ -294,7 +294,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 7.2401,
                 -0.54,
@@ -317,7 +317,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 8.0801,
                 -0.54,
@@ -340,7 +340,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 8.9201,
                 -0.54,
@@ -363,7 +363,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 9.7601,
                 -0.54,
@@ -386,7 +386,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 10.601,
                 -0.54,
@@ -409,7 +409,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 11.4401,
                 -0.54,
@@ -432,7 +432,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 6.6401,
                 0.5301,
@@ -455,7 +455,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 8.0801,
                 0.5301,
@@ -478,7 +478,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 9.5201,
                 0.5301,
@@ -501,7 +501,7 @@
         },
         {
             "type": "Pallet",
-            "templateSTL": "pallet2x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 10.9601,
                 0.5301,
