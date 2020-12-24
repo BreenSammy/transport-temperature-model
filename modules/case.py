@@ -249,6 +249,7 @@ class Case(SolutionDirectory):
 
         self.load_weatherdata()
         if 'onsea' not in self.weatherdata.columns:
+            print('Checking if waypoints are on sea or not')
             lats = self.weatherdata['Lat'].values
             lons = self.weatherdata['Lon'].values 
             self.weatherdata['onsea'] = [onsea(lats[i], lons[i]) for i in range(len(lats))] 
