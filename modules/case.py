@@ -760,6 +760,45 @@ class Case(SolutionDirectory):
 
             # Save as csv
             result.to_csv(os.path.join(targetpath, region + '.csv'), index=False, encoding='utf-8')
+        
+        # Calculate average data for all cargo regions
+        transport_postProcessing = os.path.join(os.path.dirname(self.name), 'postProcessing')
+        cargodata_path = os.path.join(transport_postProcessing, 'temperature', 'cargo.csv')
+        paths = glob.glob(transport_postProcessing + '/temperature/battery*.csv')
+        n = 0
+        df_list_average = []
+        df_list_min = []
+        df_list_max = []
+        time = pd.read_csv(paths[0], usecols=['time'])
+        for path in paths:
+            df_average = pd.read_csv(path, usecols=['average(T)'])
+            df_average.columns = [str(n)]
+            df_list_average.append(df_average)
+            df_min = pd.read_csv(path, usecols=['min(T)'])
+            df_min.columns = [str(n)]
+            df_list_min.append(df_min)
+            df_max = pd.read_csv(path, usecols=['max(T)'])
+            df_max.columns = [str(n)]
+            df_list_max.append(df_max)
+            n += 1
+
+        df_average = pd.concat(df_list_average, axis = 1, ignore_index = False, join = 'inner')
+        df_average['average(T)'] = df_average.mean(axis=1)
+        df_min = pd.concat(df_list_min, axis = 1, ignore_index = False, join = 'inner')
+        df_min['min(T)'] = df_min.mean(axis=1)
+        df_max = pd.concat(df_list_max, axis = 1, ignore_index = False, join = 'inner')
+        df_max['max(T)'] = df_max.mean(axis=1)
+
+        cargo_temperature = pd.concat(
+            [time, df_average['average(T)'], df_min['min(T)'], df_max['max(T)']],
+            axis = 1, ignore_index = False, join = 'inner'
+        )
+        cargo_temperature.to_csv(
+            cargodata_path, 
+            encoding='utf-8', 
+            index=False
+            )
+
 
     def read_cargo(self):
         # Read cargo if not existent
