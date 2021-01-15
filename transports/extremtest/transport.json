@@ -1,0 +1,258 @@
+{
+    "type": "container20",
+    "start": "2019-07-26 19:48:00",
+    "initial_temperature": 20,
+    "arrival_temperature": 20,
+    "route": {
+        "type": "FTM",
+        "start_coordinates": [
+            24.996260,
+            55.125360
+        ],
+        "end_coordinates": [
+            24.996260,
+            55.125360
+        ]
+    },
+    "stops": [
+        {
+            "duration": "240:00:00",
+            "lat": 24.996260,
+            "lon": 55.125360
+        }
+    ],
+    "cargo": [
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                0.801,
+                -0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06,
+                "thermalcapacity": 1203,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                0.801,
+                0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06,
+                "thermalcapacity": 1203,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                2.201,
+                -0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06,
+                "thermalcapacity": 1203,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                2.201,
+                0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06,
+                "thermalcapacity": 1203,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                3.601,
+                -0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06,
+                "thermalcapacity": 1203,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                3.601,
+                0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06,
+                "thermalcapacity": 1203,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                5.001,
+                -0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06,
+                "thermalcapacity": 1203,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21
+                ]
+            }
+        },
+        {
+            "type": "Pallet",
+            "templateSTL": "industrial_pallet2x4.stl",
+            "position": [
+                5.001,
+                0.5805,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "cells",
+                "dimensions": [
+                    0.173,
+                    0.125,
+                    0.045
+                ],
+                "weight": 2.06,
+                "thermalcapacity": 1203,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21
+                ]
+            }
+        }
+    ]
+}

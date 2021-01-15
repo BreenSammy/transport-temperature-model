@@ -1,3 +1,5 @@
+# Creates weatherdata file for simulation from ambient.csv file. Execute before ttm.
+
 from datetime import date, timedelta, datetime
 import os
 
