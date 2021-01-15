@@ -113,7 +113,7 @@ class ISD:
 
         return station
 
-    def temperature(self, input_date, lat: float, lon: float, output_station = False, ftp = False):
+    def temperature(self, input_date, lat: float, lon: float, output_station = False, ftp = False, output_distance = False):
         # Round to the next full hour, because database has data for full hours
         input_date = hour_rounder(input_date)
         # Sometimes the station has no data for the datetime, thus the loop
@@ -164,6 +164,10 @@ class ISD:
 
         if output_station:
             return temperature, station
+        elif output_distance:
+            return temperature, distance
+        elif output_distance and output_station:
+            return temperature, station, distance
         else:
             return temperature
 
@@ -419,7 +423,9 @@ def waypoints_temperature(datetimes, lat, lon):
     
     length = lat.size
     temperatures = np.empty(length)
+    distances = np.empty(length)
     temperatures[:] = np.nan
+    distances[:] = np.nan
 
     isd = ISD()
     OISST = OISSTFile(datetimes[0])
@@ -431,13 +437,19 @@ def waypoints_temperature(datetimes, lat, lon):
             day = datetimes[i].day
             OISST = OISSTFile(datetimes[i])
 
-        sst, _ =  OISST.sea_surface_temperature(lat[i], lon[i])
-        isd_temperature = isd.temperature(datetimes[i], lat[i], lon[i], ftp = True)
+        sst, distance_sst =  OISST.sea_surface_temperature(lat[i], lon[i])
+        isd_temperature, distance_isd = isd.temperature(
+            datetimes[i], lat[i], lon[i], 
+            ftp = True, 
+            output_distance = True
+            )
 
         if not np.isnan(isd_temperature):
             temperatures[i] = isd_temperature
+            distances[i] = distance_isd
         elif isinstance(sst, np.float32):
             temperatures[i] = sst
+            distances[i] = distance_sst
 
         if not np.isnan(temperatures[i]):
             print(
@@ -452,7 +464,7 @@ def waypoints_temperature(datetimes, lat, lon):
 
     clear()
 
-    return np.around(temperatures, 2)
+    return np.around(temperatures, 2), distances
 
 def degrees_decimal_to_east(lon):
     """

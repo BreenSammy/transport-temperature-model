@@ -158,9 +158,9 @@ if sorted(postprocessed_regions) !=  sorted(transportcase.regions()) or args.pos
     print('Running postprocess on transport')
     transportcase.postprocess()
 
-if (transportcase.latesttime() - transportcase.duration()) > 1000:
-    print('Running postprocess on arrival')
-    transportcase.postprocess(arrival=True)
+# if (transportcase.latesttime() - transportcase.duration()) > 1000:
+#     print('Running postprocess on arrival')
+#     transportcase.postprocess(arrival=True)
 
 # Plot results
 plots_content = os.listdir(transport._plotspath)

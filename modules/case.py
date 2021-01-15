@@ -172,12 +172,10 @@ class Case(SolutionDirectory):
     def purge_write(self):
         """Delete the penultimate timestep so only two time directories are saved at any time"""
         times = self.get_times()
+        # print(type(times[0]))
         if len(times) >= 2:
-            processor_directories = glob.glob(os.path.join(self.name, 'processor*'))
-            time_processor_directories = [
-                os.path.join(directory, str(int(times[0]))) for directory in processor_directories
-                ]
-            for directory in time_processor_directories:
+            processor_directories = glob.glob(os.path.join(self.name, 'processor*') + '/' + times[0])
+            for directory in processor_directories:
                 shutil.rmtree(directory)
 
     def change_transporttype(self, transporttype):
@@ -448,14 +446,14 @@ class Case(SolutionDirectory):
         latesttime = self.latesttime()
 
         # Delete times that are not complete, needed if simulation stops before finished and is then restarted
-        while sorted(self.regions_in_latesttime()) != sorted(self.regions()):
-            processor_directories = glob.glob(os.path.join(self.name, 'processor*'))
-            latesttime_processor_directories = [
-                os.path.join(directory, str(int(latesttime))) for directory in processor_directories
-                ]
-            for directory in latesttime_processor_directories:
-                shutil.rmtree(directory)
-            latesttime = self.latesttime()
+        # while sorted(self.regions_in_latesttime()) != sorted(self.regions()):
+        #     processor_directories = glob.glob(os.path.join(self.name, 'processor*'))
+        #     latesttime_processor_directories = [
+        #         os.path.join(directory, str(int(latesttime))) for directory in processor_directories
+        #         ]
+        #     for directory in latesttime_processor_directories:
+        #         shutil.rmtree(directory)
+        #     latesttime = self.latesttime()
 
         transport_duration = self.weatherdata['Date'].iloc[-1] - self.weatherdata['Date'].iloc[0] 
         transport_duration = transport_duration.total_seconds()
@@ -738,7 +736,6 @@ class Case(SolutionDirectory):
                             colname: initial_temperature,
                             }
 
-                   
                     # Read data from files and save in one dataframe
                     df_list = [pd.DataFrame( data = dict_head, index=[0])]
                     df_list.extend(
@@ -1006,8 +1003,8 @@ class Case(SolutionDirectory):
         )
 
         additional = self.getTimes()
-        additional.append('postProcessing')
-        additional.append('case.foam')
+        # additional.append('postProcessing')
+        # additional.append('case.foam')
 
         if not logs:
             exclude = ['logs']
@@ -1016,6 +1013,7 @@ class Case(SolutionDirectory):
 
         # self.packCase(pack_path, additional = additional, exclude = exclude)
         self.packCase(pack_path, additional = additional)
+        # self.packCase(pack_path)
    
     def _save_data(self, data, filename):
         postProcessing_path = os.path.join(os.path.dirname(self.name), 'postProcessing')
@@ -1073,16 +1071,20 @@ class Case(SolutionDirectory):
  
     def _get_max_delta(self, reftemperature, extrem = False):
         """Calculate the maximal temperature difference of all solid regions to a reference temperature"""
-
+        # print(self.getParallelTimes())
         # Catch if case did no transport
         if self.getParallelTimes() == ['0']:
             return abs(self.initial_temperature() - reftemperature)
 
-        latesttime = self.getParallelTimes()[-2]
+        # latesttime = self.getParallelTimes()[-2]
         path_postprocessing = os.path.join(self.name, "postProcessing")
 
         regions = self.regions()
         regions.remove('airInside')
+        latesttime = sorted(
+            set(os.listdir(os.path.join(path_postprocessing, 'battery0_0','max_battery0_0'))), 
+            key = float
+            )[-1]
 
         min_temperature = np.zeros(len(regions))
         max_temperature = np.zeros(len(regions))
@@ -1138,7 +1140,7 @@ class Case(SolutionDirectory):
         deltaT = self._get_max_delta(ambienttemperature)
         
         max_deltaT = 1
-        timestep = 3600
+        timestep = 14400
         df_list = []
         print('Initial temperature difference to ambient temperature: {}'.format(deltaT))
         

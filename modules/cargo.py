@@ -263,7 +263,7 @@ class Freight:
             print(self.elements_in_package)
             return self.elements_in_package
         result = [floor(dimensions_package[i] / self.dimensions[i]) for i in range(len(self.dimensions))]
-        print(result)
+        # print(result)
         if np.prod(result) == 0:
             raise ValueError('Freight does not fit into packaging. Check dimensions of freight against dimensions of package.')
         else:

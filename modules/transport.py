@@ -93,7 +93,7 @@ class Transport:
         lat = weatherdata.Lat.values
         lon = weatherdata.Lon.values
         # Read temperature from NOAA server and interpolate missing values
-        weatherdata['T'] = weather.waypoints_temperature(datetimes, lat, lon)
+        weatherdata['T'], weatherdata['distance'] = weather.waypoints_temperature(datetimes, lat, lon)
         weatherdata['T'] = weatherdata['T'].interpolate()
         
         add_seconds(weatherdata)
