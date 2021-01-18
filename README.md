@@ -4,40 +4,26 @@ This repository contains the proposed model of the bachelor thesis "Thermal Mode
 
 ## Getting Started
 
-<!---
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
+### Prerequisites - OpenFOAM
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
-
-### Prerequisites
-
-The thermal simulation is executed with the open source CFD software OpenFOAM. What things you need to install the software and how to install them
-
-```
-Give examples
-```
+The thermal simulation is executed with the open source CFD software OpenFOAM. The simulation case is compatible to OpenFOAM 7 v2006 , which must be installed on the system. An installation guide for debian/ubuntu systems can be found [here](https://develop.openfoam.com/Development/openfoam/-/wikis/precompiled/debian). For newer versions of OpenFOAM the template case has to be adapted.
 
 ### Installing
-
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
-
+After cloning the repository, you can install the module with the included setup script. Run
 ```
-Give the example
+python setup.py install --user
 ```
-
-And repeat
-
+to install localy. 
+If you want to install in develop mode run
 ```
-until finished
+python setup.py develop --user
 ```
-
-End with an example of getting some data out of the system or using it for a little demo
---->
+Changes in the code will be reflected immeditly in the behaviour of the programm.
 
 ## Running a transport simulation
 
-A transport simulation can be executed in a folder that contains a **transport.json** file. This is the main input file and includes all informations about the start time of the transport, the transport route and the cargo. 
+A transport simulation can be executed in a folder that contains a **transport.json** file. This is the main input file and includes all informations about the start time of the transport, the transport route and the cargo. A full explanation of all possible inputs can be found in the documentation.
 
 The simulation can be started with the simple command
 ```
@@ -51,14 +37,14 @@ The default configuration uses parallelisation with two local CPU cores. If desi
 ```
 ttm --cpucores core_count
 ```
-Additional commands are shown in the help 
+For additional commands run 
 ```
 ttm --help
 ```
 
 ### Results
 
-After the simulation the postprocessing utility collects all results in the postProcessing directory. The results are saved as CSV files. Data from each simulated region, e.g. airInside or battery0_0, are saved in seperate files. 
+After the simulation the postprocessing utility collects all results in the postProcessing directory. The results are saved as CSV files. Data from each simulated region, e.g. airInside or battery0_0, is saved in a seperate file. 
 
  * transport
 	 * case
@@ -79,16 +65,3 @@ After the simulation the postprocessing utility collects all results in the post
 ## Authors
 
 * **Sammy Breen** - s.breen@tum.de
-
-
-<!---
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
-
-## Acknowledgments
-
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
---->

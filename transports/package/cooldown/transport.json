@@ -1,0 +1,50 @@
+{
+    "type": "container",
+    "start": "2019-10-16 15:00:00",
+    "initial_temperature": 18,
+    "arrival_temperature": -2,
+    "route": {
+        "type": "FTM",
+        "start_coordinates": [
+            48.265588,
+            11.671388
+        ],
+        "end_coordinates": [
+            48.265588,
+            11.671388
+        ]
+    },
+    "stops": [
+    ],
+    "cargo": [
+        {
+            "type": "Pallet",
+            "templateSTL": "package.stl",
+            "position": [
+                1.3601,
+                -0.54,
+                0.144
+            ],
+            "orientation": [
+                0,
+                0,
+                0
+            ],
+            "freight": {
+                "type": "modules",
+                "dimensions": [
+                    0.355,
+                    0.110,
+                    0.160
+                ],
+                "weight": 10.84,
+                "thermalcapacity": 1000,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21
+                ]
+            }
+        }
+    ]
+}

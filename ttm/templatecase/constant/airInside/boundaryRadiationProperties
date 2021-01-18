@@ -1,0 +1,68 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2006                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      boundaryRadiationProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+"airInside_to_.*"
+{
+    type        opaqueReflective;
+
+    // Fraction of the reflected is diffussive
+    fd          0.0; // 0: all specular 1: all diffusive
+
+    wallAbsorptionEmissionModel
+    {
+        type            multiBandAbsorption;
+        absorptivity    (0 0);
+        emissivity      (0 0);
+    };
+}
+
+"carrier_.*"
+{
+    type        opaqueDiffusive;
+
+    wallAbsorptionEmissionModel
+    {
+        type            multiBandAbsorption;
+        absorptivity    (0.15 0.15);
+        emissivity      (0.15 0.15);
+    };
+}
+
+carrier
+{
+    type        opaqueDiffusive;
+
+    wallAbsorptionEmissionModel
+    {
+        type            multiBandAbsorption;
+        absorptivity    (0.15 0.15);
+        emissivity      (0.15 0.15);
+    };
+}
+
+bottom
+{
+    type        opaqueDiffusive;
+
+    wallAbsorptionEmissionModel
+    {
+        type            multiBandAbsorption;
+        absorptivity    (0.15 0.15);
+        emissivity      (0.15 0.15);
+    };
+}
+// ************************************************************************* //
