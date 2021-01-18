@@ -10,21 +10,26 @@
             13.370865
         ],
         "end_coordinates": [
-            52.019344,
-            12.587271
+            48.265588,
+            11.671388
         ]
     },
     "stops": [
         {
             "duration": "01:15:00",
-            "lat": 52.019344,
-            "lon": 12.587271
+            "lat": 50.978005,
+            "lon": 11.870212
+        },
+        {
+            "duration": "01:15:00",
+            "lat": 49.882187,
+            "lon": 11.583491
         }
     ],
     "cargo": [
         {
             "type": "Pallet",
-            "templateSTL": "pallet1x4.stl",
+            "templateSTL": "pallet3x4.stl",
             "position": [
                 1.3601,
                 -0.54,
