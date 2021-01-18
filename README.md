@@ -19,11 +19,11 @@ If you want to install in develop mode run
 ```
 python setup.py develop --user
 ```
-Changes in the code will be reflected immeditly in the behaviour of the programm.
+In develop mode changes to the code will be reflected immediately in the behaviour of the program.
 
 ## Running a transport simulation
 
-A transport simulation can be executed in a folder that contains a **transport.json** file. This is the main input file and includes all informations about the start time of the transport, the transport route and the cargo. A full explanation of all possible inputs can be found in the documentation.
+A transport simulation can be executed in a folder that contains a **transport.json** file. This is the main input file and includes all information about the start time of the transport, the transport route and the cargo. A full explanation of all possible inputs can be found in the documentation.
 
 The simulation can be started with the simple command
 ```
@@ -33,7 +33,7 @@ If the current directory is not the directory where the simulation shall be exec
 ```
 ttm --transport path_to_directory
 ```
-The default configuration uses parallelisation with two local CPU cores. If desired, a custom core count can be set with the command
+The default configuration uses parallelisation with four local CPU cores. If desired, a custom core count can be set with the command
 ```
 ttm --cpucores core_count
 ```

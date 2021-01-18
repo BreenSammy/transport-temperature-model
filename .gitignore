@@ -22,3 +22,6 @@ isd-history.csv
 isd-inventory.csv
 visualization.html
 .vscode
+build/
+dist/
+*.egg-info
