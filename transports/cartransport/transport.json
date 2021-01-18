@@ -1,0 +1,50 @@
+{
+    "type": "car",
+    "start": "2019-03-02 05:23:00",
+    "initial_temperature": 24,
+    "arrival_temperature": 24,
+    "route": {
+        "type": "FTM",
+        "start_coordinates": [
+            52.51868,
+            13.370865
+        ],
+        "end_coordinates": [
+            48.265588,
+            11.671388
+        ]
+    },
+    "stops": [
+        {
+            "duration": "01:15:00",
+            "lat": 50.978005,
+            "lon": 11.870212
+        },
+        {
+            "duration": "01:15:00",
+            "lat": 49.882187,
+            "lon": 11.583491
+        }
+    ],
+    "cargo": [
+        {
+            "type": "Car",
+            "templateSTL": "batterypack.stl",
+            "freight": {
+                "type": "pack",
+                "dimensions": [
+                    1.2,
+                    0.7,
+                    0.175
+                ],
+                "weight": 223,
+                "thermalcapacity": 1243,
+                "thermalconductivity": [
+                    0.48,
+                    0.48,
+                    21.0
+                ]
+            }
+        }
+    ]
+}
