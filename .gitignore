@@ -25,3 +25,26 @@ visualization.html
 build/
 dist/
 *.egg-info
+*.aux
+*.bcf
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.blx.bib
+*.synctex.gz
+*.toc
+*.upa
+*.bak
+*.tdo
+*.tmp
+*.bbl
+*.blg
+*.dvi
+main.pdf
+*tex.preview*
+figures - Kopie
+*.auxlock
+*.fls
+*.md5

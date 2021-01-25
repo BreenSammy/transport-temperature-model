@@ -1,0 +1,27 @@
+Die Vorlage darf nicht eigenhändig verändert werden.
+Anmerkungen und Änderungswünsche bzgl. der Latex-Vorlage bitte an den aktuellen Vorlagenbetreuer:
+Die Verantwortung für die Latex-Vorlage trägt derzeit Werner Schmid: w.schmid@ftm.mw.tum.de
+
+Anmerkungen und Änderungswünsche bzgl. der allgemeinen Lehrstuhl-Vorlage (wie bspw. Layoutänderungen) bitte an den aktuellen Word-Vorlagenbetreuer:
+Ferdinand Schockenhoff, schockenhoff@ftm.mw.tum.de
+
+## Änderungshistorie:
+
+Update 02.04.2020: V2.1 (Umsetzung: Werner Schmid)
+Fehlerbehebung in der Klasse: Die FTM-Vorlage war in der neuen MikTeX-Version nicht mehr lauffähig. Dies wurde durch die Konfiguration des Caption-Pakets mit "\captionsetup[figure]{figurewithin=chapter}" hervorgerufen, weil "figurewithin=chapter" keine Option innerhalb der figure-Umgebung sein darf, sondern global gesetzt werden muss. Die caption-Konfiguration wurde mit dieser Version behoben.
+
+Update 31.05.2019: V2.0 (Umsetzung: Konstantin Riedl, Thomas Ponn)
+Declaration of Consent (Open Source) hinzugefügt und Umbau der Erlärung, Geheimhaltungsverpflichung, Declaration of Consent als Teil der Klasse.
+subfigure-Package durch subcaption-Package ersetzt (siehe Kapitel 3.4.4), FTM Citavi Filter für Citavi 6 erweitert (Kapitel 3.2.2) 
+Kleinere Layout Änderungen: Abkürzungen können grupppiert oder nich gruppiert dargestellt werden (optGroupedAbbreviation)
+
+Update 05.07.2018: V1.0 (Umsetzung: Konstantin Riedl, Thomas Ponn, Werner Schmid)
+Implementierung der Option "optEnglish" in der Klasse zum Umstellen der gesamten Vorlage auf Englisch (inkl. Deckblatt, Aufgabenstellung, Verzeichnisse, Zitate, Anhang, ...)
+Kleinere Layout-Anpassungen
+Erweiterung der Auto-Complete-Datei für TexStudio (FTMlatex.cwl)
+
+Update 28.05.2018: V0.9 (Umsetzung: Konstantin Riedl, Thomas Ponn, Werner Schmid)
+Neuaufbau der gesamten Latex-Vorlage auf Basis des AM-Latex-Projekts https://gitlab.lrz.de/AM/TUMlatex
+Grundsätzliche Orientierung an Layout und Schriftsatz der FTM-Wordvorlage
+Schreiben der Latex-Anleitung als Dokumentation und Hilfestellung für Neulinge bei Latex
+

@@ -1,0 +1,90 @@
+\usetikzlibrary{quotes}
+\usetikzlibrary{angles}
+\usetikzlibrary{babel}
+\usepgfplotslibrary{groupplots}%
+\usepgfplotslibrary{dateplot}%
+\setlength\heavyrulewidth{0.05em}
+\definecolor{cardboard}{RGB}{205,159,97}%
+\pgfplotsset{
+	compat=newest,
+	scale only axis = true,
+	max space between ticks=25pt,
+    try min ticks=5,
+    width=6cm,
+    cycle list={
+	    {TUMBlue,mark=*},
+	    {TUMOrange,mark=square}, 
+	    {TUMGreen,mark options={fill=TUMGreen!40},mark=otimes*},
+	    {TUMBlack,mark=star},
+	    {TUMBlue,mark=diamond*},
+	    {TUMOrange,densely dashed,mark=*},
+	    {TUMGreen,mark options={fill=TUMGreen!40},mark=square},
+	    {TUMBlack,densely dashed,mark=otimes*},
+	    {TUMBlue,densely dashed,mark=star},
+	    {TUMOrange,densely dashed,mark=diamond},    
+	},
+	every axis/.style = {	
+		  ymajorgrids=true,
+	    grid style=dashed,
+	    scale only axis,
+	    trim axis left,
+	    trim axis right,
+        axis line style={thick}	    
+	    },
+	every axis plot/.append style={thick},
+    tick style={black, thick}
+}
+\tikzset{
+    semithick/.style={line width=0.8pt},
+    dimenVert/.style={
+    	<->,>=latex,thin,
+    	every rectangle node/.style={
+    		fill=white,midway, xshift = -1pt, anchor = south,font=\sffamily, rotate=90
+    		}
+    		},
+    dimenHor/.style={
+    <->,>=latex,thin,
+    every rectangle node/.style={
+    fill=white,midway,yshift = 1pt, anchor = south, font=\sffamily
+    }
+    }
+}%
+%
+\tikzstyle{decision} = [diamond, draw, fill=TUMGray2, text badly centered, node distance=3cm, inner sep=0pt, aspect=2,, text width = 7em, text=TUMWhite]%
+\tikzstyle{block} = [rectangle, draw, fill=TUMBlue, text centered, text width=7.5em, minimum height=3em, text=TUMWhite]%
+\tikzstyle{dot} = [circle,fill,inner sep=2pt]%
+\tikzstyle{line} = [draw, -{Latex[length=2mm,width=3mm,angle'=45]}, thick]%
+\tikzstyle{cloud} = [draw, ellipse,fill=TUMWhite, node distance=2cm, minimum height=2.5em]%
+% Make boxplots from table
+\usepackage{pgfplotstable}
+\usepgfplotslibrary{statistics}
+\makeatletter
+\pgfplotsset{
+    boxplot prepared/every whisker/.style={ultra thick,dashed,cyan}
+    boxplot prepared/every box/.style={very thick,dashed,draw=black,fill=yellow},
+    boxplot prepared/every median/.style={densely dotted,cyan,ultra thick},
+    boxplot prepared from table/.code={
+        \def\tikz@plot@handler{\pgfplotsplothandlerboxplotprepared}%
+        \pgfplotsset{
+            /pgfplots/boxplot prepared from table/.cd,
+            #1,
+        }
+    },
+    /pgfplots/boxplot prepared from table/.cd,
+        table/.code={\pgfplotstablecopy{#1}\to\boxplot@datatable},
+        row/.initial=0,
+        make style readable from table/.style={
+            #1/.code={
+                \pgfplotstablegetelem{\pgfkeysvalueof{/pgfplots/boxplot prepared from table/row}}{##1}\of\boxplot@datatable
+                \pgfplotsset{boxplot/#1/.expand once={\pgfplotsretval}}
+            }
+        },
+        make style readable from table=lower whisker,
+        make style readable from table=upper whisker,
+        make style readable from table=lower quartile,
+        make style readable from table=upper quartile,
+        make style readable from table=median,
+        make style readable from table=lower notch,
+        make style readable from table=upper notch
+}
+\makeatother

@@ -1,0 +1,313 @@
+%% !TeX spellcheck = en_US
+\documentclass[%
+FTMstudentthesis%        baseclass
+,optArial%              font (alternative: optCharter)
+,optBiber% 			    bibliography tool (alternative: optBibtex)
+,optEnglish% 		    [optional] deutsche Vorlage: optGerman, english version: optEnglish
+%,optTikzExternalize%   [optional] compiles faster for large tikz images
+%,optHideTodos%          [optional] disables the todonotespackage and hides any todos and missingfigures
+%,optGroupedAbbreviation%	[optional] gruppieren der Abkürzungen nach Buchstaben	
+,optCMYK%						printing text pages as black and white
+]{FTMlatex}%
+%
+%
+% \usepackage{shellesc}
+% \usepackage{pgfplots}
+\usepackage[version=4]{mhchem}
+\usepackage[edges]{forest}
+\usepackage{tabulary}
+\usepackage{afterpage}
+\usepackage{caption}
+\usepackage{floatrow}
+\usetikzlibrary{calc}
+% Table float box with bottom caption, box width adjusted to content
+\newfloatcommand{capbtabbox}{table}[][\FBwidth]
+\sisetup{separate-uncertainty=true, multi-part-units=single}
+\captionsetup{justification=raggedright,singlelinecheck=false,format=hang}
+\include{source/definitions/your_own_definitions}%
+\include{source/JSONStyle}%
+\include{source/ForestStyle}%
+\include{source/TikzConfig}%
+% Set paths
+\graphicspath{{figures/}}%
+\addbibresource{source/bibliography/library.bib}
+%\addbibresource{source/bibliography/literature.bib}
+\include{source/lists/abbreviations}% Definition of Acronyms
+\usepackage{listings} %code extracts
+\usepackage{xcolor} %custom colours
+\usepackage{mdframed} %nice frames
+%
+\mdfdefinestyle{code}{
+        roundcorner     	=5pt,
+        middlelinewidth 	=1pt,
+        innermargin     	=0.7cm,
+        outermargin     	=0.7cm,
+        innerleftmargin  	=0cm,
+        innerrightmargin	=0cm,
+        innertopmargin      =-0.12cm,
+		innerbottommargin   =-0.35cm,
+		backgroundcolor		=TUMGray3,
+		linecolor			=TUMGray3,
+		outerlinewidth		=1	
+}
+\newmdenv[style=code]{code}
+
+\lstdefinestyle{BASH}
+{
+    language=bash,
+	columns=fullflexible,
+	numbers=none,
+  	% backgroundcolor=\color{gray!15},
+  	linewidth=0.98\linewidth,
+	xleftmargin=0.02\linewidth,
+	% basicstyle=\ttfamily
+}
+
+\def\ContinueLineNumber{\lstset{firstnumber=last}}
+\def\StartLineAt#1{\lstset{firstnumber=#1}}
+\let\numberLineAt\StartLineAt
+
+\begin{document}%
+
+\begin{titlepage}
+	\begin{center}
+		\vspace*{2cm}
+		\raggedright
+		{\Huge\textbf{Transport Temperature Model}}
+
+		\vspace{0.5cm}
+		{\Large Documentation}
+			 
+		\vspace{1.5cm}
+ 
+		\textbf{Sammy Breen}
+			 
+	\end{center}
+\end{titlepage}
+
+\FTMPrintTableOfContents%
+
+%% =========================
+%% ------- Main Text -------
+%% =========================
+
+\FTMMainText%
+\chapter{Documentation}
+\section{Input file}%
+%
+A transport simulation can be executed in a folder that contains a transport.json file. This is the main input file and includes all information about the start time of the transport, the transport route and the cargo.%
+
+The first entry is the \textbf{type} of transport:%
+%
+\begin{code}
+\begin{lstlisting}[language=json]
+"type": "container",
+\end{lstlisting}
+\end{code} 
+%
+The model contains four transport types%
+\begin{itemize}%
+	\item container%
+	\item container40%
+	\item carrier%
+	\item car%
+\end{itemize}%
+%
+The type \textbf{container} models transports in a 20-foot-long container, \textbf{container40} a 40-foot-long container, \textbf{carrier} a truck carrier and \textbf{car} is for car transports. The transport types are defined at the start of the file case.py.%
+
+The key \textbf{start} sets the start date and time of the transport:
+\begin{code}
+\ContinueLineNumber
+\begin{lstlisting}[language=json]
+"start": "2019-03-02 05:23:00",
+\end{lstlisting}
+\end{code} 
+%
+The date and time are given in ISO 8601 format \textbf{YYYY-MM-DD hh:mm:ss}.%
+
+The temperature of the cargo and the air inside the carrier at the start of the transport are given with the key \textbf{initial\_temperature}. With \textbf{arrival\_temperature} one can set the ambient temperature at the destination of the transport. This is needed for simulation of heat exchange after the transport in stationary surroundings.%
+\begin{code}
+\ContinueLineNumber
+\begin{lstlisting}[language=json]
+"initial_temperature": 20,
+"arrival_temperature": 20,
+\end{lstlisting}
+\end{code}
+%
+The model contains two variants to define transport routes. The first option is to use the rounting service of the Institute of Automotive Technology. This service is based on the routing engine by OpenStreetMap (OSM). To use a route from this service, only the start and end coordinates of the route are needed. Coordinates are given in the format $[\textrm{lat}, \textrm{lon}]$.
+
+\begin{code}
+\ContinueLineNumber
+\begin{lstlisting}[language=json]
+"route": {
+	"type": "FTM",
+	"start_coordinates": [
+		52.51868,
+		13.370865
+	],
+	"end_coordinates": [
+		48.265588,
+		11.671388
+	]
+},
+\end{lstlisting}
+\end{code}
+%
+This method only works for routes on streets and in europe.%
+
+The second option is to use gps data of a transport. For this the name of the file, that contains the gps data, has to be set. The file needs to be in the same directory as the transport.json file. The model supports gpx and csv files. The optional keys \textbf{timezone}, \textbf{trimstart}, \textbf{trimend} can be used to modify the gps data. \textbf{timezone} is used to specify the timezone of the time readings, if they are not in UTC. \textbf{trimstart} and \textbf{trimend} can trim the data at the start and end. This is useful for data files, that start before the actual transport or contain readings after the transport. 
+
+\begin{code}
+\ContinueLineNumber
+\begin{lstlisting}[language=json]
+"route": {
+	"filename": "gpsdata.gpx",
+	"timezone": "+01:00",
+	"trimstart": "02:19:00",
+	"trimend": "00:00:00"
+},
+\end{lstlisting}
+\end{code}
+%
+The key  \textbf{cargo} specifies a list with all cargo entries. Each entry has a \textbf{type}, \textbf{templateSTL}, \textbf{position}, \textbf{orientation} and  \textbf{freight}. The model distinguishes between the two cargo types ``Pallet'' and ``Car''. ``Pallet'' is used for all packaged types of cargo. ``Car'' can only be used with car transports and uses the car model.%
+
+\begin{figure}[!htbp]
+	\centering
+	\input{./figures/meshGeneration/palletPositioning}
+	\caption{Positioning of cargo in carrier}
+	\label{fig:positioning}
+\end{figure}
+%
+For cargo of th type ``Pallet'' the position and orientation has to be set. \FTMfigref{fig:positioning} shows how the position system works. The orientation is set as rotations around the axes in degrees. Should the cargo be a car, the keys \textbf{position} and \textbf{orientation} are not needed.\\%
+Under \textbf{freight} the information of one item of the packaged goods is given. These inputs are used to calculate the thermal properties of the cargo The needed inputs are \textbf{type}, \textbf{dimensions}, \textbf{weight}, \textbf{thermalcapacity}, \textbf{thermalconductivity}.  The dimensions of the freight determines the orientation in the package. The thermal conductivity is set as a vector because of the anisotropic behaviour of battery cells. The dimensions and the thermal conductivity are rotated according to \textbf{orientation}.%
+
+\begin{code}
+\ContinueLineNumber
+\begin{lstlisting}[language=json]
+"cargo": [
+	{
+		"type": "Pallet",
+		"templateSTL": "pallet3x4.stl",
+		"position": [
+			1.3601,
+			-0.54,
+			0.144
+		],
+		"orientation": [
+			0,
+			0,
+			90
+		],
+		"freight": {
+			"type": "cells",
+			"dimensions": [
+				0.173,
+				0.125,
+				0.045
+			],
+			"weight": 2.06,
+			"thermalcapacity": 1243,
+			"thermalconductivity": [
+				0.48,
+				0.48,
+				21.0
+			]
+		}
+	}
+]
+\end{lstlisting}
+\end{code}%
+%
+\section{Terminal Commands}
+%
+The program uses a series of commands to control the simulation. The simulation can be started with the simple command
+%
+\begin{code}
+\begin{lstlisting}[style =BASH]
+	$ ttm
+\end{lstlisting}
+\end{code}
+%
+If the current directory is not the directory where the simulation shall be executed, one can use the command
+%
+\begin{code}
+\begin{lstlisting}[style =BASH]
+$ ttm --transport path_to_directory
+\end{lstlisting}
+\end{code}
+%
+The default configuration uses parallelisation with four local CPU cores. If desired, a custom core count can be set with the command
+%
+\begin{code}
+\begin{lstlisting}[style =BASH]
+$ ttm --cpucores core_count
+\end{lstlisting}
+\end{code}%
+%
+With the flag savetimes all timedirectories of the OpenFOAM simulation are saved. Otherwise only the last two times are saved.
+\begin{code}
+\begin{lstlisting}[style =BASH]
+$ ttm --savetimes
+\end{lstlisting}
+\end{code}%
+%
+The parallelisation deconstructs the case in multiple regions. If the simulation results should be visualised, the case needs to be reconstruct. The flag reconstruct does that.
+% 
+\begin{code}
+\begin{lstlisting}[style =BASH]
+$ ttm --reconstruct
+\end{lstlisting}
+\end{code}%
+%
+If the simulation case needs to be transferd to another device, it can be compressed with the flag pack.
+% 
+\begin{code}
+\begin{lstlisting}[style =BASH]
+$ ttm --pack
+\end{lstlisting}
+\end{code}%
+%
+The model contains a method to read the temperature from a specific location in the mesh. This probing needs the name of the region and the coordinates of the location.
+% 
+\begin{code}
+\begin{lstlisting}[style =BASH]
+$ ttm --probe regionname '(x y z)'
+\end{lstlisting}
+\end{code}%
+%
+Probe locations can also be set in a csv file with the columns region, x, y and z named probe\_locations.csv. This file has to be in the transport directory.
+% 
+\begin{code}
+\begin{lstlisting}[style =BASH]
+$ ttm --probe file
+\end{lstlisting}
+\end{code}%
+%
+The heat exchange after the transport can be simulated with the command
+% 
+\begin{code}
+\begin{lstlisting}[style =BASH]
+$ ttm --arrival
+\end{lstlisting}
+\end{code}%
+%
+The clone flag overwrites the existing transport case and clones a new template case.
+% 
+\begin{code}
+\begin{lstlisting}[style =BASH]
+$ ttm --clone
+\end{lstlisting}
+\end{code}%
+%
+New weather data can be gathered with the weather flag.
+% 
+\begin{code}
+\begin{lstlisting}[style =BASH]
+$ ttm --weather
+\end{lstlisting}
+\end{code}%
+%
+
+\end{document}%
+%
+%
